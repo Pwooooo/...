@@ -20,6 +20,7 @@ import {
   Menu,
   Play,
   User,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -172,6 +173,23 @@ export default function Sidebar({
               );
             })}
           </div>
+
+          {/* Settings Section */}
+          <div className="space-y-1 py-3 border-t border-zinc-900 mt-2">
+            <Link
+              href="/settings"
+              onClick={onClose}
+              className={cn(
+                "flex items-center gap-4 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ease-out",
+                pathname === "/settings"
+                  ? "bg-white/[0.08] text-white font-semibold shadow-sm"
+                  : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
+              )}
+            >
+              <Settings className="h-5 w-5" />
+              <span>Settings</span>
+            </Link>
+          </div>
         </aside>
       </div>
     );
@@ -278,6 +296,22 @@ export default function Sidebar({
             </Link>
           );
         })}
+      </div>
+
+      {/* Settings Section */}
+      <div className="space-y-1 py-3 border-t border-zinc-900 mt-2">
+        <Link
+          href="/settings"
+          className={cn(
+            "flex items-center gap-4 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ease-out",
+            pathname === "/settings"
+              ? "bg-white/[0.08] text-white font-semibold shadow-sm"
+              : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
+          )}
+        >
+          <Settings className="h-5 w-5" />
+          <span>Settings</span>
+        </Link>
       </div>
     </aside>
   );

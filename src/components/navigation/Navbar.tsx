@@ -15,6 +15,7 @@ import {
   Tv,
   UploadCloud,
   Radio,
+  Settings,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -181,13 +182,13 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
                 className="absolute right-0 top-full mt-2 w-60 rounded-2xl bg-zinc-950 border border-white/10 p-2 shadow-2xl z-50 animate-in fade-in slide-in-from-top-1 duration-150 select-none text-white"
                 onClick={(e) => e.stopPropagation()}
               >
-                {/* Profile header link */}
+                {/* Profile header link (matches user screenshot) */}
                 <Link
                   href="/profile"
                   onClick={() => setIsUserMenuOpen(false)}
-                  className="flex items-center gap-3 p-2.5 pb-3 border-b border-zinc-800 hover:bg-white/[0.04] rounded-xl transition-colors cursor-pointer group"
+                  className="flex items-center gap-3 p-2.5 pb-3 border-b border-zinc-800/80 hover:bg-[#222222] rounded-xl transition-colors cursor-pointer group"
                 >
-                  <div className="h-9 w-9 rounded-full overflow-hidden bg-white text-black flex items-center justify-center text-xs font-bold flex-shrink-0 group-hover:scale-105 transition-transform">
+                  <div className="h-10 w-10 rounded-full overflow-hidden bg-zinc-800 text-white flex items-center justify-center text-sm font-bold flex-shrink-0 border border-white/10 group-hover:scale-105 transition-transform">
                     {user.avatarUrl ? (
                       <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
                     ) : (
@@ -195,39 +196,50 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-white truncate group-hover:text-zinc-200">{user.name}</p>
+                    <p className="text-xs font-bold text-white truncate">{user.name}</p>
                     <p className="text-[11px] text-zinc-400 truncate">@{user.handle}</p>
-                    <p className="text-[10px] text-zinc-500 font-semibold mt-0.5">View profile →</p>
+                    <p className="text-[11px] text-sky-400 font-medium hover:underline mt-0.5">
+                      View your channel
+                    </p>
                   </div>
                 </Link>
 
-                <div className="py-1">
+                <div className="py-1.5 space-y-0.5">
                   <Link
                     href="/profile"
                     onClick={() => setIsUserMenuOpen(false)}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-zinc-300 hover:text-white hover:bg-[#222222] transition-colors"
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:text-white hover:bg-[#222222] transition-colors"
                   >
                     <User className="h-4 w-4 text-zinc-400" />
-                    <span>Your profile</span>
+                    <span>Your channel</span>
                   </Link>
 
                   <Link
                     href="/studio/videos"
                     onClick={() => setIsUserMenuOpen(false)}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-zinc-300 hover:text-white hover:bg-[#222222] transition-colors"
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:text-white hover:bg-[#222222] transition-colors"
                   >
                     <Tv className="h-4 w-4 text-zinc-400" />
                     <span>Entropy Studio</span>
                   </Link>
+
+                  <Link
+                    href="/settings"
+                    onClick={() => setIsUserMenuOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:text-white hover:bg-[#222222] transition-colors"
+                  >
+                    <Settings className="h-4 w-4 text-zinc-400" />
+                    <span>Account settings</span>
+                  </Link>
                 </div>
 
-                <div className="pt-1 border-t border-zinc-800">
+                <div className="pt-1 border-t border-zinc-800/80">
                   <button
                     onClick={() => {
                       setIsUserMenuOpen(false);
                       logout();
                     }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-red-400 hover:text-red-300 hover:bg-[#222222] transition-colors text-left cursor-pointer"
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-red-400 hover:text-red-300 hover:bg-[#222222] transition-colors text-left cursor-pointer"
                   >
                     <LogOut className="h-4 w-4" />
                     <span>Sign out</span>
