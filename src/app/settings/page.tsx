@@ -20,7 +20,37 @@ import {
   Eye,
 } from "lucide-react";
 import Link from "next/link";
-import BoxTabs from "@/components/ui/BoxTabs";
+
+function BoxToggle({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: () => void;
+  label?: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={onChange}
+      className={`h-6 w-6 rounded-lg flex items-center justify-center transition-all cursor-pointer border-2 ${
+        checked
+          ? "border-white bg-black shadow-sm ring-1 ring-white/10"
+          : "border-zinc-700 bg-zinc-900/60 hover:border-zinc-500"
+      }`}
+    >
+      <span
+        className={`h-3 w-3 rounded-xs bg-white transition-all duration-150 ${
+          checked ? "scale-100 opacity-100" : "scale-50 opacity-0"
+        }`}
+      />
+    </button>
+  );
+}
 
 interface EntropySettings {
   defaultQuality: string;
@@ -224,13 +254,27 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Navigation Tabs (Box Style) */}
-            <div className="mt-6 pb-1">
-              <BoxTabs
-                items={SETTINGS_SECTIONS}
-                activeId={activeSection}
-                onChange={setActiveSection}
-              />
+            {/* Navigation Tabs */}
+            <div className="flex items-center gap-2 mt-6 overflow-x-auto scrollbar-none pb-1">
+              {SETTINGS_SECTIONS.map((section) => {
+                const Icon = section.icon;
+                const isActive = activeSection === section.id;
+                return (
+                  <button
+                    key={section.id}
+                    type="button"
+                    onClick={() => setActiveSection(section.id)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ease-out cursor-pointer ${
+                      isActive
+                        ? "bg-white/[0.08] text-white shadow-sm"
+                        : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{section.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -394,19 +438,11 @@ export default function SettingsPage() {
                   <p className="text-sm font-semibold text-white">Autoplay Next Video</p>
                   <p className="text-xs text-zinc-400">Automatically play next recommended video when one ends</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => updateSetting("autoplay", !settings.autoplay)}
-                  className={`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${
-                    settings.autoplay ? "bg-white justify-end" : "bg-zinc-800 justify-start"
-                  }`}
-                >
-                  <span
-                    className={`h-4 w-4 rounded-full transition-colors ${
-                      settings.autoplay ? "bg-black" : "bg-zinc-400"
-                    }`}
-                  />
-                </button>
+                <BoxToggle
+                  checked={settings.autoplay}
+                  onChange={() => updateSetting("autoplay", !settings.autoplay)}
+                  label="Autoplay Next Video"
+                />
               </div>
 
               {/* Chapter Jump Markers */}
@@ -415,19 +451,11 @@ export default function SettingsPage() {
                   <p className="text-sm font-semibold text-white">In-Player Chapter Markers</p>
                   <p className="text-xs text-zinc-400">Display chapter segments and timestamps on the progress bar</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => updateSetting("chapterMarkers", !settings.chapterMarkers)}
-                  className={`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${
-                    settings.chapterMarkers ? "bg-white justify-end" : "bg-zinc-800 justify-start"
-                  }`}
-                >
-                  <span
-                    className={`h-4 w-4 rounded-full transition-colors ${
-                      settings.chapterMarkers ? "bg-black" : "bg-zinc-400"
-                    }`}
-                  />
-                </button>
+                <BoxToggle
+                  checked={settings.chapterMarkers}
+                  onChange={() => updateSetting("chapterMarkers", !settings.chapterMarkers)}
+                  label="In-Player Chapter Markers"
+                />
               </div>
 
               {/* Ambient Glow */}
@@ -436,19 +464,11 @@ export default function SettingsPage() {
                   <p className="text-sm font-semibold text-white">Ambient Glow Lighting</p>
                   <p className="text-xs text-zinc-400">Cast subtle light reflections from video player into the page</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => updateSetting("ambientGlow", !settings.ambientGlow)}
-                  className={`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${
-                    settings.ambientGlow ? "bg-white justify-end" : "bg-zinc-800 justify-start"
-                  }`}
-                >
-                  <span
-                    className={`h-4 w-4 rounded-full transition-colors ${
-                      settings.ambientGlow ? "bg-black" : "bg-zinc-400"
-                    }`}
-                  />
-                </button>
+                <BoxToggle
+                  checked={settings.ambientGlow}
+                  onChange={() => updateSetting("ambientGlow", !settings.ambientGlow)}
+                  label="Ambient Glow Lighting"
+                />
               </div>
             </div>
           )}
@@ -469,19 +489,11 @@ export default function SettingsPage() {
                   <p className="text-sm font-semibold text-white">Keep Subscriptions Private</p>
                   <p className="text-xs text-zinc-400">Do not display subscribed channels on your public profile</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => updateSetting("privateSubscriptions", !settings.privateSubscriptions)}
-                  className={`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${
-                    settings.privateSubscriptions ? "bg-white justify-end" : "bg-zinc-800 justify-start"
-                  }`}
-                >
-                  <span
-                    className={`h-4 w-4 rounded-full transition-colors ${
-                      settings.privateSubscriptions ? "bg-black" : "bg-zinc-400"
-                    }`}
-                  />
-                </button>
+                <BoxToggle
+                  checked={settings.privateSubscriptions}
+                  onChange={() => updateSetting("privateSubscriptions", !settings.privateSubscriptions)}
+                  label="Keep Subscriptions Private"
+                />
               </div>
 
               {/* Private Playlists */}
@@ -490,19 +502,11 @@ export default function SettingsPage() {
                   <p className="text-sm font-semibold text-white">Keep Saved Playlists Private</p>
                   <p className="text-xs text-zinc-400">Hide your created playlists tab from public visitors</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => updateSetting("privatePlaylists", !settings.privatePlaylists)}
-                  className={`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${
-                    settings.privatePlaylists ? "bg-white justify-end" : "bg-zinc-800 justify-start"
-                  }`}
-                >
-                  <span
-                    className={`h-4 w-4 rounded-full transition-colors ${
-                      settings.privatePlaylists ? "bg-black" : "bg-zinc-400"
-                    }`}
-                  />
-                </button>
+                <BoxToggle
+                  checked={settings.privatePlaylists}
+                  onChange={() => updateSetting("privatePlaylists", !settings.privatePlaylists)}
+                  label="Keep Saved Playlists Private"
+                />
               </div>
 
               {/* Clear History Actions */}
@@ -538,19 +542,11 @@ export default function SettingsPage() {
                   <p className="text-sm font-semibold text-white">New Upload Notifications</p>
                   <p className="text-xs text-zinc-400">Get notified when channels you subscribe to post new videos</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => updateSetting("notifyUploads", !settings.notifyUploads)}
-                  className={`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${
-                    settings.notifyUploads ? "bg-white justify-end" : "bg-zinc-800 justify-start"
-                  }`}
-                >
-                  <span
-                    className={`h-4 w-4 rounded-full transition-colors ${
-                      settings.notifyUploads ? "bg-black" : "bg-zinc-400"
-                    }`}
-                  />
-                </button>
+                <BoxToggle
+                  checked={settings.notifyUploads}
+                  onChange={() => updateSetting("notifyUploads", !settings.notifyUploads)}
+                  label="New Upload Notifications"
+                />
               </div>
 
               {/* Comments & Replies */}
@@ -559,19 +555,11 @@ export default function SettingsPage() {
                   <p className="text-sm font-semibold text-white">Comments & Replies</p>
                   <p className="text-xs text-zinc-400">Notify me about activity on my comments and videos</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => updateSetting("notifyComments", !settings.notifyComments)}
-                  className={`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${
-                    settings.notifyComments ? "bg-white justify-end" : "bg-zinc-800 justify-start"
-                  }`}
-                >
-                  <span
-                    className={`h-4 w-4 rounded-full transition-colors ${
-                      settings.notifyComments ? "bg-black" : "bg-zinc-400"
-                    }`}
-                  />
-                </button>
+                <BoxToggle
+                  checked={settings.notifyComments}
+                  onChange={() => updateSetting("notifyComments", !settings.notifyComments)}
+                  label="Comments & Replies"
+                />
               </div>
             </div>
           )}

@@ -21,7 +21,6 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { VideoItem } from "@/types";
 import Link from "next/link";
-import BoxTabs from "@/components/ui/BoxTabs";
 
 const USER_TABS = ["Videos", "Playlists", "Community", "About"];
 
@@ -277,13 +276,22 @@ export default function UserProfilePage({
                 </div>
               )}
 
-              {/* Navigation Tabs (Box Style) */}
-              <div className="mt-6 pb-1">
-                <BoxTabs
-                  items={USER_TABS}
-                  activeId={activeTab}
-                  onChange={setActiveTab}
-                />
+              {/* Navigation Tabs */}
+              <div className="flex items-center gap-2 mt-6 overflow-x-auto scrollbar-none pb-1">
+                {USER_TABS.map((tab) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => setActiveTab(tab)}
+                    className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ease-out cursor-pointer ${
+                      activeTab === tab
+                        ? "bg-white/[0.08] text-white shadow-sm"
+                        : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
               </div>
 
               {/* Tab Content */}
