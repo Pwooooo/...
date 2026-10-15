@@ -276,7 +276,7 @@ function WatchContent() {
               }`}
             >
               <Sparkles className="h-3.5 w-3.5" />
-              <span>Key Highlights ({highlights.length})</span>
+              <span>Most Watched Parts ({highlights.length})</span>
             </button>
 
             <button
