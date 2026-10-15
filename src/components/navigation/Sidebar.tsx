@@ -52,7 +52,7 @@ export default function Sidebar({
 
   const exploreLinks = [
     { label: "Trending", href: "/trending", icon: Compass },
-    { label: "News", href: "/channel/news", icon: Newspaper },
+    { label: "News", href: "/news", icon: Newspaper },
   ];
 
   if (drawer) {

@@ -65,6 +65,16 @@ export default function ProfilePage() {
   }, [user]);
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const sp = new URLSearchParams(window.location.search);
+      const tabParam = sp.get("tab");
+      if (tabParam && ["Videos", "Playlists", "News", "About"].includes(tabParam)) {
+        setActiveTab(tabParam);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     if (user) {
       setEditName(user.name || "");
       setEditBio(user.bio || "");

@@ -57,6 +57,16 @@ export default function ChannelProfilePage({
   const isOwnProfile = Boolean(user && user.handle.toLowerCase() === cleanHandle.toLowerCase());
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const sp = new URLSearchParams(window.location.search);
+      const tabParam = sp.get("tab");
+      if (tabParam && ["Videos", "Playlists", "News", "About"].includes(tabParam)) {
+        setActiveTab(tabParam);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     if (user && isOwnProfile) {
       setEditName(user.name || "");
       setEditBio(user.bio || "");
