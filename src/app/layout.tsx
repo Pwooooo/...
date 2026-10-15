@@ -22,6 +22,8 @@ export const metadata: Metadata = {
   },
 };
 
+import { AuthProvider } from "@/context/AuthContext";
+
 export default function RootLayout({
   children,
 }: {
@@ -35,7 +37,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/entropy-icon.png" />
       </head>
       <body className={`min-h-full flex flex-col bg-black text-white ${titilliumWeb.className} selection:bg-white selection:text-black`}>
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

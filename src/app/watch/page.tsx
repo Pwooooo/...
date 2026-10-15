@@ -27,6 +27,7 @@ import {
 import { formatDuration, formatViews } from "@/lib/utils";
 import { ALL_VIDEOS, SAMPLE_CHAPTERS, SAMPLE_HIGHLIGHTS } from "@/lib/mock-data";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
 
 function WatchContent() {
   const searchParams = useSearchParams();
@@ -38,6 +39,7 @@ function WatchContent() {
   const chapters = currentVideo.chapters || SAMPLE_CHAPTERS;
   const highlights = currentVideo.highlights || SAMPLE_HIGHLIGHTS;
 
+  const { user, openAuthModal } = useAuth();
   const [currentPlaybackTime, setCurrentPlaybackTime] = useState(0);
   const [isChaptersPanelOpen, setIsChaptersPanelOpen] = useState(false);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
@@ -50,6 +52,7 @@ function WatchContent() {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
+  const [commentVotes, setCommentVotes] = useState<Record<string, "like" | "dislike">>({});
   const [comments, setComments] = useState([
     {
       id: "c-1",
@@ -58,6 +61,7 @@ function WatchContent() {
       content: "The explanation of multi-bitrate HLS ladders and segment packaging was crystal clear. Thanks!",
       timeAgo: "2 days ago",
       likes: 124,
+      dislikes: 3,
     },
     {
       id: "c-2",
@@ -66,6 +70,7 @@ function WatchContent() {
       content: "Are you planning to cover WebRTC low-latency streaming in a follow-up video?",
       timeAgo: "1 day ago",
       likes: 42,
+      dislikes: 1,
     },
   ]);
 
@@ -102,6 +107,62 @@ function WatchContent() {
       setDislikes((prev) => prev + 1);
       showToast("Feedback recorded");
     }
+  };
+
+  const handleCommentLike = (commentId: string) => {
+    setCommentVotes((prev) => {
+      const current = prev[commentId];
+      const newVotes = { ...prev };
+      if (current === "like") {
+        delete newVotes[commentId];
+        setComments((list) =>
+          list.map((c) => (c.id === commentId ? { ...c, likes: Math.max(0, c.likes - 1) } : c))
+        );
+      } else {
+        newVotes[commentId] = "like";
+        setComments((list) =>
+          list.map((c) => {
+            if (c.id === commentId) {
+              return {
+                ...c,
+                likes: c.likes + 1,
+                dislikes: current === "dislike" ? Math.max(0, c.dislikes - 1) : c.dislikes,
+              };
+            }
+            return c;
+          })
+        );
+      }
+      return newVotes;
+    });
+  };
+
+  const handleCommentDislike = (commentId: string) => {
+    setCommentVotes((prev) => {
+      const current = prev[commentId];
+      const newVotes = { ...prev };
+      if (current === "dislike") {
+        delete newVotes[commentId];
+        setComments((list) =>
+          list.map((c) => (c.id === commentId ? { ...c, dislikes: Math.max(0, c.dislikes - 1) } : c))
+        );
+      } else {
+        newVotes[commentId] = "dislike";
+        setComments((list) =>
+          list.map((c) => {
+            if (c.id === commentId) {
+              return {
+                ...c,
+                dislikes: c.dislikes + 1,
+                likes: current === "like" ? Math.max(0, c.likes - 1) : c.likes,
+              };
+            }
+            return c;
+          })
+        );
+      }
+      return newVotes;
+    });
   };
 
   const handleShare = () => {
@@ -141,11 +202,12 @@ function WatchContent() {
     setComments([
       {
         id: `c-${Date.now()}`,
-        user: "CurrentUser",
-        avatar: "",
+        user: user ? user.name : "Guest User",
+        avatar: user?.avatar || "",
         content: commentText.trim(),
         timeAgo: "Just now",
         likes: 0,
+        dislikes: 0,
       },
       ...comments,
     ]);
@@ -380,13 +442,17 @@ function WatchContent() {
 
           {/* Add Comment Input */}
           <form onSubmit={handleAddComment} className="flex gap-3 mb-6">
-            <div className="h-9 w-9 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center font-bold text-xs text-white flex-shrink-0">
-              U
+            <div className="h-9 w-9 rounded-full bg-zinc-850 border border-zinc-800 flex items-center justify-center font-bold text-xs text-white flex-shrink-0 overflow-hidden">
+              {user?.avatar ? (
+                <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+              ) : (
+                <span>{user ? user.name.slice(0, 1).toUpperCase() : "U"}</span>
+              )}
             </div>
             <div className="flex-1 flex flex-col gap-2">
               <input
                 type="text"
-                placeholder="Add a comment..."
+                placeholder={user ? `Comment as ${user.name}...` : "Add a comment..."}
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
                 className="w-full bg-transparent border-b border-zinc-800 focus:border-white outline-none pb-1.5 text-sm text-white placeholder-zinc-500 transition-colors"
@@ -431,14 +497,29 @@ function WatchContent() {
                   </div>
                   <p className="text-zinc-300 text-sm leading-relaxed">{comment.content}</p>
                   <div className="flex items-center gap-4 mt-2 text-zinc-400">
-                    <button className="flex items-center gap-1.5 hover:text-white transition-colors cursor-pointer">
-                      <ThumbsUp className="h-3.5 w-3.5" />
-                      <span>{comment.likes || ""}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleCommentLike(comment.id)}
+                      className={`flex items-center gap-1.5 transition-colors cursor-pointer ${
+                        commentVotes[comment.id] === "like" ? "text-white font-semibold" : "hover:text-white"
+                      }`}
+                    >
+                      <ThumbsUp className={`h-3.5 w-3.5 ${commentVotes[comment.id] === "like" ? "fill-white" : ""}`} />
+                      <span>{comment.likes}</span>
                     </button>
-                    <button className="hover:text-white transition-colors cursor-pointer">
-                      <ThumbsDown className="h-3.5 w-3.5" />
+                    <button
+                      type="button"
+                      onClick={() => handleCommentDislike(comment.id)}
+                      className={`flex items-center gap-1.5 transition-colors cursor-pointer ${
+                        commentVotes[comment.id] === "dislike" ? "text-white font-semibold" : "hover:text-white"
+                      }`}
+                    >
+                      <ThumbsDown className={`h-3.5 w-3.5 ${commentVotes[comment.id] === "dislike" ? "fill-white" : ""}`} />
+                      <span>{comment.dislikes ?? 0}</span>
                     </button>
-                    <button className="font-semibold hover:text-white transition-colors cursor-pointer">Reply</button>
+                    <button type="button" className="font-semibold hover:text-white transition-colors cursor-pointer">
+                      Reply
+                    </button>
                   </div>
                 </div>
               </div>

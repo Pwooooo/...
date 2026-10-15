@@ -21,7 +21,10 @@ export default function ShortsPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [likes, setLikes] = useState<Record<string, number>>({});
   const [likedMap, setLikedMap] = useState<Record<string, boolean>>({});
+  const [dislikes, setDislikes] = useState<Record<string, number>>({});
+  const [dislikedMap, setDislikedMap] = useState<Record<string, boolean>>({});
   const [subscribedMap, setSubscribedMap] = useState<Record<string, boolean>>({});
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const currentShort = SHORTS_FEED[currentIndex] || SHORTS_FEED[0];
 
@@ -46,13 +49,23 @@ export default function ShortsPage() {
     }));
   };
 
+  const toggleDislike = (id: string) => {
+    const isDisliked = dislikedMap[id];
+    setDislikedMap((prev) => ({ ...prev, [id]: !isDisliked }));
+    setDislikes((prev) => ({
+      ...prev,
+      [id]: (prev[id] ?? 1420) + (isDisliked ? -1 : 1),
+    }));
+  };
+
   const toggleSubscribe = (handle: string) => {
     setSubscribedMap((prev) => ({ ...prev, [handle]: !prev[handle] }));
   };
 
   return (
     <div className="min-h-screen bg-black text-zinc-100 flex flex-col">
-      <Navbar />
+      <Navbar onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)} />
+      <Sidebar drawer isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
       <div className="flex flex-1">
         <Sidebar collapsed={true} />
@@ -136,12 +149,22 @@ export default function ShortsPage() {
                 </span>
               </div>
 
-              {/* Dislike */}
+              {/* Dislike with Visible Dislike Count */}
               <div className="flex flex-col items-center gap-1">
-                <button className="rounded-full p-3 bg-zinc-900/90 hover:bg-zinc-800 text-white transition-colors">
-                  <ThumbsDown className="h-6 w-6" />
+                <button
+                  onClick={() => toggleDislike(currentShort.id)}
+                  className={`rounded-full p-3 transition-colors border cursor-pointer ${
+                    dislikedMap[currentShort.id]
+                      ? "text-white bg-zinc-800 border-white"
+                      : "bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 border-zinc-800"
+                  }`}
+                  title="Dislike"
+                >
+                  <ThumbsDown className={`h-6 w-6 ${dislikedMap[currentShort.id] ? "fill-white" : ""}`} />
                 </button>
-                <span className="text-xs font-semibold text-zinc-200">Dislike</span>
+                <span className="text-xs font-semibold text-zinc-300">
+                  {((dislikes[currentShort.id] ?? 1420) / 1000).toFixed(1)}K
+                </span>
               </div>
 
               {/* Comments */}
