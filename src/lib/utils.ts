@@ -39,3 +39,15 @@ export function formatTimeAgo(dateInput?: string | Date): string {
     return "Just now";
   }
 }
+
+export function formatSubscribers(count?: number): string {
+  if (count == null || count === 0) return "0 subscribers";
+  if (count >= 1_000_000) {
+    return `${(count / 1_000_000).toFixed(1).replace(/\.0$/, "")}M subscribers`;
+  }
+  if (count >= 1_000) {
+    return `${(count / 1_000).toFixed(1).replace(/\.0$/, "")}K subscribers`;
+  }
+  return `${count.toLocaleString()} ${count === 1 ? "subscriber" : "subscribers"}`;
+}
+

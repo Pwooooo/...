@@ -24,7 +24,7 @@ import {
   FileText,
   Flag,
 } from "lucide-react";
-import { formatDuration, formatViews, formatTimeAgo } from "@/lib/utils";
+import { formatDuration, formatViews, formatTimeAgo, formatSubscribers } from "@/lib/utils";
 import { ALL_VIDEOS, SAMPLE_CHAPTERS, SAMPLE_HIGHLIGHTS } from "@/lib/mock-data";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
@@ -367,7 +367,7 @@ function WatchContent() {
                 <CheckCircle2 className="h-3.5 w-3.5 text-zinc-400" />
               </Link>
               <p className="text-xs text-zinc-400">
-                {((currentVideo.channel.subscribersCount ?? 0) / 1000).toFixed(0)}K subscribers
+                {formatSubscribers(currentVideo.channel.subscribersCount)}
               </p>
             </div>
 
