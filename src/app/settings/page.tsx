@@ -40,7 +40,7 @@ function BoxToggle({
       className={`h-6 w-6 rounded-lg flex items-center justify-center transition-all cursor-pointer border-2 ${
         checked
           ? "border-white bg-black shadow-sm ring-1 ring-white/10"
-          : "border-zinc-700 bg-zinc-900/60 hover:border-zinc-500"
+          : "border-white/20 bg-[#181818] hover:border-white/40"
       }`}
     >
       <span
@@ -210,7 +210,7 @@ export default function SettingsPage() {
         <div className="flex flex-1">
           <Sidebar />
           <main className="flex-1 flex items-center justify-center p-6">
-            <div className="rounded-3xl bg-zinc-950 p-10 max-w-md w-full text-center flex flex-col items-center shadow-2xl">
+            <div className="rounded-3xl bg-[#141414] border border-white/[0.08] p-10 max-w-md w-full text-center flex flex-col items-center shadow-2xl">
               <div className="h-16 w-16 rounded-full bg-white/[0.05] flex items-center justify-center text-white mb-4">
                 <Settings className="h-8 w-8 text-zinc-300" />
               </div>
@@ -281,7 +281,7 @@ export default function SettingsPage() {
           {/* Section 1: Profile & Identity */}
           {activeSection === "profile" && (
             <div className="space-y-6">
-              <form onSubmit={handleSaveProfile} className="rounded-2xl bg-[#141414] p-6 space-y-6 shadow-xl">
+              <form onSubmit={handleSaveProfile} className="rounded-2xl bg-[#141414] border border-white/[0.08] p-6 space-y-6 shadow-xl">
                 <div>
                   <h3 className="text-base font-bold text-white">Channel Identity</h3>
                   <p className="text-xs text-zinc-400 mt-0.5">
@@ -294,8 +294,8 @@ export default function SettingsPage() {
                   <label className="block text-xs font-semibold text-zinc-300 mb-2">
                     Profile Avatar
                   </label>
-                  <div className="flex items-center gap-5 p-4 rounded-2xl bg-zinc-950">
-                    <div className="relative h-20 w-20 rounded-full overflow-hidden bg-zinc-900 flex-shrink-0 flex items-center justify-center text-white font-bold text-2xl shadow-inner">
+                  <div className="flex items-center gap-5 p-4 rounded-2xl bg-[#0a0a0a] border border-white/[0.08]">
+                    <div className="relative h-20 w-20 rounded-full overflow-hidden bg-[#181818] flex-shrink-0 flex items-center justify-center text-white font-bold text-2xl shadow-inner">
                       {avatarUrl ? (
                         <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
                       ) : (
@@ -325,7 +325,7 @@ export default function SettingsPage() {
                           <button
                             type="button"
                             onClick={() => setAvatarUrl("")}
-                            className="flex items-center gap-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-red-400 px-3.5 py-2 text-xs font-medium transition-colors cursor-pointer"
+                            className="flex items-center gap-1.5 rounded-xl bg-[#181818] hover:bg-[#222222] text-zinc-300 hover:text-red-400 border border-white/[0.08] px-3.5 py-2 text-xs font-medium transition-colors cursor-pointer"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                             <span>Remove</span>
@@ -349,7 +349,7 @@ export default function SettingsPage() {
                       required
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="w-full rounded-xl bg-zinc-950 px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 outline-none transition-colors"
+                      className="w-full rounded-xl bg-[#0a0a0a] border border-white/[0.08] px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors"
                     />
                   </div>
 
@@ -357,7 +357,7 @@ export default function SettingsPage() {
                     <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
                       Channel Handle
                     </label>
-                    <div className="flex items-center rounded-xl bg-zinc-950 px-3.5 py-2.5 transition-colors">
+                    <div className="flex items-center rounded-xl bg-[#0a0a0a] border border-white/[0.08] px-3.5 py-2.5 focus-within:border-white/20 transition-colors">
                       <span className="text-zinc-500 text-xs font-mono select-none">@</span>
                       <input
                         type="text"
@@ -379,7 +379,7 @@ export default function SettingsPage() {
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
                     placeholder="Tell your audience about yourself or your channel..."
-                    className="w-full rounded-xl bg-zinc-950 px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 outline-none transition-colors resize-none leading-relaxed"
+                    className="w-full rounded-xl bg-[#0a0a0a] border border-white/[0.08] px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors resize-none leading-relaxed"
                   />
                 </div>
 
@@ -406,7 +406,7 @@ export default function SettingsPage() {
 
           {/* Section 2: Playback & Player */}
           {activeSection === "playback" && (
-            <div className="rounded-2xl bg-[#141414] p-6 space-y-6 shadow-xl">
+            <div className="rounded-2xl bg-[#141414] border border-white/[0.08] p-6 space-y-6 shadow-xl">
               <div>
                 <h3 className="text-base font-bold text-white">Player & Playback Preferences</h3>
                 <p className="text-xs text-zinc-400 mt-0.5">
@@ -423,7 +423,7 @@ export default function SettingsPage() {
                 <select
                   value={settings.defaultQuality}
                   onChange={(e) => updateSetting("defaultQuality", e.target.value)}
-                  className="rounded-xl bg-zinc-950 px-3 py-1.5 text-xs font-semibold text-white outline-none cursor-pointer"
+                  className="rounded-xl bg-[#0a0a0a] border border-white/[0.08] px-3 py-1.5 text-xs font-semibold text-white outline-none cursor-pointer"
                 >
                   <option value="Auto">Auto (Adaptive)</option>
                   <option value="1080p">1080p (Full HD)</option>
@@ -475,7 +475,7 @@ export default function SettingsPage() {
 
           {/* Section 3: Privacy & Data */}
           {activeSection === "privacy" && (
-            <div className="rounded-2xl bg-[#141414] p-6 space-y-6 shadow-xl">
+            <div className="rounded-2xl bg-[#141414] border border-white/[0.08] p-6 space-y-6 shadow-xl">
               <div>
                 <h3 className="text-base font-bold text-white">Privacy & Channel Visibility</h3>
                 <p className="text-xs text-zinc-400 mt-0.5">
@@ -516,7 +516,7 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     onClick={handleClearHistory}
-                    className="flex items-center gap-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 px-4 py-2 text-xs font-semibold text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                    className="flex items-center gap-2 rounded-xl bg-[#181818] hover:bg-[#222222] border border-white/[0.08] px-4 py-2 text-xs font-semibold text-zinc-300 hover:text-white transition-colors cursor-pointer"
                   >
                     <History className="h-3.5 w-3.5" />
                     <span>Clear Watch History</span>
@@ -528,7 +528,7 @@ export default function SettingsPage() {
 
           {/* Section 4: Notifications */}
           {activeSection === "notifications" && (
-            <div className="rounded-2xl bg-[#141414] p-6 space-y-6 shadow-xl">
+            <div className="rounded-2xl bg-[#141414] border border-white/[0.08] p-6 space-y-6 shadow-xl">
               <div>
                 <h3 className="text-base font-bold text-white">Notifications & Alerts</h3>
                 <p className="text-xs text-zinc-400 mt-0.5">

@@ -249,7 +249,7 @@ function WatchContent() {
           {/* Channel Info & Subscribe */}
           <div className="flex items-center gap-3">
             <Link href={`/@${currentVideo.channel.handle}`}>
-              <div className="h-10 w-10 overflow-hidden rounded-full bg-zinc-900 border border-zinc-800">
+              <div className="h-10 w-10 overflow-hidden rounded-full bg-[#181818] border border-white/[0.08]">
                 <img
                   src={currentVideo.channel.avatarUrl || ""}
                   alt={currentVideo.channel.displayName}
@@ -271,7 +271,7 @@ function WatchContent() {
               onClick={handleToggleSubscribe}
               className={`ml-3 rounded-full px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
                 isSubscribed
-                  ? "bg-zinc-900 text-zinc-300 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-1.5"
+                  ? "bg-[#181818] text-zinc-300 hover:bg-[#222222] border border-white/[0.08] flex items-center gap-1.5"
                   : "bg-white text-black hover:bg-zinc-200"
               }`}
             >
@@ -283,11 +283,11 @@ function WatchContent() {
           {/* Action Pills */}
           <div className="flex items-center gap-2">
             {/* Like / Dislike with Visible Dislike Count */}
-            <div className="flex items-center rounded-full bg-zinc-900 text-white border border-zinc-800">
+            <div className="flex items-center rounded-full bg-[#181818] text-white border border-white/[0.08]">
               <button
                 onClick={handleLike}
-                className={`flex items-center gap-2 rounded-l-full px-4 py-2 text-xs font-semibold hover:bg-zinc-800 border-r border-zinc-800 transition-colors cursor-pointer ${
-                  hasLiked ? "text-white font-bold bg-zinc-800" : "text-zinc-300"
+                className={`flex items-center gap-2 rounded-l-full px-4 py-2 text-xs font-semibold hover:bg-[#222222] border-r border-white/[0.08] transition-colors cursor-pointer ${
+                  hasLiked ? "text-white font-bold bg-[#222222]" : "text-zinc-300"
                 }`}
                 title="I like this"
               >
@@ -297,8 +297,8 @@ function WatchContent() {
 
               <button
                 onClick={handleDislike}
-                className={`flex items-center gap-2 rounded-r-full px-4 py-2 text-xs font-semibold hover:bg-zinc-800 transition-colors cursor-pointer ${
-                  hasDisliked ? "text-white font-bold bg-zinc-800" : "text-zinc-300"
+                className={`flex items-center gap-2 rounded-r-full px-4 py-2 text-xs font-semibold hover:bg-[#222222] transition-colors cursor-pointer ${
+                  hasDisliked ? "text-white font-bold bg-[#222222]" : "text-zinc-300"
                 }`}
                 title="I dislike this"
               >
@@ -310,7 +310,7 @@ function WatchContent() {
             {/* Share */}
             <button
               onClick={handleShare}
-              className="flex items-center gap-2 rounded-full bg-zinc-900 px-4 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800 border border-zinc-800 transition-colors cursor-pointer"
+              className="flex items-center gap-2 rounded-full bg-[#181818] px-4 py-2 text-xs font-semibold text-zinc-200 hover:bg-[#222222] border border-white/[0.08] transition-colors cursor-pointer"
             >
               <Share2 className="h-4 w-4" />
               <span>Share</span>
@@ -322,8 +322,8 @@ function WatchContent() {
                 setIsSaved(!isSaved);
                 showToast(!isSaved ? "Saved to Watch Later" : "Removed from Watch Later");
               }}
-              className={`hidden sm:flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold border border-zinc-800 transition-colors cursor-pointer ${
-                isSaved ? "bg-white text-black" : "bg-zinc-900 text-zinc-200 hover:bg-zinc-800"
+              className={`hidden sm:flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold border border-white/[0.08] transition-colors cursor-pointer ${
+                isSaved ? "bg-white text-black" : "bg-[#181818] text-zinc-200 hover:bg-[#222222]"
               }`}
             >
               <Bookmark className={`h-4 w-4 ${isSaved ? "fill-black" : ""}`} />
@@ -337,7 +337,7 @@ function WatchContent() {
                 className={`rounded-full p-2 transition-colors cursor-pointer border ${
                   isMoreMenuOpen
                     ? "bg-white text-black border-white"
-                    : "bg-zinc-900 text-zinc-300 hover:bg-zinc-800 border-zinc-800"
+                    : "bg-[#181818] text-zinc-300 hover:bg-[#222222] border-white/[0.08]"
                 }`}
                 title="More actions"
               >
@@ -346,7 +346,7 @@ function WatchContent() {
 
               {isMoreMenuOpen && (
                 <div
-                  className="absolute right-0 top-full mt-2 w-52 rounded-2xl bg-zinc-950 border border-white/10 p-1.5 shadow-2xl z-40 animate-in fade-in slide-in-from-top-1 duration-150 select-none"
+                  className="absolute right-0 top-full mt-2 w-52 rounded-2xl bg-[#141414] border border-white/[0.08] p-1.5 shadow-2xl z-40 animate-in fade-in slide-in-from-top-1 duration-150 select-none"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <button
@@ -354,7 +354,7 @@ function WatchContent() {
                       setIsMoreMenuOpen(false);
                       showToast("Transcript opened");
                     }}
-                    className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs text-zinc-300 hover:text-white hover:bg-white/10 transition-colors text-left cursor-pointer"
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs text-zinc-300 hover:text-white hover:bg-white/[0.08] transition-colors text-left cursor-pointer"
                   >
                     <FileText className="h-4 w-4 text-zinc-400" />
                     <span>Show transcript</span>
@@ -365,7 +365,7 @@ function WatchContent() {
                       setIsMoreMenuOpen(false);
                       showToast("Clip editor opened");
                     }}
-                    className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs text-zinc-300 hover:text-white hover:bg-white/10 transition-colors text-left cursor-pointer"
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs text-zinc-300 hover:text-white hover:bg-white/[0.08] transition-colors text-left cursor-pointer"
                   >
                     <Scissors className="h-4 w-4 text-zinc-400" />
                     <span>Clip</span>
@@ -376,20 +376,20 @@ function WatchContent() {
                       setIsMoreMenuOpen(false);
                       showToast("Saved to playlist");
                     }}
-                    className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs text-zinc-300 hover:text-white hover:bg-white/10 transition-colors text-left cursor-pointer"
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs text-zinc-300 hover:text-white hover:bg-white/[0.08] transition-colors text-left cursor-pointer"
                   >
                     <ListPlus className="h-4 w-4 text-zinc-400" />
                     <span>Save to playlist</span>
                   </button>
 
-                  <div className="my-1 border-t border-zinc-800" />
+                  <div className="my-1 border-t border-white/[0.08]" />
 
                   <button
                     onClick={() => {
                       setIsMoreMenuOpen(false);
                       showToast("Report submitted");
                     }}
-                    className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs text-zinc-300 hover:text-white hover:bg-white/10 transition-colors text-left cursor-pointer"
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs text-zinc-300 hover:text-white hover:bg-white/[0.08] transition-colors text-left cursor-pointer"
                   >
                     <Flag className="h-4 w-4 text-zinc-400" />
                     <span>Report</span>
@@ -401,7 +401,7 @@ function WatchContent() {
         </div>
 
         {/* YouTube-Style Description Box */}
-        <div className="mt-4 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 p-4 text-xs text-zinc-300 transition-colors border border-white/5">
+        <div className="mt-4 rounded-2xl bg-[#111111] hover:bg-[#141414] p-4 text-xs text-zinc-300 transition-colors border border-white/[0.08]">
           {/* Views, Date & Hashtags Header */}
           <div className="flex flex-wrap items-center gap-2 font-semibold text-white mb-2">
             <span>{formatViews(currentVideo.viewCount)}</span>
@@ -442,7 +442,7 @@ function WatchContent() {
 
           {/* Add Comment Input */}
           <form onSubmit={handleAddComment} className="flex gap-3 mb-6">
-            <div className="h-9 w-9 rounded-full bg-zinc-850 border border-zinc-800 flex items-center justify-center font-bold text-xs text-white flex-shrink-0 overflow-hidden">
+            <div className="h-9 w-9 rounded-full bg-[#181818] border border-white/[0.08] flex items-center justify-center font-bold text-xs text-white flex-shrink-0 overflow-hidden">
               {user?.avatarUrl || user?.avatar ? (
                 <img src={user.avatarUrl || user.avatar} alt={user.name} className="h-full w-full object-cover" />
               ) : (
@@ -455,7 +455,7 @@ function WatchContent() {
                 placeholder={user ? `Comment as ${user.name}...` : "Add a comment..."}
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
-                className="w-full bg-transparent border-b border-zinc-800 focus:border-white outline-none pb-1.5 text-sm text-white placeholder-zinc-500 transition-colors"
+                className="w-full bg-transparent border-b border-white/[0.08] focus:border-white/30 outline-none pb-1.5 text-sm text-white placeholder-zinc-500 transition-colors"
               />
               {commentText.trim() && (
                 <div className="flex justify-end gap-2 pt-1">
@@ -481,11 +481,11 @@ function WatchContent() {
           <div className="space-y-5">
             {comments.map((comment) => (
               <div key={comment.id} className="flex gap-3">
-                <div className="h-9 w-9 overflow-hidden rounded-full bg-zinc-900 border border-zinc-800 flex-shrink-0">
+                <div className="h-9 w-9 overflow-hidden rounded-full bg-[#181818] border border-white/[0.08] flex-shrink-0">
                   {comment.avatar ? (
                     <img src={comment.avatar} alt={comment.user} className="h-full w-full object-cover" />
                   ) : (
-                    <div className="h-full w-full bg-zinc-800 flex items-center justify-center text-xs font-bold text-white">
+                    <div className="h-full w-full bg-[#222222] flex items-center justify-center text-xs font-bold text-white">
                       {comment.user.slice(0, 1)}
                     </div>
                   )}
@@ -534,10 +534,10 @@ function WatchContent() {
         {isChaptersPanelOpen && chapters.length > 0 && (
           <div
             ref={chaptersPanelRef}
-            className="rounded-2xl bg-zinc-950 border border-white/10 p-3.5 mb-2 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200"
+            className="rounded-2xl bg-[#141414] border border-white/[0.08] p-3.5 mb-2 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200"
           >
             {/* Header with Title and Close X */}
-            <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80 mb-3">
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.08] mb-3">
               <div className="flex items-center gap-2">
                 <Layers className="h-4 w-4 text-zinc-300" />
                 <h3 className="font-bold text-white text-sm">Chapters</h3>
@@ -545,7 +545,7 @@ function WatchContent() {
               </div>
               <button
                 onClick={() => setIsChaptersPanelOpen(false)}
-                className="p-1 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+                className="p-1 rounded-full text-zinc-400 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
                 title="Close chapters"
               >
                 <X className="h-4 w-4" />
@@ -556,7 +556,7 @@ function WatchContent() {
             {highlights.length > 0 && (
               <div
                 onClick={() => handleSeekToChapter(highlights[1]?.startTime || 525)}
-                className="mb-3 p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 cursor-pointer transition-all flex items-center justify-between group"
+                className="mb-3 p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] cursor-pointer transition-all flex items-center justify-between group"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="h-8 w-8 rounded-lg bg-white text-black flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
@@ -593,11 +593,11 @@ function WatchContent() {
                     onClick={() => handleSeekToChapter(ch.seconds)}
                     className={`w-full flex items-center gap-3 p-2 rounded-xl text-left transition-all cursor-pointer border ${
                       isActive
-                        ? "bg-white/10 border-white text-white shadow-md scale-[1.01]"
-                        : "bg-zinc-900/50 border-zinc-800/60 text-zinc-300 hover:bg-zinc-900 hover:border-zinc-700 hover:text-white"
+                        ? "bg-white/[0.1] border-white text-white shadow-md scale-[1.01]"
+                        : "bg-[#111111] border-white/[0.08] text-zinc-300 hover:bg-[#181818] hover:border-white/[0.14] hover:text-white"
                     }`}
                   >
-                    <div className="relative aspect-video w-24 flex-shrink-0 rounded-lg overflow-hidden bg-zinc-800">
+                    <div className="relative aspect-video w-24 flex-shrink-0 rounded-lg overflow-hidden bg-[#181818]">
                       <img src={ch.thumbnailUrl} alt={ch.title} className="h-full w-full object-cover" />
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                         <Play className="h-4 w-4 fill-white" />
@@ -634,9 +634,9 @@ function WatchContent() {
           <Link
             key={rec.id}
             href={`/watch?v=${rec.id}`}
-            className="flex gap-2.5 group cursor-pointer p-1 rounded-xl hover:bg-zinc-950 transition-colors"
+            className="flex gap-2.5 group cursor-pointer p-1 rounded-xl hover:bg-white/[0.04] transition-colors"
           >
-            <div className="relative aspect-video w-40 flex-shrink-0 overflow-hidden rounded-xl bg-zinc-900 border border-zinc-800">
+            <div className="relative aspect-video w-40 flex-shrink-0 overflow-hidden rounded-xl bg-[#111111] border border-white/[0.08]">
               <img
                 src={rec.thumbnailUrl || ""}
                 alt={rec.title}

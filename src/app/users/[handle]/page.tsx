@@ -202,7 +202,7 @@ export default function UserProfilePage({
         <main className="flex-1 overflow-x-hidden p-4 md:p-8">
           <div className="max-w-5xl mx-auto">
             {/* Dark Rounded Banner (borderless) */}
-            <div className="relative h-36 sm:h-48 md:h-56 w-full rounded-2xl bg-[#171717] overflow-hidden">
+            <div className="relative h-36 sm:h-48 md:h-56 w-full rounded-2xl bg-[#111111] overflow-hidden">
               {channel.bannerUrl && (
                 <img
                   src={channel.bannerUrl}
@@ -224,7 +224,7 @@ export default function UserProfilePage({
                       className="relative flex-shrink-0 z-10 cursor-pointer group text-left"
                       title="Click to edit profile"
                     >
-                      <div className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-full border-4 border-black bg-zinc-900 text-white shadow-2xl overflow-hidden flex items-center justify-center font-bold text-3xl sm:text-4xl transition-transform duration-200 group-hover:scale-105">
+                      <div className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-full border-4 border-black bg-[#181818] text-white shadow-2xl overflow-hidden flex items-center justify-center font-bold text-3xl sm:text-4xl transition-transform duration-200 group-hover:scale-105">
                         {channel.avatarUrl ? (
                           <img src={channel.avatarUrl} alt={channel.displayName} className="h-full w-full object-cover" />
                         ) : (
@@ -242,7 +242,7 @@ export default function UserProfilePage({
                     </Link>
                   ) : (
                     <div className="relative flex-shrink-0 z-10">
-                      <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-full border-4 border-black bg-zinc-900 text-white shadow-2xl overflow-hidden flex items-center justify-center font-bold text-3xl sm:text-4xl">
+                      <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-full border-4 border-black bg-[#181818] text-white shadow-2xl overflow-hidden flex items-center justify-center font-bold text-3xl sm:text-4xl">
                         {channel.avatarUrl ? (
                           <img src={channel.avatarUrl} alt={channel.displayName} className="h-full w-full object-cover" />
                         ) : (
@@ -285,7 +285,7 @@ export default function UserProfilePage({
                     <button
                       type="button"
                       onClick={() => setIsEditModalOpen(true)}
-                      className="flex items-center gap-1.5 rounded-lg bg-[#1c1c1c] hover:bg-[#262626] text-white px-3.5 py-1.5 text-xs font-medium transition-colors cursor-pointer"
+                      className="flex items-center gap-1.5 rounded-lg bg-[#181818] hover:bg-[#222222] text-white px-3.5 py-1.5 text-xs font-medium transition-colors cursor-pointer"
                     >
                       <Pencil className="h-3.5 w-3.5 text-zinc-300" />
                       <span>Edit Profile</span>
@@ -296,7 +296,7 @@ export default function UserProfilePage({
                       onClick={() => setIsSubscribed(!isSubscribed)}
                       className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
                         isSubscribed
-                          ? "bg-[#1c1c1c] text-zinc-300 hover:bg-[#262626]"
+                          ? "bg-[#181818] text-zinc-300 hover:bg-[#222222]"
                           : "bg-white text-black hover:bg-zinc-200"
                       }`}
                     >
@@ -309,21 +309,21 @@ export default function UserProfilePage({
                     <button
                       type="button"
                       onClick={() => setIsMenuOpen(!isMenuOpen)}
-                      className="p-2 rounded-lg bg-[#1c1c1c] hover:bg-[#262626] text-white transition-colors cursor-pointer flex items-center justify-center"
+                      className="p-2 rounded-lg bg-[#181818] hover:bg-[#222222] text-white transition-colors cursor-pointer flex items-center justify-center"
                       title="More options"
                     >
                       <MoreHorizontal className="h-4 w-4 text-zinc-200" />
                     </button>
 
                     {isMenuOpen && (
-                      <div className="absolute right-0 top-full mt-2 w-52 rounded-2xl bg-[#121212] shadow-2xl p-1.5 z-30 animate-in fade-in zoom-in-95 select-none">
+                      <div className="absolute right-0 top-full mt-2 w-52 rounded-2xl bg-[#141414] border border-white/[0.08] shadow-2xl p-1.5 z-30 animate-in fade-in zoom-in-95 select-none">
                         <button
                           type="button"
                           onClick={() => {
                             handleShare();
                             setIsMenuOpen(false);
                           }}
-                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:text-white hover:bg-[#222222] transition-colors cursor-pointer text-left"
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer text-left"
                         >
                           <Share2 className="h-4 w-4 text-zinc-400" />
                           <span>Copy profile link</span>
@@ -332,7 +332,7 @@ export default function UserProfilePage({
                           <Link
                             href="/studio/upload"
                             onClick={() => setIsMenuOpen(false)}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:text-white hover:bg-[#222222] transition-colors"
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:text-white hover:bg-white/[0.08] transition-colors"
                           >
                             <Plus className="h-4 w-4 text-zinc-400" />
                             <span>Upload video</span>
@@ -489,18 +489,18 @@ export default function UserProfilePage({
 
       {/* About Channel / More Info Modal */}
       {isAboutModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
           <div className="fixed inset-0" onClick={() => setIsAboutModalOpen(false)} />
           <div
-            className="relative w-full max-w-md rounded-2xl bg-black border border-white/10 p-6 shadow-2xl text-white z-10 animate-in zoom-in-95 duration-200"
+            className="relative w-full max-w-md rounded-2xl bg-[#141414] border border-white/[0.08] p-6 shadow-2xl text-white z-10 animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
+            <div className="flex items-center justify-between pb-4 border-b border-white/[0.08]">
               <h3 className="text-base font-bold text-white">About</h3>
               <button
                 type="button"
                 onClick={() => setIsAboutModalOpen(false)}
-                className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+                className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -563,17 +563,17 @@ export default function UserProfilePage({
 
       {/* Edit Profile Modal */}
       {isEditModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
           <div
             className="fixed inset-0"
             onClick={() => setIsEditModalOpen(false)}
           />
 
           <div
-            className="relative w-full max-w-md rounded-2xl bg-black border border-white/10 p-6 shadow-2xl text-white z-10 animate-in zoom-in-95 duration-200"
+            className="relative w-full max-w-md rounded-2xl bg-[#141414] border border-white/[0.08] p-6 shadow-2xl text-white z-10 animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
+            <div className="flex items-center justify-between pb-4 border-b border-white/[0.08]">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Pencil className="h-4 w-4 text-zinc-400" />
                 <span>Edit Profile</span>
@@ -581,7 +581,7 @@ export default function UserProfilePage({
               <button
                 type="button"
                 onClick={() => setIsEditModalOpen(false)}
-                className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+                className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -597,7 +597,7 @@ export default function UserProfilePage({
                   required
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="w-full rounded-xl bg-zinc-900 border border-zinc-800 px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-white transition-colors"
+                  className="w-full rounded-xl bg-[#0a0a0a] border border-white/[0.08] px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors"
                 />
               </div>
 
@@ -610,7 +610,7 @@ export default function UserProfilePage({
                   value={editBio}
                   onChange={(e) => setEditBio(e.target.value)}
                   placeholder="Tell your viewers about yourself..."
-                  className="w-full rounded-xl bg-zinc-900 border border-zinc-800 px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-white transition-colors resize-none"
+                  className="w-full rounded-xl bg-[#0a0a0a] border border-white/[0.08] px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors resize-none"
                 />
               </div>
 
@@ -620,8 +620,8 @@ export default function UserProfilePage({
                   Profile Avatar
                 </label>
 
-                <div className="flex items-center gap-4 p-3 rounded-2xl bg-zinc-900 border border-zinc-800">
-                  <div className="relative h-16 w-16 rounded-full overflow-hidden border-2 border-white/20 bg-zinc-800 flex-shrink-0 flex items-center justify-center text-white font-bold text-xl shadow-inner">
+                <div className="flex items-center gap-4 p-3 rounded-2xl bg-[#0a0a0a] border border-white/[0.08]">
+                  <div className="relative h-16 w-16 rounded-full overflow-hidden border-2 border-white/20 bg-[#181818] flex-shrink-0 flex items-center justify-center text-white font-bold text-xl shadow-inner">
                     {editAvatarUrl ? (
                       <img src={editAvatarUrl} alt="Avatar preview" className="h-full w-full object-cover" />
                     ) : (
@@ -652,7 +652,7 @@ export default function UserProfilePage({
                         <button
                           type="button"
                           onClick={() => setEditAvatarUrl("")}
-                          className="flex items-center gap-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-red-400 border border-zinc-800 px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer"
+                          className="flex items-center gap-1.5 rounded-xl bg-[#181818] hover:bg-[#222222] text-zinc-300 hover:text-red-400 border border-white/[0.08] px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                           <span>Remove</span>
@@ -670,7 +670,7 @@ export default function UserProfilePage({
                 <button
                   type="button"
                   onClick={() => setIsEditModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-semibold text-zinc-300 transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-[#181818] hover:bg-[#222222] border border-white/[0.08] text-xs font-semibold text-zinc-300 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>

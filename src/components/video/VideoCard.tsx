@@ -30,7 +30,7 @@ export default function VideoCard({ video }: VideoCardProps) {
       {/* Thumbnail Container */}
       <Link
         href={`/watch?v=${video.id}`}
-        className="relative aspect-video w-full overflow-hidden rounded-xl bg-zinc-900 transition-all"
+        className="relative aspect-video w-full overflow-hidden rounded-xl bg-[#111111] transition-all"
       >
         <img
           src={video.thumbnailUrl || "/placeholder-thumb.jpg"}
@@ -52,7 +52,7 @@ export default function VideoCard({ video }: VideoCardProps) {
           className="flex-shrink-0"
           title={video.channel.displayName}
         >
-          <div className="h-9 w-9 overflow-hidden rounded-full bg-zinc-800">
+          <div className="h-9 w-9 overflow-hidden rounded-full bg-[#181818]">
             {video.channel.avatarUrl ? (
               <img
                 src={video.channel.avatarUrl}

@@ -74,13 +74,13 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
   };
 
   return (
-    <header className="sticky top-0 z-50 flex h-14 w-full items-center justify-between bg-black/95 backdrop-blur-md px-4 text-white">
+    <header className="sticky top-0 z-50 flex h-14 w-full items-center justify-between bg-black/95 backdrop-blur-md px-4 text-white border-b border-white/[0.08]">
       {/* Left: Hamburger + Brand Logo */}
       <div className="flex items-center gap-4">
         <button
           type="button"
           onClick={onToggleSidebar}
-          className="rounded-full p-2 hover:bg-zinc-900 focus:outline-none transition-colors"
+          className="rounded-full p-2 hover:bg-white/[0.08] focus:outline-none transition-colors"
           aria-label="Toggle menu"
         >
           <Menu className="h-5 w-5 text-zinc-300" />
@@ -141,7 +141,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
 
           {user && isCreateMenuOpen && (
             <div
-              className="absolute right-0 top-full mt-2 w-48 rounded-2xl bg-[#121212] p-1.5 shadow-2xl z-50 animate-in fade-in slide-in-from-top-1 duration-150 select-none text-white"
+              className="absolute right-0 top-full mt-2 w-48 rounded-2xl bg-[#141414] border border-white/[0.08] p-1.5 shadow-2xl z-50 animate-in fade-in slide-in-from-top-1 duration-150 select-none text-white"
               onClick={(e) => e.stopPropagation()}
             >
               <Link
@@ -166,7 +166,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
 
         <button
           type="button"
-          className="relative rounded-full p-2 hover:bg-zinc-900 text-zinc-300 transition-colors cursor-pointer"
+          className="relative rounded-full p-2 hover:bg-white/[0.08] text-zinc-300 transition-colors cursor-pointer"
           title="Notifications"
         >
           <Bell className="h-5 w-5" />
@@ -204,7 +204,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
 
             {isUserMenuOpen && (
               <div
-                className="absolute right-0 top-full mt-2 w-60 rounded-2xl bg-[#121212] p-2 shadow-2xl z-50 select-none text-white border border-white/5"
+                className="absolute right-0 top-full mt-2 w-60 rounded-2xl bg-[#141414] p-2 shadow-2xl z-50 select-none text-white border border-white/[0.08]"
                 onMouseDown={(e) => e.stopPropagation()}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -212,9 +212,9 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
                 <Link
                   href="/profile"
                   onClick={() => setIsUserMenuOpen(false)}
-                  className="flex items-center gap-3 p-2.5 pb-3 border-b border-zinc-800/80 hover:bg-[#222222] rounded-xl transition-colors cursor-pointer group"
+                  className="flex items-center gap-3 p-2.5 pb-3 border-b border-white/[0.08] hover:bg-[#222222] rounded-xl transition-colors cursor-pointer group"
                 >
-                  <div className="h-10 w-10 rounded-full overflow-hidden bg-zinc-800 text-white flex items-center justify-center text-sm font-bold flex-shrink-0 group-hover:scale-105 transition-transform">
+                  <div className="h-10 w-10 rounded-full overflow-hidden bg-[#181818] text-white flex items-center justify-center text-sm font-bold flex-shrink-0 group-hover:scale-105 transition-transform">
                     {user.avatarUrl ? (
                       <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
                     ) : (

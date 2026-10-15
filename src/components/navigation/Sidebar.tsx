@@ -66,9 +66,9 @@ export default function Sidebar({
         />
 
         {/* Slide-over Drawer Panel */}
-        <aside className="relative flex h-full w-64 flex-col bg-black text-zinc-200 border-r border-zinc-900 z-50 overflow-y-auto px-3 py-2 shadow-2xl animate-in slide-in-from-left duration-250 select-none">
+        <aside className="relative flex h-full w-64 flex-col bg-black text-zinc-200 border-r border-white/[0.08] z-50 overflow-y-auto px-3 py-2 shadow-2xl animate-in slide-in-from-left duration-250 select-none">
           {/* Drawer Top Header (Menu + Logo) */}
-          <div className="flex items-center gap-4 px-1 h-12 mb-2 border-b border-zinc-900/80">
+          <div className="flex items-center gap-4 px-1 h-12 mb-2 border-b border-white/[0.08]">
             <button
               type="button"
               onClick={onClose}
@@ -90,7 +90,7 @@ export default function Sidebar({
           </div>
 
           {/* Primary Section */}
-          <div className="space-y-1 pb-3 border-b border-zinc-900">
+          <div className="space-y-1 pb-3 border-b border-white/[0.08]">
             {mainLinks.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
@@ -114,7 +114,7 @@ export default function Sidebar({
           </div>
 
           {/* Library Section */}
-          <div className="space-y-1 py-3 border-b border-zinc-900">
+          <div className="space-y-1 py-3 border-b border-white/[0.08]">
             <h3 className="px-3.5 text-[11px] font-bold uppercase tracking-wider text-zinc-500">
               You
             </h3>
@@ -173,7 +173,7 @@ export default function Sidebar({
 
   if (collapsed) {
     return (
-      <aside className="sticky top-14 flex h-[calc(100vh-3.5rem)] w-18 flex-col items-center py-2 bg-black text-zinc-300 border-r border-zinc-900">
+      <aside className="sticky top-14 flex h-[calc(100vh-3.5rem)] w-18 flex-col items-center py-2 bg-black text-zinc-300 border-r border-white/[0.08]">
         {mainLinks.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
@@ -198,9 +198,9 @@ export default function Sidebar({
   }
 
   return (
-    <aside className="sticky top-14 hidden md:flex h-[calc(100vh-3.5rem)] w-60 flex-col overflow-y-auto px-3 py-3 bg-black text-zinc-200 border-r border-zinc-900 scrollbar-none">
+    <aside className="sticky top-14 hidden md:flex h-[calc(100vh-3.5rem)] w-60 flex-col overflow-y-auto px-3 py-3 bg-black text-zinc-200 border-r border-white/[0.08] scrollbar-none">
       {/* Primary Section */}
-      <div className="space-y-1 pb-3 border-b border-zinc-900">
+      <div className="space-y-1 pb-3 border-b border-white/[0.08]">
         {mainLinks.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
@@ -223,7 +223,7 @@ export default function Sidebar({
       </div>
 
       {/* Library Section */}
-      <div className="space-y-1 py-3 border-b border-zinc-900">
+      <div className="space-y-1 py-3 border-b border-white/[0.08]">
         <h3 className="px-3.5 text-[11px] font-bold uppercase tracking-wider text-zinc-500">
           You
         </h3>

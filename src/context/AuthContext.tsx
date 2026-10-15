@@ -175,14 +175,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           />
 
           <div
-            className="relative w-full max-w-sm rounded-3xl bg-zinc-950 border border-white/10 p-6 shadow-2xl text-white z-10 animate-in zoom-in-95 duration-200 select-none"
+            className="relative w-full max-w-sm rounded-3xl bg-[#141414] border border-white/[0.08] p-6 shadow-2xl text-white z-10 animate-in zoom-in-95 duration-200 select-none"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button */}
             <button
               type="button"
               onClick={closeAuthModal}
-              className="absolute top-4 right-4 p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+              className="absolute top-4 right-4 p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
             >
               <X className="h-4 w-4" />
             </button>
@@ -203,7 +203,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             </div>
 
             {/* Mode Switcher Tabs */}
-            <div className="grid grid-cols-2 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06] mb-5">
+            <div className="grid grid-cols-2 p-1 rounded-xl bg-[#0a0a0a] border border-white/[0.08] mb-5">
               <button
                 type="button"
                 onClick={() => setAuthMode("signin")}
@@ -239,7 +239,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     placeholder="Your Name / Channel Name"
                     value={nameInput}
                     onChange={(e) => setNameInput(e.target.value)}
-                    className="w-full rounded-xl bg-zinc-900 border border-zinc-800 pl-9 pr-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-white transition-colors"
+                    className="w-full rounded-xl bg-[#0a0a0a] border border-white/[0.08] pl-9 pr-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors"
                   />
                 </div>
               )}
@@ -252,7 +252,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   placeholder="Email address"
                   value={emailInput}
                   onChange={(e) => setEmailInput(e.target.value)}
-                  className="w-full rounded-xl bg-zinc-900 border border-zinc-800 pl-9 pr-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-white transition-colors"
+                  className="w-full rounded-xl bg-[#0a0a0a] border border-white/[0.08] pl-9 pr-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors"
                 />
               </div>
 
@@ -264,7 +264,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   placeholder="Password"
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}
-                  className="w-full rounded-xl bg-zinc-900 border border-zinc-800 pl-9 pr-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-white transition-colors"
+                  className="w-full rounded-xl bg-[#0a0a0a] border border-white/[0.08] pl-9 pr-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors"
                 />
               </div>
 
