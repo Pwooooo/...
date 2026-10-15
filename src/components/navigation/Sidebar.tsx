@@ -10,10 +10,7 @@ import {
   Clock,
   ThumbsUp,
   Flame,
-  Music2,
-  Gamepad2,
   Newspaper,
-  Trophy,
   History,
   Video,
   ListVideo,
@@ -55,10 +52,7 @@ export default function Sidebar({
 
   const exploreLinks = [
     { label: "Trending", href: "/trending", icon: Compass },
-    { label: "Music", href: "/channel/music", icon: Music2 },
-    { label: "Gaming", href: "/channel/gaming", icon: Gamepad2 },
     { label: "News", href: "/channel/news", icon: Newspaper },
-    { label: "Sports", href: "/channel/sports", icon: Trophy },
   ];
 
   if (drawer) {
