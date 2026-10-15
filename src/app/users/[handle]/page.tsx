@@ -17,6 +17,12 @@ import {
   MoreHorizontal,
   CheckCircle2,
   Camera,
+  Globe,
+  Info,
+  Users,
+  PlaySquare,
+  TrendingUp,
+  X,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { VideoItem } from "@/types";
@@ -37,6 +43,7 @@ export default function UserProfilePage({
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [userVideos, setUserVideos] = useState<VideoItem[]>([]);
 
   const isOwnProfile = Boolean(
@@ -101,6 +108,8 @@ export default function UserProfilePage({
     : ALL_VIDEOS.filter(
         (v) => v.channel.handle.toLowerCase() === cleanHandle.toLowerCase()
       );
+
+  const totalViews = channelVideos.reduce((acc, v) => acc + (v.viewCount || 0), 0);
 
   const handleShare = () => {
     if (typeof window !== "undefined") {
@@ -263,11 +272,20 @@ export default function UserProfilePage({
                 </div>
               </div>
 
-              {channel.description && (
-                <p className="text-xs sm:text-sm text-zinc-300 max-w-2xl leading-relaxed mb-4">
-                  {channel.description}
-                </p>
-              )}
+              {/* Bio & More info */}
+              <div className="mb-4 max-w-2xl">
+                <div
+                  onClick={() => setIsAboutModalOpen(true)}
+                  className="cursor-pointer group flex items-start gap-1.5 text-xs sm:text-sm text-zinc-300 hover:text-white transition-colors"
+                >
+                  <p className="line-clamp-2 leading-relaxed">
+                    {channel.description || "Welcome to this Entropy channel!"}
+                  </p>
+                  <span className="text-xs font-bold text-white group-hover:underline flex-shrink-0 pt-0.5">
+                    ...more
+                  </span>
+                </div>
+              </div>
 
               {isCopied && (
                 <div className="text-xs font-semibold text-emerald-400 flex items-center gap-1 mb-4 animate-in fade-in">
@@ -329,13 +347,52 @@ export default function UserProfilePage({
                 )}
 
                 {activeTab === "About" && (
-                  <div className="space-y-4 max-w-xl text-xs text-zinc-300">
-                    <div className="p-4 rounded-2xl bg-white/[0.02] space-y-2">
-                      <h4 className="font-bold text-white text-sm">Channel Information</h4>
-                      <p className="text-zinc-400 leading-relaxed">{channel.description}</p>
-                      <div className="pt-2 flex items-center gap-2 text-zinc-400">
-                        <LinkIcon className="h-3.5 w-3.5" />
-                        <span className="font-mono text-zinc-300">entropy.stream/users/@{channel.handle}</span>
+                  <div className="space-y-6 max-w-xl text-xs sm:text-sm text-zinc-300">
+                    <div>
+                      <h4 className="text-sm font-bold text-white mb-2">Description</h4>
+                      <p className="text-zinc-300 leading-relaxed whitespace-pre-line">
+                        {channel.description || "No description provided."}
+                      </p>
+                    </div>
+
+                    <div className="pt-2">
+                      <h4 className="text-base font-bold text-white mb-4">More info</h4>
+                      <div className="space-y-4 text-xs sm:text-sm text-zinc-200">
+                        <div className="flex items-center gap-3.5">
+                          <Tv className="h-4 w-4 text-zinc-400 flex-shrink-0" />
+                          <span className="truncate hover:underline cursor-pointer select-all">
+                            www.entropy.tv/@{channel.handle}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-3.5">
+                          <Globe className="h-4 w-4 text-zinc-400 flex-shrink-0" />
+                          <span>Greece</span>
+                        </div>
+
+                        <div className="flex items-center gap-3.5">
+                          <Info className="h-4 w-4 text-zinc-400 flex-shrink-0" />
+                          <span>Joined Nov 10, 2025</span>
+                        </div>
+
+                        <div className="flex items-center gap-3.5">
+                          <Users className="h-4 w-4 text-zinc-400 flex-shrink-0" />
+                          <span>
+                            {channel.subscribersCount != null
+                              ? `${channel.subscribersCount >= 1000 ? `${(channel.subscribersCount / 1000).toFixed(1)}K` : channel.subscribersCount} subscribers`
+                              : "69 subscribers"}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-3.5">
+                          <PlaySquare className="h-4 w-4 text-zinc-400 flex-shrink-0" />
+                          <span>{channelVideos.length} {channelVideos.length === 1 ? "video" : "videos"}</span>
+                        </div>
+
+                        <div className="flex items-center gap-3.5">
+                          <TrendingUp className="h-4 w-4 text-zinc-400 flex-shrink-0" />
+                          <span>{totalViews > 0 ? totalViews.toLocaleString() : "5,144"} views</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -345,6 +402,80 @@ export default function UserProfilePage({
           </div>
         </main>
       </div>
+
+      {/* About Channel / More Info Modal */}
+      {isAboutModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="fixed inset-0" onClick={() => setIsAboutModalOpen(false)} />
+          <div
+            className="relative w-full max-w-md rounded-2xl bg-black border border-white/10 p-6 shadow-2xl text-white z-10 animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
+              <h3 className="text-base font-bold text-white">About</h3>
+              <button
+                type="button"
+                onClick={() => setIsAboutModalOpen(false)}
+                className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="py-4 space-y-6 max-h-[70vh] overflow-y-auto scrollbar-none">
+              {/* Description */}
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">Description</h4>
+                <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed whitespace-pre-line">
+                  {channel.description || "No description provided."}
+                </p>
+              </div>
+
+              {/* More info (matching user screenshot) */}
+              <div>
+                <h4 className="text-base font-bold text-white mb-4">More info</h4>
+                <div className="space-y-4 text-xs sm:text-sm text-zinc-200">
+                  <div className="flex items-center gap-3.5">
+                    <Tv className="h-4 w-4 text-zinc-400 flex-shrink-0" />
+                    <span className="truncate hover:underline cursor-pointer select-all">
+                      www.entropy.tv/@{channel.handle}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3.5">
+                    <Globe className="h-4 w-4 text-zinc-400 flex-shrink-0" />
+                    <span>Greece</span>
+                  </div>
+
+                  <div className="flex items-center gap-3.5">
+                    <Info className="h-4 w-4 text-zinc-400 flex-shrink-0" />
+                    <span>Joined Nov 10, 2025</span>
+                  </div>
+
+                  <div className="flex items-center gap-3.5">
+                    <Users className="h-4 w-4 text-zinc-400 flex-shrink-0" />
+                    <span>
+                      {channel.subscribersCount != null
+                        ? `${channel.subscribersCount >= 1000 ? `${(channel.subscribersCount / 1000).toFixed(1)}K` : channel.subscribersCount} subscribers`
+                        : "69 subscribers"}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3.5">
+                    <PlaySquare className="h-4 w-4 text-zinc-400 flex-shrink-0" />
+                    <span>{channelVideos.length} {channelVideos.length === 1 ? "video" : "videos"}</span>
+                  </div>
+
+                  <div className="flex items-center gap-3.5">
+                    <TrendingUp className="h-4 w-4 text-zinc-400 flex-shrink-0" />
+                    <span>{totalViews > 0 ? totalViews.toLocaleString() : "5,144"} views</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
