@@ -39,36 +39,36 @@ export const FORUM_CATEGORIES: DiscourseCategory[] = [
     id: "updates",
     name: "Updates",
     color: "#F1592A",
-    description: "Product announcements, release notes, community events, and official news from the Entropy team.",
-    subcategories: ["Announcements", "Release Notes", "Community & Events"],
+    description: "Official platform announcements, patch notes, video player releases, and news from the Entropy team.",
+    subcategories: ["Announcements", "Patch Notes", "Platform Releases", "Creator News"],
   },
   {
     id: "community",
     name: "Community",
     color: "#12A89D",
-    description: "Show off your creations, hang out with other creators, and discuss all things Entropy.",
-    subcategories: ["Showcase", "General Discussion", "Off-Topic", "Trading"],
+    description: "Show off your channels, share videos, collaborate with fellow creators, and discuss video creation.",
+    subcategories: ["Creator Showcase", "General Discussion", "Collaborations", "Feedback & Advice", "Off-Topic"],
   },
   {
     id: "help-feedback",
     name: "Help & Feedback",
     color: "#0E76BD",
-    description: "Get help with Entropy, ask questions, share feedback, and learn from other creators.",
-    subcategories: ["Development Support", "Engine API", "Scripting Support", "Building Support", "Art & Design Support"],
+    description: "Get help with streaming, video uploads, Creator Studio tools, channel setup, and playback support.",
+    subcategories: ["Studio & Uploads", "Streaming & Playback", "Channel & Customization", "Account Support", "Creator Tips"],
   },
   {
     id: "bug-reports",
     name: "Bug Reports",
     color: "#BF1A2F",
-    description: "Found a bug? Report it here with steps to reproduce so we can fix it.",
-    subcategories: ["General Bugs", "Studio Bugs", "Engine Bugs", "Website Bugs", "Forum Bugs"],
+    description: "Found an issue with video playback, upload processing, Creator Studio, or the UI? Report it here.",
+    subcategories: ["Video Player", "Studio & Uploads", "Website & UI", "Shorts & Feeds", "General Issues"],
   },
   {
     id: "feature-requests",
     name: "Feature Requests",
     color: "#3AB54A",
-    description: "Have an idea to make Entropy better? Share it here.",
-    subcategories: ["Studio Features", "Engine Features", "Website Features"],
+    description: "Share your ideas for new video player tools, Creator Studio enhancements, and platform improvements.",
+    subcategories: ["Player & Viewing", "Creator Studio", "Channels & Social", "Shorts & Discovery", "Platform Ideas"],
   },
 ];
 
@@ -646,7 +646,7 @@ export default function GlobalNewsPage() {
                     required
                     value={postText}
                     onChange={(e) => setPostText(e.target.value)}
-                    placeholder="Type topic content or announcement here..."
+                    placeholder="Write an announcement, start a discussion, or share an update with the Entropy community..."
                     className="w-full rounded-xl bg-[#0a0a0a] border border-white/[0.08] p-3 text-xs sm:text-sm text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors resize-none leading-relaxed"
                   />
 
@@ -896,8 +896,8 @@ export default function GlobalNewsPage() {
                     <h3 className="text-base font-bold text-white mb-1">No topics posted yet</h3>
                     <p className="text-xs text-zinc-400 max-w-sm mb-4">
                       {user
-                        ? "Be the first to create a topic or share an update here!"
-                        : "Check back soon for updates and discussions."}
+                        ? "Be the first to post an announcement, report an issue, or start a discussion on Entropy!"
+                        : "Check back soon for community posts, announcements, and patch notes."}
                     </p>
                     {user && (
                       <button
