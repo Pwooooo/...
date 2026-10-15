@@ -258,7 +258,7 @@ export default function ChannelProfilePage({
                     key={tab}
                     type="button"
                     onClick={() => setActiveTab(tab)}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer ${
+                    className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ease-out cursor-pointer ${
                       activeTab === tab
                         ? "bg-white/[0.08] text-white shadow-sm"
                         : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
