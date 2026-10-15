@@ -12,10 +12,8 @@ import {
   Megaphone,
   CheckCircle2,
   X,
-  MessageSquare,
 } from "lucide-react";
 import { NewsPost } from "@/types";
-import { SAMPLE_NEWS_POSTS } from "@/lib/mock-data";
 
 interface NewsTabProps {
   channel?: {
@@ -30,7 +28,6 @@ interface NewsTabProps {
 const TAG_OPTIONS = ["Update", "Announcement", "Release", "Behind the Scenes", "General"];
 
 export default function NewsTab({ channel, isOwnProfile = false }: NewsTabProps) {
-  const [mounted, setMounted] = useState(false);
   const [posts, setPosts] = useState<NewsPost[]>([]);
   const [postText, setPostText] = useState("");
   const [selectedTag, setSelectedTag] = useState("Update");
@@ -48,30 +45,27 @@ export default function NewsTab({ channel, isOwnProfile = false }: NewsTabProps)
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  // Sync news posts from localStorage + mock data
   const loadPosts = () => {
     try {
       const stored = localStorage.getItem("entropy_news_posts");
       let allPosts: NewsPost[] = [];
       if (stored) {
         allPosts = JSON.parse(stored);
-        if (!Array.isArray(allPosts) || allPosts.length === 0) {
-          allPosts = [...SAMPLE_NEWS_POSTS];
+        if (Array.isArray(allPosts)) {
+          allPosts = allPosts.filter((p) => !p.id.startsWith("news-"));
           localStorage.setItem("entropy_news_posts", JSON.stringify(allPosts));
+        } else {
+          allPosts = [];
+          localStorage.setItem("entropy_news_posts", JSON.stringify([]));
         }
-      } else {
-        allPosts = [...SAMPLE_NEWS_POSTS];
-        localStorage.setItem("entropy_news_posts", JSON.stringify(allPosts));
       }
 
-      // Filter for this channel with normalized handle comparison
       const targetHandle = cleanHandle.toLowerCase();
       const filtered = allPosts.filter((p) => {
         const postHandle = (p.channelHandle || "").replace(/^@/, "").toLowerCase();
         return postHandle === targetHandle;
       });
 
-      // Sort pinned to top, then newest first
       filtered.sort((a, b) => {
         if (a.isPinned && !b.isPinned) return -1;
         if (!a.isPinned && b.isPinned) return 1;
@@ -88,7 +82,6 @@ export default function NewsTab({ channel, isOwnProfile = false }: NewsTabProps)
   };
 
   useEffect(() => {
-    setMounted(true);
     loadPosts();
 
     if (typeof window !== "undefined") {
@@ -101,7 +94,6 @@ export default function NewsTab({ channel, isOwnProfile = false }: NewsTabProps)
     }
   }, [cleanHandle]);
 
-  // Handle image attachment
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -143,7 +135,6 @@ export default function NewsTab({ channel, isOwnProfile = false }: NewsTabProps)
     reader.readAsDataURL(file);
   };
 
-  // Submit a new post
   const handleCreatePost = (e: React.FormEvent) => {
     e.preventDefault();
     if (!postText.trim()) return;
@@ -164,8 +155,9 @@ export default function NewsTab({ channel, isOwnProfile = false }: NewsTabProps)
 
     try {
       const stored = localStorage.getItem("entropy_news_posts");
-      const allPosts: NewsPost[] = stored ? JSON.parse(stored) : [...SAMPLE_NEWS_POSTS];
-      const updated = [newPost, ...allPosts];
+      const allPosts: NewsPost[] = stored ? JSON.parse(stored) : [];
+      const cleaned = Array.isArray(allPosts) ? allPosts.filter((p) => !p.id.startsWith("news-")) : [];
+      const updated = [newPost, ...cleaned];
       localStorage.setItem("entropy_news_posts", JSON.stringify(updated));
 
       if (typeof window !== "undefined") {
@@ -181,11 +173,10 @@ export default function NewsTab({ channel, isOwnProfile = false }: NewsTabProps)
     }
   };
 
-  // Like / Unlike post
   const handleToggleLike = (postId: string) => {
     try {
       const stored = localStorage.getItem("entropy_news_posts");
-      const allPosts: NewsPost[] = stored ? JSON.parse(stored) : [...SAMPLE_NEWS_POSTS];
+      const allPosts: NewsPost[] = stored ? JSON.parse(stored) : [];
 
       const updated = allPosts.map((p) => {
         if (p.id === postId) {
@@ -204,11 +195,9 @@ export default function NewsTab({ channel, isOwnProfile = false }: NewsTabProps)
         window.dispatchEvent(new Event("entropy_news_updated"));
       }
     } catch {
-      // ignore
     }
   };
 
-  // Delete post
   const handleDeletePost = (postId: string) => {
     try {
       const stored = localStorage.getItem("entropy_news_posts");
@@ -223,11 +212,9 @@ export default function NewsTab({ channel, isOwnProfile = false }: NewsTabProps)
         showToast("Post deleted");
       }
     } catch {
-      // ignore
     }
   };
 
-  // Share post
   const handleSharePost = (post: NewsPost) => {
     if (typeof window !== "undefined") {
       const shareUrl = `${window.location.origin}/@${cleanHandle}?tab=News#${post.id}`;
@@ -258,7 +245,6 @@ export default function NewsTab({ channel, isOwnProfile = false }: NewsTabProps)
 
   return (
     <div className="space-y-6 max-w-3xl">
-      {/* Toast Feedback */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-white text-black px-4 py-2.5 rounded-xl font-semibold text-xs shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
           <CheckCircle2 className="h-4 w-4" />
@@ -266,7 +252,6 @@ export default function NewsTab({ channel, isOwnProfile = false }: NewsTabProps)
         </div>
       )}
 
-      {/* Creator Post Composer (Only shown on own channel) */}
       {isOwnProfile && (
         <form
           onSubmit={handleCreatePost}
@@ -278,7 +263,6 @@ export default function NewsTab({ channel, isOwnProfile = false }: NewsTabProps)
           </div>
 
           <div className="flex gap-3">
-            {/* Avatar */}
             <div className="h-10 w-10 rounded-full bg-[#181818] border border-white/[0.08] flex-shrink-0 overflow-hidden flex items-center justify-center font-bold text-sm text-white">
               {avatarUrl ? (
                 <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
@@ -287,7 +271,6 @@ export default function NewsTab({ channel, isOwnProfile = false }: NewsTabProps)
               )}
             </div>
 
-            {/* Input area */}
             <div className="flex-1 space-y-3">
               <textarea
                 rows={3}
@@ -298,7 +281,6 @@ export default function NewsTab({ channel, isOwnProfile = false }: NewsTabProps)
                 className="w-full rounded-xl bg-[#0a0a0a] border border-white/[0.08] p-3 text-xs sm:text-sm text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors resize-none leading-relaxed"
               />
 
-              {/* Attached Image Preview */}
               {attachedImage && (
                 <div className="relative rounded-xl overflow-hidden border border-white/[0.08] max-h-60 group">
                   <img src={attachedImage} alt="Post attachment" className="w-full h-full object-cover" />
@@ -313,9 +295,7 @@ export default function NewsTab({ channel, isOwnProfile = false }: NewsTabProps)
                 </div>
               )}
 
-              {/* Tag Picker & Actions */}
               <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-                {/* Tag Pills */}
                 <div className="flex flex-wrap items-center gap-1.5">
                   {TAG_OPTIONS.map((tag) => (
                     <button
@@ -333,7 +313,6 @@ export default function NewsTab({ channel, isOwnProfile = false }: NewsTabProps)
                   ))}
                 </div>
 
-                {/* Right controls: attach photo, pin toggle, submit */}
                 <div className="flex items-center gap-2 ml-auto">
                   <input
                     type="file"
@@ -381,7 +360,6 @@ export default function NewsTab({ channel, isOwnProfile = false }: NewsTabProps)
         </form>
       )}
 
-      {/* Posts List */}
       <div className="space-y-4">
         {posts.length === 0 ? (
           <div className="py-16 text-center rounded-2xl bg-[#141414] border border-white/[0.08] p-8 flex flex-col items-center">
@@ -391,8 +369,8 @@ export default function NewsTab({ channel, isOwnProfile = false }: NewsTabProps)
             <h3 className="text-sm font-bold text-white mb-1">No updates posted yet</h3>
             <p className="text-xs text-zinc-400 max-w-sm">
               {isOwnProfile
-                ? "Keep your subscribers updated by sharing news, patch notes, behind-the-scenes thoughts, and announcements above."
-                : "This channel hasn't posted any updates yet. Check back soon!"}
+                ? "Share updates, patch notes, announcements, and news above."
+                : "This channel hasn't posted any updates yet."}
             </p>
           </div>
         ) : (
@@ -402,7 +380,6 @@ export default function NewsTab({ channel, isOwnProfile = false }: NewsTabProps)
               id={post.id}
               className="rounded-2xl bg-[#141414] border border-white/[0.08] p-5 shadow-xl transition-all hover:border-white/[0.14]"
             >
-              {/* Header */}
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-[#181818] border border-white/[0.08] flex-shrink-0 overflow-hidden flex items-center justify-center font-bold text-sm text-white">
@@ -447,12 +424,10 @@ export default function NewsTab({ channel, isOwnProfile = false }: NewsTabProps)
                 )}
               </div>
 
-              {/* Content Body */}
               <div className="text-xs sm:text-sm text-zinc-200 leading-relaxed whitespace-pre-line mb-3 font-normal">
                 {post.content}
               </div>
 
-              {/* Image Attachment */}
               {post.imageUrl && (
                 <div className="rounded-xl overflow-hidden border border-white/[0.08] mb-4 max-h-[480px] bg-[#0a0a0a]">
                   <img
@@ -463,7 +438,6 @@ export default function NewsTab({ channel, isOwnProfile = false }: NewsTabProps)
                 </div>
               )}
 
-              {/* Footer Controls: Like, Comment count, Share */}
               <div className="flex items-center gap-2 pt-2 border-t border-white/[0.06]">
                 <button
                   type="button"

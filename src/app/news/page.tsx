@@ -15,10 +15,8 @@ import {
   Sparkles,
   CheckCircle2,
   X,
-  Filter,
 } from "lucide-react";
 import { NewsPost } from "@/types";
-import { SAMPLE_NEWS_POSTS } from "@/lib/mock-data";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 
@@ -53,16 +51,15 @@ export default function GlobalNewsPage() {
       let allPosts: NewsPost[] = [];
       if (stored) {
         allPosts = JSON.parse(stored);
-        if (!Array.isArray(allPosts) || allPosts.length === 0) {
-          allPosts = [...SAMPLE_NEWS_POSTS];
+        if (Array.isArray(allPosts)) {
+          allPosts = allPosts.filter((p) => !p.id.startsWith("news-"));
           localStorage.setItem("entropy_news_posts", JSON.stringify(allPosts));
+        } else {
+          allPosts = [];
+          localStorage.setItem("entropy_news_posts", JSON.stringify([]));
         }
-      } else {
-        allPosts = [...SAMPLE_NEWS_POSTS];
-        localStorage.setItem("entropy_news_posts", JSON.stringify(allPosts));
       }
 
-      // Sort pinned to top, then newest first
       allPosts.sort((a, b) => {
         if (a.isPinned && !b.isPinned) return -1;
         if (!a.isPinned && b.isPinned) return 1;
@@ -74,7 +71,7 @@ export default function GlobalNewsPage() {
 
       setPosts(allPosts);
     } catch {
-      setPosts([...SAMPLE_NEWS_POSTS]);
+      setPosts([]);
     }
   };
 
@@ -91,7 +88,6 @@ export default function GlobalNewsPage() {
     }
   }, []);
 
-  // Handle image attachment
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -128,7 +124,6 @@ export default function GlobalNewsPage() {
     reader.readAsDataURL(file);
   };
 
-  // Submit a new post
   const handleCreatePost = (e: React.FormEvent) => {
     e.preventDefault();
     if (!postText.trim() || !user) return;
@@ -149,8 +144,9 @@ export default function GlobalNewsPage() {
 
     try {
       const stored = localStorage.getItem("entropy_news_posts");
-      const allPosts: NewsPost[] = stored ? JSON.parse(stored) : [...SAMPLE_NEWS_POSTS];
-      const updated = [newPost, ...allPosts];
+      const allPosts: NewsPost[] = stored ? JSON.parse(stored) : [];
+      const cleaned = Array.isArray(allPosts) ? allPosts.filter((p) => !p.id.startsWith("news-")) : [];
+      const updated = [newPost, ...cleaned];
       localStorage.setItem("entropy_news_posts", JSON.stringify(updated));
 
       if (typeof window !== "undefined") {
@@ -160,17 +156,16 @@ export default function GlobalNewsPage() {
       setPostText("");
       setAttachedImage(null);
       setIsPinned(false);
-      showToast("News update published to Entropy feed!");
+      showToast("News update published!");
     } catch {
       showToast("Failed to save post");
     }
   };
 
-  // Toggle like
   const handleToggleLike = (postId: string) => {
     try {
       const stored = localStorage.getItem("entropy_news_posts");
-      const allPosts: NewsPost[] = stored ? JSON.parse(stored) : [...SAMPLE_NEWS_POSTS];
+      const allPosts: NewsPost[] = stored ? JSON.parse(stored) : [];
 
       const updated = allPosts.map((p) => {
         if (p.id === postId) {
@@ -189,11 +184,9 @@ export default function GlobalNewsPage() {
         window.dispatchEvent(new Event("entropy_news_updated"));
       }
     } catch {
-      // ignore
     }
   };
 
-  // Delete post (only owner)
   const handleDeletePost = (postId: string) => {
     try {
       const stored = localStorage.getItem("entropy_news_posts");
@@ -208,7 +201,6 @@ export default function GlobalNewsPage() {
         showToast("Post deleted");
       }
     } catch {
-      // ignore
     }
   };
 
@@ -254,7 +246,6 @@ export default function GlobalNewsPage() {
         <Sidebar />
 
         <main className="flex-1 overflow-x-hidden px-4 md:px-8 py-6 max-w-4xl">
-          {/* Toast Notification */}
           {toastMessage && (
             <div className="fixed bottom-6 right-6 z-50 bg-white text-black px-4 py-2.5 rounded-xl font-semibold text-xs shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
               <CheckCircle2 className="h-4 w-4" />
@@ -262,7 +253,6 @@ export default function GlobalNewsPage() {
             </div>
           )}
 
-          {/* Header Banner */}
           <div className="flex items-center gap-4 mb-6">
             <div className="h-14 w-14 rounded-2xl bg-white flex items-center justify-center text-black shadow-lg flex-shrink-0">
               <Newspaper className="h-7 w-7" />
@@ -275,7 +265,6 @@ export default function GlobalNewsPage() {
             </div>
           </div>
 
-          {/* Creator Composer Form (if logged in) or Login Banner */}
           {user ? (
             <form
               onSubmit={handleCreatePost}
@@ -283,7 +272,7 @@ export default function GlobalNewsPage() {
             >
               <div className="flex items-center gap-2.5 mb-3 text-xs font-semibold text-zinc-300">
                 <Megaphone className="h-4 w-4 text-white" />
-                <span>Post a News Update to your subscribers</span>
+                <span>Post a News Update</span>
               </div>
 
               <div className="flex gap-3">
@@ -403,7 +392,6 @@ export default function GlobalNewsPage() {
             </div>
           )}
 
-          {/* Category Filter Pills */}
           <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-6 scrollbar-none">
             {NEWS_CATEGORIES.map((cat) => (
               <button
@@ -421,13 +409,12 @@ export default function GlobalNewsPage() {
             ))}
           </div>
 
-          {/* Posts Feed */}
           <div className="space-y-4">
             {filteredPosts.length === 0 ? (
               <div className="py-16 text-center rounded-2xl bg-[#141414] border border-white/[0.08] p-8 flex flex-col items-center">
                 <Sparkles className="h-8 w-8 text-zinc-500 mb-3" />
-                <h3 className="text-sm font-bold text-white mb-1">No updates in this category</h3>
-                <p className="text-xs text-zinc-400">Try selecting "All" or check back later for new creator posts.</p>
+                <h3 className="text-sm font-bold text-white mb-1">No updates posted yet</h3>
+                <p className="text-xs text-zinc-400">Share news, patch notes, announcements, or releases above.</p>
               </div>
             ) : (
               filteredPosts.map((post) => (
@@ -436,7 +423,6 @@ export default function GlobalNewsPage() {
                   id={post.id}
                   className="rounded-2xl bg-[#141414] border border-white/[0.08] p-5 shadow-xl transition-all hover:border-white/[0.14]"
                 >
-                  {/* Author Header */}
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <Link
                       href={`/@${post.channelHandle}`}
@@ -486,12 +472,10 @@ export default function GlobalNewsPage() {
                     )}
                   </div>
 
-                  {/* Body */}
                   <div className="text-xs sm:text-sm text-zinc-200 leading-relaxed whitespace-pre-line mb-3 font-normal">
                     {post.content}
                   </div>
 
-                  {/* Attached Image */}
                   {post.imageUrl && (
                     <div className="rounded-xl overflow-hidden border border-white/[0.08] mb-4 max-h-[480px] bg-[#0a0a0a]">
                       <img
@@ -502,7 +486,6 @@ export default function GlobalNewsPage() {
                     </div>
                   )}
 
-                  {/* Actions */}
                   <div className="flex items-center gap-2 pt-2 border-t border-white/[0.06]">
                     <button
                       type="button"

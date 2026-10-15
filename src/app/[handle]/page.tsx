@@ -28,9 +28,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { VideoItem } from "@/types";
 import Link from "next/link";
-import NewsTab from "@/components/channel/NewsTab";
-
-const CHANNEL_TABS = ["Videos", "Playlists", "News", "About"];
+const CHANNEL_TABS = ["Videos", "Playlists", "Community", "About"];
 
 export default function ChannelProfilePage({
   params,
@@ -421,16 +419,10 @@ export default function ChannelProfilePage({
                   </div>
                 )}
 
-                {(activeTab === "News" || activeTab === "Community") && (
-                  <NewsTab
-                    channel={{
-                      id: channel.id,
-                      handle: channel.handle,
-                      displayName: channel.displayName,
-                      avatarUrl: channel.avatarUrl || "",
-                    }}
-                    isOwnProfile={isOwnProfile}
-                  />
+                {activeTab === "Community" && (
+                  <div className="py-12 text-center rounded-2xl bg-zinc-900/40 border border-dashed border-zinc-800 p-8">
+                    <p className="text-xs text-zinc-400">Community posts will appear here.</p>
+                  </div>
                 )}
 
                 {activeTab === "About" && (
