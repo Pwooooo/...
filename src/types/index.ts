@@ -37,6 +37,8 @@ export interface VideoItem {
   featured?: boolean;
   chapters?: VideoChapter[];
   highlights?: VideoHighlight[];
+  category?: string;
+  tags?: string[];
 }
 
 export interface NewsPost {

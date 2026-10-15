@@ -76,19 +76,29 @@ export default function ChannelProfilePage({
   }, [user, isOwnProfile]);
 
   useEffect(() => {
-    try {
-      if (isOwnProfile && user) {
-        const stored = JSON.parse(localStorage.getItem("entropy_user_videos") || "[]");
-        const filtered = stored.filter(
-          (v: VideoItem) =>
-            v.channel?.handle?.toLowerCase() === user.handle.toLowerCase() ||
-            v.channel?.id === user.id
-        );
-        setUserVideos(filtered);
+    const loadVideos = () => {
+      try {
+        if (isOwnProfile && user) {
+          const stored = JSON.parse(localStorage.getItem("entropy_user_videos") || "[]");
+          const filtered = stored.filter(
+            (v: VideoItem) =>
+              v.channel?.handle?.toLowerCase() === user.handle.toLowerCase() ||
+              v.channel?.id === user.id
+          );
+          setUserVideos(filtered);
+        }
+      } catch {
+        setUserVideos([]);
       }
-    } catch {
-      setUserVideos([]);
-    }
+    };
+
+    loadVideos();
+    window.addEventListener("entropy_videos_updated", loadVideos);
+    window.addEventListener("storage", loadVideos);
+    return () => {
+      window.removeEventListener("entropy_videos_updated", loadVideos);
+      window.removeEventListener("storage", loadVideos);
+    };
   }, [isOwnProfile, user]);
 
   const handleImageFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {

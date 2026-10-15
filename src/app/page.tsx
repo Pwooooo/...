@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Navbar from "@/components/navigation/Navbar";
 import Sidebar from "@/components/navigation/Sidebar";
 import VideoCard from "@/components/video/VideoCard";
 import { ALL_VIDEOS } from "@/lib/mock-data";
+import { getAllCombinedVideos } from "@/lib/video-storage";
+import { VideoItem } from "@/types";
 
 const CATEGORIES = [
   "All",
@@ -19,15 +21,29 @@ const CATEGORIES = [
 export default function HomePage() {
   const [collapsedSidebar, setCollapsedSidebar] = useState(false);
   const [activeCategory, setActiveCategory] = useState("All");
+  const [allVideos, setAllVideos] = useState<VideoItem[]>(() => ALL_VIDEOS);
+
+  useEffect(() => {
+    const loadVideos = () => {
+      setAllVideos(getAllCombinedVideos());
+    };
+    loadVideos();
+    window.addEventListener("entropy_videos_updated", loadVideos);
+    window.addEventListener("storage", loadVideos);
+    return () => {
+      window.removeEventListener("entropy_videos_updated", loadVideos);
+      window.removeEventListener("storage", loadVideos);
+    };
+  }, []);
 
   const filteredVideos = useMemo(() => {
-    if (activeCategory === "All") return ALL_VIDEOS;
-    return ALL_VIDEOS.filter(
+    if (activeCategory === "All") return allVideos;
+    return allVideos.filter(
       (video) =>
-        video.category.toLowerCase() === activeCategory.toLowerCase() ||
-        video.tags.some((t) => t.toLowerCase().includes(activeCategory.toLowerCase()))
+        (video.category && video.category.toLowerCase() === activeCategory.toLowerCase()) ||
+        (video.tags && video.tags.some((t) => t.toLowerCase().includes(activeCategory.toLowerCase())))
     );
-  }, [activeCategory]);
+  }, [activeCategory, allVideos]);
 
   return (
     <div className="min-h-screen bg-black text-zinc-100 flex flex-col">

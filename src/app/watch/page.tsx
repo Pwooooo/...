@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, Suspense } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/navigation/Navbar";
 import Sidebar from "@/components/navigation/Sidebar";
@@ -28,6 +28,8 @@ import { formatDuration, formatViews } from "@/lib/utils";
 import { ALL_VIDEOS, SAMPLE_CHAPTERS, SAMPLE_HIGHLIGHTS } from "@/lib/mock-data";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { getUserVideos, getVideoBlob, getAllCombinedVideos } from "@/lib/video-storage";
+import { VideoItem } from "@/types";
 
 function WatchContent() {
   const searchParams = useSearchParams();
@@ -35,9 +37,44 @@ function WatchContent() {
   const playerRef = useRef<VideoPlayerHandle>(null);
   const chaptersPanelRef = useRef<HTMLDivElement>(null);
 
-  const currentVideo = ALL_VIDEOS.find((v) => v.id === videoId) || ALL_VIDEOS[0];
+  const [currentVideo, setCurrentVideo] = useState<VideoItem>(() => {
+    const userVideos = getUserVideos();
+    return userVideos.find((v) => v.id === videoId) || ALL_VIDEOS.find((v) => v.id === videoId) || ALL_VIDEOS[0];
+  });
+  const [resolvedVideoUrl, setResolvedVideoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const userVideos = getUserVideos();
+    const found = userVideos.find((v) => v.id === videoId) || ALL_VIDEOS.find((v) => v.id === videoId) || ALL_VIDEOS[0];
+    setCurrentVideo(found);
+
+    let activeBlobUrl: string | null = null;
+    if (found.id.startsWith("v-user-")) {
+      getVideoBlob(found.id).then((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          activeBlobUrl = url;
+          setResolvedVideoUrl(url);
+        } else if (found.rawVideoUrl) {
+          setResolvedVideoUrl(found.rawVideoUrl);
+        } else {
+          setResolvedVideoUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4");
+        }
+      });
+    } else {
+      setResolvedVideoUrl(found.masterPlaylistUrl || found.rawVideoUrl || "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8");
+    }
+
+    return () => {
+      if (activeBlobUrl) {
+        URL.revokeObjectURL(activeBlobUrl);
+      }
+    };
+  }, [videoId]);
+
   const chapters = currentVideo.chapters || SAMPLE_CHAPTERS;
   const highlights = currentVideo.highlights || SAMPLE_HIGHLIGHTS;
+  const allRecommendedVideos = getAllCombinedVideos().filter((v) => v.id !== currentVideo.id);
 
   const { user, openAuthModal } = useAuth();
   const [currentPlaybackTime, setCurrentPlaybackTime] = useState(0);
@@ -230,7 +267,7 @@ function WatchContent() {
         {/* Adaptive Video Player with Chapters & forwardRef */}
         <VideoPlayer
           ref={playerRef}
-          src={currentVideo.masterPlaylistUrl || "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"}
+          src={resolvedVideoUrl || currentVideo.rawVideoUrl || currentVideo.masterPlaylistUrl || "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"}
           poster={currentVideo.thumbnailUrl || undefined}
           autoPlay={true}
           chapters={chapters}
@@ -630,7 +667,7 @@ function WatchContent() {
         )}
 
         <h3 className="text-sm font-bold text-zinc-300 mb-1">Up next</h3>
-        {ALL_VIDEOS.filter((v) => v.id !== videoId).map((rec) => (
+        {allRecommendedVideos.map((rec) => (
           <Link
             key={rec.id}
             href={`/watch?v=${rec.id}`}

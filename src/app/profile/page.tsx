@@ -49,19 +49,29 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    try {
-      if (user) {
-        const stored = JSON.parse(localStorage.getItem("entropy_user_videos") || "[]");
-        const filtered = stored.filter(
-          (v: VideoItem) =>
-            v.channel?.handle?.toLowerCase() === user.handle.toLowerCase() ||
-            v.channel?.id === user.id
-        );
-        setUserVideos(filtered);
+    const loadUserVideos = () => {
+      try {
+        if (user) {
+          const stored = JSON.parse(localStorage.getItem("entropy_user_videos") || "[]");
+          const filtered = stored.filter(
+            (v: VideoItem) =>
+              v.channel?.handle?.toLowerCase() === user.handle.toLowerCase() ||
+              v.channel?.id === user.id
+          );
+          setUserVideos(filtered);
+        }
+      } catch {
+        setUserVideos([]);
       }
-    } catch {
-      setUserVideos([]);
-    }
+    };
+
+    loadUserVideos();
+    window.addEventListener("entropy_videos_updated", loadUserVideos);
+    window.addEventListener("storage", loadUserVideos);
+    return () => {
+      window.removeEventListener("entropy_videos_updated", loadUserVideos);
+      window.removeEventListener("storage", loadUserVideos);
+    };
   }, [user]);
 
   useEffect(() => {

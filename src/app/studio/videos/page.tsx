@@ -18,16 +18,17 @@ import { formatViews } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { VideoItem } from "@/types";
 
+import { getUserVideos, deleteUserVideo } from "@/lib/video-storage";
+
 export default function StudioVideosPage() {
   const { user, openAuthModal } = useAuth();
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  useEffect(() => {
+  const loadUserVideos = () => {
     try {
       if (user) {
-        const stored = JSON.parse(localStorage.getItem("entropy_user_videos") || "[]");
-        // Only keep videos uploaded by this user or matching their handle
+        const stored = getUserVideos();
         const userVideos = stored.filter(
           (v: VideoItem) =>
             v.channel?.handle?.toLowerCase() === user.handle.toLowerCase() ||
@@ -42,18 +43,22 @@ export default function StudioVideosPage() {
     } finally {
       setIsLoaded(true);
     }
+  };
+
+  useEffect(() => {
+    loadUserVideos();
+    window.addEventListener("entropy_videos_updated", loadUserVideos);
+    window.addEventListener("storage", loadUserVideos);
+    return () => {
+      window.removeEventListener("entropy_videos_updated", loadUserVideos);
+      window.removeEventListener("storage", loadUserVideos);
+    };
   }, [user]);
 
   const deleteVideo = (id: string) => {
     const updated = videos.filter((v) => v.id !== id);
     setVideos(updated);
-    try {
-      const stored = JSON.parse(localStorage.getItem("entropy_user_videos") || "[]");
-      const filtered = stored.filter((v: VideoItem) => v.id !== id);
-      localStorage.setItem("entropy_user_videos", JSON.stringify(filtered));
-    } catch {
-      // ignore
-    }
+    deleteUserVideo(id);
   };
 
   return (
