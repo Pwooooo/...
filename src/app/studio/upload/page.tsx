@@ -268,9 +268,6 @@ export default function StudioUploadPage() {
             </div>
           ) : isCompleted ? (
             <div className="py-12 max-w-xl mx-auto text-center animate-in fade-in zoom-in-95 duration-200">
-              <div className="h-16 w-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-4">
-                <CheckCircle2 className="h-8 w-8" />
-              </div>
               <h2 className="text-2xl font-bold text-white mb-2">Video Published!</h2>
               <p className="text-xs text-zinc-400 mb-8 max-w-md mx-auto">
                 Your video has been processed and is ready for streaming on Entropy.

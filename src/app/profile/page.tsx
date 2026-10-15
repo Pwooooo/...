@@ -338,8 +338,8 @@ export default function ProfilePage() {
               </div>
 
               {isCopied && (
-                <div className="text-xs font-semibold text-emerald-400 flex items-center gap-1 mb-4 animate-in fade-in">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
+                <div className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5 mb-4 animate-in fade-in">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-white" />
                   <span>Profile link copied to clipboard!</span>
                 </div>
               )}
