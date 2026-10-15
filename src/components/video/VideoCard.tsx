@@ -13,12 +13,16 @@ export default function VideoCard({ video }: VideoCardProps) {
   const [timeAgo, setTimeAgo] = useState<string>("Recently");
 
   useEffect(() => {
-    try {
-      const publishedDate = new Date(video.publishedAt);
-      setTimeAgo(formatDistanceToNow(publishedDate, { addSuffix: true }));
-    } catch {
-      setTimeAgo("Recently");
-    }
+    const timer = setTimeout(() => {
+      try {
+        const publishedDate = new Date(video.publishedAt);
+        setTimeAgo(formatDistanceToNow(publishedDate, { addSuffix: true }));
+      } catch {
+        setTimeAgo("Recently");
+      }
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, [video.publishedAt]);
 
   return (
