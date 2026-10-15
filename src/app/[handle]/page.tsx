@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, use, useEffect } from "react";
+import React, { useState, use, useEffect, useRef } from "react";
 import Navbar from "@/components/navigation/Navbar";
 import Sidebar from "@/components/navigation/Sidebar";
 import VideoCard from "@/components/video/VideoCard";
@@ -23,6 +23,7 @@ import {
   PlaySquare,
   TrendingUp,
   X,
+  Trash2,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { VideoItem } from "@/types";
@@ -38,19 +39,32 @@ export default function ChannelProfilePage({
   const resolvedParams = use(params);
   const cleanHandle = decodeURIComponent(resolvedParams.handle).replace(/^%40|^@/, "");
 
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [activeTab, setActiveTab] = useState("Videos");
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editBio, setEditBio] = useState("");
+  const [editAvatarUrl, setEditAvatarUrl] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [userVideos, setUserVideos] = useState<VideoItem[]>([]);
 
-  const isOwnProfile = user && user.handle.toLowerCase() === cleanHandle.toLowerCase();
+  const isOwnProfile = Boolean(user && user.handle.toLowerCase() === cleanHandle.toLowerCase());
+
+  useEffect(() => {
+    if (user && isOwnProfile) {
+      setEditName(user.name || "");
+      setEditBio(user.bio || "");
+      setEditAvatarUrl(user.avatarUrl || user.avatar || "");
+    }
+  }, [user, isOwnProfile]);
 
   useEffect(() => {
     try {
-      if (isOwnProfile) {
+      if (isOwnProfile && user) {
         const stored = JSON.parse(localStorage.getItem("entropy_user_videos") || "[]");
         const filtered = stored.filter(
           (v: VideoItem) =>
@@ -64,7 +78,64 @@ export default function ChannelProfilePage({
     }
   }, [isOwnProfile, user]);
 
-  const channel = isOwnProfile
+  const handleImageFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Please select a valid image file.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const MAX_SIZE = 512;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_SIZE) {
+            height = Math.round((height * MAX_SIZE) / width);
+            width = MAX_SIZE;
+          }
+        } else {
+          if (height > MAX_SIZE) {
+            width = Math.round((width * MAX_SIZE) / height);
+            height = MAX_SIZE;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressed = canvas.toDataURL("image/jpeg", 0.9);
+          setEditAvatarUrl(compressed);
+        } else {
+          setEditAvatarUrl(event.target?.result as string);
+        }
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editName.trim()) return;
+    updateUser({
+      name: editName.trim(),
+      bio: editBio.trim(),
+      avatarUrl: editAvatarUrl.trim(),
+    });
+    setIsEditModalOpen(false);
+  };
+
+  const channel = isOwnProfile && user
     ? {
         id: user.id,
         handle: user.handle,
@@ -72,7 +143,7 @@ export default function ChannelProfilePage({
         avatarUrl: user.avatarUrl || user.avatar || "",
         bannerUrl: "",
         subscribersCount: 0,
-        description: "Welcome to my Entropy channel! Streaming, creating, and connecting.",
+        description: user.bio || "Welcome to my Entropy channel! Streaming, creating, and connecting.",
       }
     : MOCK_CHANNELS[cleanHandle] || {
         id: "custom-channel",
@@ -192,13 +263,14 @@ export default function ChannelProfilePage({
                 {/* Right Action Buttons (borderless) */}
                 <div className="flex items-center gap-2 pb-1 sm:pb-2 self-start sm:self-end">
                   {isOwnProfile ? (
-                    <Link
-                      href="/profile"
+                    <button
+                      type="button"
+                      onClick={() => setIsEditModalOpen(true)}
                       className="flex items-center gap-1.5 rounded-lg bg-[#1c1c1c] hover:bg-[#262626] text-white px-3.5 py-1.5 text-xs font-medium transition-colors cursor-pointer"
                     >
                       <Pencil className="h-3.5 w-3.5 text-zinc-300" />
                       <span>Edit Profile</span>
-                    </Link>
+                    </button>
                   ) : (
                     <button
                       type="button"
@@ -340,7 +412,19 @@ export default function ChannelProfilePage({
                 {activeTab === "About" && (
                   <div className="space-y-6 max-w-xl text-xs sm:text-sm text-zinc-300">
                     <div>
-                      <h4 className="text-sm font-bold text-white mb-2">Description</h4>
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-bold text-white">Description</h4>
+                        {isOwnProfile && (
+                          <button
+                            type="button"
+                            onClick={() => setIsEditModalOpen(true)}
+                            className="text-xs font-medium text-zinc-400 hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
+                          >
+                            <Pencil className="h-3 w-3" />
+                            <span>Edit</span>
+                          </button>
+                        )}
+                      </div>
                       <p className="text-zinc-300 leading-relaxed whitespace-pre-line">
                         {channel.description || "No description provided."}
                       </p>
@@ -464,6 +548,131 @@ export default function ChannelProfilePage({
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Profile Modal */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
+          <div
+            className="fixed inset-0"
+            onClick={() => setIsEditModalOpen(false)}
+          />
+
+          <div
+            className="relative w-full max-w-md rounded-2xl bg-black border border-white/10 p-6 shadow-2xl text-white z-10 animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Pencil className="h-4 w-4 text-zinc-400" />
+                <span>Edit Profile</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(false)}
+                className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveProfile} className="space-y-4 pt-4">
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">
+                  Display Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full rounded-xl bg-zinc-900 border border-zinc-800 px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-white transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">
+                  Bio / Description
+                </label>
+                <textarea
+                  rows={3}
+                  value={editBio}
+                  onChange={(e) => setEditBio(e.target.value)}
+                  placeholder="Tell your viewers about yourself..."
+                  className="w-full rounded-xl bg-zinc-900 border border-zinc-800 px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-white transition-colors resize-none"
+                />
+              </div>
+
+              {/* Avatar Direct Image Import */}
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-2">
+                  Profile Avatar
+                </label>
+
+                <div className="flex items-center gap-4 p-3 rounded-2xl bg-zinc-900 border border-zinc-800">
+                  <div className="relative h-16 w-16 rounded-full overflow-hidden border-2 border-white/20 bg-zinc-800 flex-shrink-0 flex items-center justify-center text-white font-bold text-xl shadow-inner">
+                    {editAvatarUrl ? (
+                      <img src={editAvatarUrl} alt="Avatar preview" className="h-full w-full object-cover" />
+                    ) : (
+                      <span>{editName.slice(0, 1).toUpperCase() || "U"}</span>
+                    )}
+                  </div>
+
+                  <div className="flex-1 space-y-1.5">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleImageFileSelect}
+                      accept="image/*"
+                      className="hidden"
+                    />
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex items-center gap-2 rounded-xl bg-white hover:bg-zinc-200 text-black px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-sm"
+                      >
+                        <Camera className="h-3.5 w-3.5" />
+                        <span>Import Image</span>
+                      </button>
+
+                      {editAvatarUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setEditAvatarUrl("")}
+                          className="flex items-center gap-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-red-400 border border-zinc-800 px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          <span>Remove</span>
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-zinc-500">
+                      Upload directly from your device (PNG, JPG, WebP)
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-semibold text-zinc-300 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl bg-white hover:bg-zinc-200 text-black text-xs font-bold transition-colors cursor-pointer shadow-md"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -36,13 +36,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Initialize from localStorage safely
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("entropy_user");
-      if (saved) {
-        setUser(JSON.parse(saved));
+    const syncUser = () => {
+      try {
+        const saved = localStorage.getItem("entropy_user");
+        if (saved) {
+          setUser(JSON.parse(saved));
+        }
+      } catch {
+        // ignore
       }
-    } catch {
-      // ignore
+    };
+
+    syncUser();
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("storage", syncUser);
+      window.addEventListener("entropy_user_updated", syncUser);
+      return () => {
+        window.removeEventListener("storage", syncUser);
+        window.removeEventListener("entropy_user_updated", syncUser);
+      };
     }
   }, []);
 
@@ -60,10 +73,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       handle: userData?.handle || username.toLowerCase().replace(/[^a-z0-9]/g, "") || "user",
       avatarUrl: userData?.avatarUrl || "",
       avatar: userData?.avatar || "",
+      bio: userData?.bio || "",
     };
     setUser(newUser);
     try {
       localStorage.setItem("entropy_user", JSON.stringify(newUser));
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("entropy_user_updated"));
+      }
     } catch {
       // ignore
     }
@@ -75,6 +92,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     try {
       localStorage.removeItem("entropy_user");
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("entropy_user_updated"));
+      }
     } catch {
       // ignore
     }
@@ -87,6 +107,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const updated = { ...prev, ...userData };
       try {
         localStorage.setItem("entropy_user", JSON.stringify(updated));
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("entropy_user_updated"));
+        }
       } catch {
         // ignore
       }
