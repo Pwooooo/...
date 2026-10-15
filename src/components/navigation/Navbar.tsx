@@ -132,8 +132,12 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
               >
                 {/* Profile header */}
                 <div className="flex items-center gap-3 p-2.5 pb-3 border-b border-zinc-800">
-                  <div className="h-9 w-9 rounded-full overflow-hidden bg-zinc-800 flex-shrink-0">
-                    <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
+                  <div className="h-9 w-9 rounded-full overflow-hidden bg-white text-black flex items-center justify-center text-xs font-bold flex-shrink-0">
+                    {user.avatarUrl ? (
+                      <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
+                    ) : (
+                      <span>{user.name.slice(0, 1).toUpperCase()}</span>
+                    )}
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs font-bold text-white truncate">{user.name}</p>

@@ -443,8 +443,8 @@ function WatchContent() {
           {/* Add Comment Input */}
           <form onSubmit={handleAddComment} className="flex gap-3 mb-6">
             <div className="h-9 w-9 rounded-full bg-zinc-850 border border-zinc-800 flex items-center justify-center font-bold text-xs text-white flex-shrink-0 overflow-hidden">
-              {user?.avatar ? (
-                <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+              {user?.avatarUrl || user?.avatar ? (
+                <img src={user.avatarUrl || user.avatar} alt={user.name} className="h-full w-full object-cover" />
               ) : (
                 <span>{user ? user.name.slice(0, 1).toUpperCase() : "U"}</span>
               )}
