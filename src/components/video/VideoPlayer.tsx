@@ -18,6 +18,7 @@ import {
   Minimize,
   Settings,
   RotateCcw,
+  ChevronRight,
 } from "lucide-react";
 import { formatDuration } from "@/lib/utils";
 import { VideoChapter } from "@/types";
@@ -35,10 +36,11 @@ interface VideoPlayerProps {
   autoPlay?: boolean;
   chapters?: VideoChapter[];
   onTimeChange?: (time: number) => void;
+  onToggleChapters?: () => void;
 }
 
 const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
-  ({ src, poster, autoPlay = false, chapters = [], onTimeChange }, ref) => {
+  ({ src, poster, autoPlay = false, chapters = [], onTimeChange, onToggleChapters }, ref) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const hlsRef = useRef<Hls | null>(null);
@@ -379,9 +381,20 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
                   <span>/</span>
                   <span>{formatDuration(Math.floor(duration))}</span>
                   {chapters.length > 0 && (
-                    <span className="hidden md:inline-flex items-center text-xs text-zinc-300 font-sans font-medium ml-1.5 truncate max-w-[220px]">
-                      • {(chapters.slice().reverse().find((c) => currentTime >= c.seconds) || chapters[0]).title}
-                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onToggleChapters) onToggleChapters();
+                      }}
+                      className="inline-flex items-center gap-1 text-xs text-zinc-300 hover:text-white font-sans font-medium ml-1.5 px-2 py-0.5 rounded-md hover:bg-white/10 transition-colors cursor-pointer group/chap"
+                      title="View chapters & most watched parts"
+                    >
+                      <span className="truncate max-w-[130px] sm:max-w-[200px] md:max-w-[240px]">
+                        • {(chapters.slice().reverse().find((c) => currentTime >= c.seconds) || chapters[0]).title}
+                      </span>
+                      <ChevronRight className="h-3.5 w-3.5 text-zinc-400 group-hover/chap:text-white group-hover/chap:translate-x-0.5 transition-all flex-shrink-0" />
+                    </button>
                   )}
                 </div>
               </div>

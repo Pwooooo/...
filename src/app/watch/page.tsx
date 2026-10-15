@@ -16,6 +16,8 @@ import {
   Sparkles,
   Play,
   Check,
+  ChevronRight,
+  X,
 } from "lucide-react";
 import { formatDuration, formatViews } from "@/lib/utils";
 import { ALL_VIDEOS, SAMPLE_CHAPTERS, SAMPLE_HIGHLIGHTS } from "@/lib/mock-data";
@@ -25,12 +27,14 @@ function WatchContent() {
   const searchParams = useSearchParams();
   const videoId = searchParams.get("v") || "sample-1";
   const playerRef = useRef<VideoPlayerHandle>(null);
+  const chaptersPanelRef = useRef<HTMLDivElement>(null);
 
   const currentVideo = ALL_VIDEOS.find((v) => v.id === videoId) || ALL_VIDEOS[0];
   const chapters = currentVideo.chapters || SAMPLE_CHAPTERS;
   const highlights = currentVideo.highlights || SAMPLE_HIGHLIGHTS;
 
   const [currentPlaybackTime, setCurrentPlaybackTime] = useState(0);
+  const [isChaptersPanelOpen, setIsChaptersPanelOpen] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [likes, setLikes] = useState(14250);
   const [dislikes, setDislikes] = useState(420);
@@ -111,6 +115,19 @@ function WatchContent() {
     showToast(`Jumped to ${formatDuration(seconds)}`);
   };
 
+  const handleToggleChapters = () => {
+    setIsChaptersPanelOpen((prev) => {
+      const next = !prev;
+      if (next) {
+        showToast("Opened Chapters & Most Watched Parts");
+        setTimeout(() => {
+          chaptersPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }, 100);
+      }
+      return next;
+    });
+  };
+
   const handleAddComment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!commentText.trim()) return;
@@ -150,6 +167,7 @@ function WatchContent() {
           autoPlay={true}
           chapters={chapters}
           onTimeChange={setCurrentPlaybackTime}
+          onToggleChapters={handleToggleChapters}
         />
 
         {/* Video Title */}
@@ -250,7 +268,7 @@ function WatchContent() {
           </div>
         </div>
 
-        {/* YouTube-Style Description Box with Clickable Timestamps and Chapters Shelf */}
+        {/* YouTube-Style Description Box */}
         <div className="mt-4 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900/80 p-4 text-xs text-zinc-300 transition-colors border border-white/5">
           {/* Views, Date & Hashtags Header */}
           <div className="flex flex-wrap items-center gap-2 font-semibold text-white mb-2">
@@ -270,111 +288,13 @@ function WatchContent() {
 
           {/* Description Text */}
           <div className={`leading-relaxed text-zinc-300 text-sm ${isDescriptionExpanded ? "" : "line-clamp-2"}`}>
-            <p className="whitespace-pre-line mb-3 font-normal">{currentVideo.description}</p>
-
-            {/* Clickable Timestamps in Description (like YouTube) */}
-            {chapters.length > 0 && (
-              <div className="mt-3 space-y-1.5 pt-3 border-t border-zinc-800/80 font-mono text-xs">
-                <div className="text-xs font-semibold font-sans text-zinc-400 mb-2 tracking-wide">
-                  TIMESTAMPS
-                </div>
-                {chapters.map((ch, idx) => (
-                  <div key={ch.id} className="flex items-center gap-2.5 group py-0.5">
-                    <button
-                      onClick={() => handleSeekToChapter(ch.seconds)}
-                      className="text-white bg-zinc-800/90 hover:bg-white hover:text-black px-2 py-0.5 rounded font-mono font-bold text-[11px] transition-colors cursor-pointer"
-                    >
-                      {formatDuration(ch.seconds)}
-                    </button>
-                    <span className="text-zinc-300 group-hover:text-white transition-colors font-sans text-xs">
-                      {ch.title}
-                    </span>
-                    {idx === 2 && (
-                      <span className="text-[10px] font-sans font-bold bg-white text-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
-                        <Sparkles className="h-3 w-3" /> Most watched
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+            <p className="whitespace-pre-line mb-1 font-normal">{currentVideo.description}</p>
           </div>
-
-          {/* YouTube-Style Chapters Shelf Carousel inside / under Description */}
-          {chapters.length > 0 && (
-            <div className="mt-4 pt-3.5 border-t border-zinc-800/80">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Layers className="h-4 w-4 text-zinc-300" />
-                  <span className="font-bold text-white text-xs tracking-wide">Chapters</span>
-                  <span className="text-zinc-500 text-xs">({chapters.length})</span>
-                </div>
-
-                {/* Most Watched Parts Callout in YouTube Chapters Shelf */}
-                {highlights.length > 0 && (
-                  <button
-                    onClick={() => handleSeekToChapter(highlights[1]?.startTime || 525)}
-                    className="flex items-center gap-1.5 text-[11px] font-bold text-white bg-white/10 hover:bg-white hover:text-black px-2.5 py-1 rounded-full transition-colors cursor-pointer border border-white/10"
-                    title="Jump to Most Watched Part"
-                  >
-                    <Sparkles className="h-3 w-3" />
-                    <span>Most watched: {formatDuration(highlights[1]?.startTime || 525)}</span>
-                  </button>
-                )}
-              </div>
-
-              {/* Horizontal Scroll Carousel of Chapter Cards */}
-              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
-                {chapters.map((ch, idx) => {
-                  const isActive =
-                    currentPlaybackTime >= ch.seconds &&
-                    (idx === chapters.length - 1 || currentPlaybackTime < chapters[idx + 1].seconds);
-
-                  return (
-                    <button
-                      key={ch.id}
-                      onClick={() => handleSeekToChapter(ch.seconds)}
-                      className={`flex flex-col text-left rounded-xl overflow-hidden flex-shrink-0 w-44 p-1.5 border transition-all cursor-pointer group ${
-                        isActive
-                          ? "bg-white/10 border-white text-white shadow-lg"
-                          : "bg-zinc-950/70 border-zinc-800/80 text-zinc-300 hover:bg-zinc-900 hover:border-zinc-700"
-                      }`}
-                    >
-                      <div className="relative aspect-video w-full rounded-lg overflow-hidden bg-zinc-800 mb-1.5">
-                        <img
-                          src={ch.thumbnailUrl}
-                          alt={ch.title}
-                          className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Play className="h-4 w-4 fill-white" />
-                        </div>
-                        <span className="absolute bottom-1 right-1 rounded bg-black/90 px-1 text-[9px] font-mono font-bold text-white">
-                          {formatDuration(ch.seconds)}
-                        </span>
-                        {idx === 2 && (
-                          <span className="absolute top-1 left-1 rounded bg-white text-black px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-tight shadow-sm">
-                            Most watched
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs font-semibold line-clamp-1 group-hover:text-white transition-colors">
-                        {ch.title}
-                      </p>
-                      <span className="text-[10px] text-zinc-500 font-mono mt-0.5">
-                        {formatDuration(ch.seconds)}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
           {/* Expand / Collapse Button */}
           <button
             onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-            className="mt-3 text-xs font-bold text-white hover:underline cursor-pointer inline-flex items-center gap-1"
+            className="mt-2 text-xs font-bold text-white hover:underline cursor-pointer inline-flex items-center gap-1"
           >
             <span>{isDescriptionExpanded ? "Show less" : "...more"}</span>
           </button>
@@ -457,8 +377,107 @@ function WatchContent() {
         </div>
       </div>
 
-      {/* Recommended Up Next Videos (Right Column) */}
+      {/* Recommended Up Next Videos & Chapters Side Panel (Right Column) */}
       <div className="w-full lg:w-[400px] flex flex-col gap-3">
+        {/* Chapters & Most Watched Parts Side Panel (Opened by clicking chapter text in player) */}
+        {isChaptersPanelOpen && chapters.length > 0 && (
+          <div
+            ref={chaptersPanelRef}
+            className="rounded-2xl bg-zinc-950 border border-white/10 p-3.5 mb-2 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200"
+          >
+            {/* Header with Title and Close X */}
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80 mb-3">
+              <div className="flex items-center gap-2">
+                <Layers className="h-4 w-4 text-zinc-300" />
+                <h3 className="font-bold text-white text-sm">Chapters</h3>
+                <span className="text-zinc-500 text-xs">({chapters.length})</span>
+              </div>
+              <button
+                onClick={() => setIsChaptersPanelOpen(false)}
+                className="p-1 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+                title="Close chapters"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Most Watched Part Highlight Card */}
+            {highlights.length > 0 && (
+              <div
+                onClick={() => handleSeekToChapter(highlights[1]?.startTime || 525)}
+                className="mb-3 p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 cursor-pointer transition-all flex items-center justify-between group"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="h-8 w-8 rounded-lg bg-white text-black flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                    <Play className="h-3.5 w-3.5 fill-black ml-0.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider bg-white text-black px-1.5 py-0.5 rounded shadow-sm">
+                        Most watched
+                      </span>
+                      <span className="font-mono text-xs font-bold text-white">
+                        {formatDuration(highlights[1]?.startTime || 525)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-300 truncate mt-0.5 group-hover:text-white font-medium">
+                      {highlights[1]?.title || chapters[2]?.title}
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-zinc-400 group-hover:text-white group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+              </div>
+            )}
+
+            {/* Chapters Vertical List */}
+            <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
+              {chapters.map((ch, idx) => {
+                const isActive =
+                  currentPlaybackTime >= ch.seconds &&
+                  (idx === chapters.length - 1 || currentPlaybackTime < chapters[idx + 1].seconds);
+
+                return (
+                  <button
+                    key={ch.id}
+                    onClick={() => handleSeekToChapter(ch.seconds)}
+                    className={`w-full flex items-center gap-3 p-2 rounded-xl text-left transition-all cursor-pointer border ${
+                      isActive
+                        ? "bg-white/10 border-white text-white shadow-md scale-[1.01]"
+                        : "bg-zinc-900/50 border-zinc-800/60 text-zinc-300 hover:bg-zinc-900 hover:border-zinc-700 hover:text-white"
+                    }`}
+                  >
+                    <div className="relative aspect-video w-24 flex-shrink-0 rounded-lg overflow-hidden bg-zinc-800">
+                      <img src={ch.thumbnailUrl} alt={ch.title} className="h-full w-full object-cover" />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                        <Play className="h-4 w-4 fill-white" />
+                      </div>
+                      <span className="absolute bottom-1 right-1 rounded bg-black/90 px-1 text-[9px] font-mono font-bold text-white">
+                        {formatDuration(ch.seconds)}
+                      </span>
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-[11px] font-bold text-zinc-400">
+                          {formatDuration(ch.seconds)}
+                        </span>
+                        {idx === 2 && (
+                          <span className="text-[9px] font-extrabold uppercase bg-white text-black px-1.5 py-0.2 rounded">
+                            Most watched
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs font-semibold line-clamp-2 leading-snug mt-0.5">
+                        {ch.title}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <h3 className="text-sm font-bold text-zinc-300 mb-1">Up next</h3>
         {ALL_VIDEOS.filter((v) => v.id !== videoId).map((rec) => (
           <Link
