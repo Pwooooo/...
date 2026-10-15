@@ -38,3 +38,17 @@ export interface VideoItem {
   chapters?: VideoChapter[];
   highlights?: VideoHighlight[];
 }
+
+export interface NewsPost {
+  id: string;
+  channelHandle: string;
+  channelName: string;
+  channelAvatar?: string;
+  content: string;
+  imageUrl?: string;
+  publishedAt: string;
+  likes: number;
+  hasLiked?: boolean;
+  tag?: string;
+  isPinned?: boolean;
+}

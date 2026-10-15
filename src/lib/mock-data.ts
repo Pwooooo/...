@@ -1,4 +1,4 @@
-import { VideoItem, ChannelBasic, VideoChapter, VideoHighlight } from "@/types";
+import { VideoItem, ChannelBasic, VideoChapter, VideoHighlight, NewsPost } from "@/types";
 
 export interface ShortItem {
   id: string;
@@ -246,5 +246,50 @@ export const USER_PLAYLISTS: PlaylistItemData[] = [
     thumbnailUrl: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=600&q=80",
     updatedAt: "Updated last week",
     visibility: "PUBLIC",
+  },
+];
+
+export const SAMPLE_NEWS_POSTS: NewsPost[] = [
+  {
+    id: "news-0",
+    channelHandle: "0",
+    channelName: "0",
+    channelAvatar: "/entropy-icon.png",
+    content: "Welcome to Entropy 2.0! The new theme engine is live with 1:1 Luduvo charcoal styling, accurate live channel stats, and our brand-new News feed. Post your updates, patch notes, and announcements directly to your audience.",
+    publishedAt: "1 day ago",
+    likes: 88,
+    tag: "Announcement",
+    isPinned: true,
+  },
+  {
+    id: "news-1",
+    channelHandle: "systemcraft",
+    channelName: "SystemCraft Tech",
+    channelAvatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80",
+    content: "We've open-sourced our Rust-based adaptive bitrate packaging service! Check out the GitHub repository and test the multi-ladder HLS pipeline with sample MP4 inputs. Next week we're covering low-latency chunk streaming.",
+    publishedAt: "2 days ago",
+    likes: 342,
+    tag: "Update",
+    isPinned: true,
+  },
+  {
+    id: "news-2",
+    channelHandle: "reactmastery",
+    channelName: "React Mastery",
+    channelAvatar: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=200&q=80",
+    content: "Next.js 16 full architectural tutorial is now live! We dive deep into Turbopack internals, streaming SSR boundaries, and server actions caching lifecycles. Check out the project repo and let us know what you want covered next.",
+    publishedAt: "3 days ago",
+    likes: 219,
+    tag: "Release",
+  },
+  {
+    id: "news-3",
+    channelHandle: "csinsights",
+    channelName: "CS Insights",
+    channelAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80",
+    content: "Working on a complete interactive breakdown of OS kernel memory allocators and garbage collector mechanics. Preview drops this Friday!",
+    publishedAt: "4 days ago",
+    likes: 180,
+    tag: "Behind the Scenes",
   },
 ];
