@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -30,24 +30,36 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
   const { user, openAuthModal, logout } = useAuth();
   const router = useRouter();
 
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const createMenuRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    const handleClickOutside = () => {
-      setIsUserMenuOpen(false);
-      setIsCreateMenuOpen(false);
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (userMenuRef.current && !userMenuRef.current.contains(target)) {
+        setIsUserMenuOpen(false);
+      }
+      if (createMenuRef.current && !createMenuRef.current.contains(target)) {
+        setIsCreateMenuOpen(false);
+      }
     };
-    if (isUserMenuOpen || isCreateMenuOpen) {
-      window.addEventListener("click", handleClickOutside);
-      return () => window.removeEventListener("click", handleClickOutside);
-    }
-  }, [isUserMenuOpen, isCreateMenuOpen]);
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleCreateClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!user) {
       openAuthModal();
     } else {
-      setIsCreateMenuOpen(!isCreateMenuOpen);
+      setIsCreateMenuOpen((prev) => !prev);
     }
+  };
+
+  const handleUserClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsUserMenuOpen((prev) => !prev);
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -113,11 +125,11 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
       {/* Right: Actions & User Login / Account */}
       <div className="flex items-center gap-2 sm:gap-3">
         {/* Create Button with Menu */}
-        <div className="relative">
+        <div className="relative" ref={createMenuRef}>
           <button
             type="button"
             onClick={handleCreateClick}
-            className="flex items-center gap-1.5 rounded-full bg-zinc-900 hover:bg-zinc-800 px-3.5 py-1.5 text-xs font-semibold text-white border border-zinc-800 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 rounded-full bg-zinc-900 hover:bg-zinc-800 px-3.5 py-1.5 text-xs font-semibold text-white transition-colors cursor-pointer"
           >
             <VideoIcon className="h-4 w-4 text-white" />
             <span className="hidden md:inline">Create</span>
@@ -125,7 +137,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
 
           {user && isCreateMenuOpen && (
             <div
-              className="absolute right-0 top-full mt-2 w-48 rounded-2xl bg-zinc-950 border border-white/10 p-1.5 shadow-2xl z-50 animate-in fade-in slide-in-from-top-1 duration-150 select-none text-white"
+              className="absolute right-0 top-full mt-2 w-48 rounded-2xl bg-[#121212] p-1.5 shadow-2xl z-50 animate-in fade-in slide-in-from-top-1 duration-150 select-none text-white"
               onClick={(e) => e.stopPropagation()}
             >
               <Link
@@ -161,12 +173,14 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
 
         {user ? (
           /* Logged In Account Button & Dropdown */
-          <div className="relative">
+          <div className="relative" ref={userMenuRef}>
             <button
               type="button"
-              onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              className="flex h-8 w-8 items-center justify-center rounded-full overflow-hidden border border-white/20 hover:border-white transition-all cursor-pointer"
+              onClick={handleUserClick}
+              className="flex h-8 w-8 items-center justify-center rounded-full overflow-hidden hover:opacity-90 transition-opacity cursor-pointer ring-1 ring-white/10"
               title={user.name}
+              aria-label="Account menu"
+              aria-expanded={isUserMenuOpen}
             >
               {user.avatarUrl ? (
                 <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
@@ -179,7 +193,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
 
             {isUserMenuOpen && (
               <div
-                className="absolute right-0 top-full mt-2 w-60 rounded-2xl bg-zinc-950 border border-white/10 p-2 shadow-2xl z-50 animate-in fade-in slide-in-from-top-1 duration-150 select-none text-white"
+                className="absolute right-0 top-full mt-2 w-60 rounded-2xl bg-[#121212] p-2 shadow-2xl z-50 animate-in fade-in slide-in-from-top-1 duration-150 select-none text-white"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Profile header link (matches user screenshot) */}
@@ -188,7 +202,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
                   onClick={() => setIsUserMenuOpen(false)}
                   className="flex items-center gap-3 p-2.5 pb-3 border-b border-zinc-800/80 hover:bg-[#222222] rounded-xl transition-colors cursor-pointer group"
                 >
-                  <div className="h-10 w-10 rounded-full overflow-hidden bg-zinc-800 text-white flex items-center justify-center text-sm font-bold flex-shrink-0 border border-white/10 group-hover:scale-105 transition-transform">
+                  <div className="h-10 w-10 rounded-full overflow-hidden bg-zinc-800 text-white flex items-center justify-center text-sm font-bold flex-shrink-0 group-hover:scale-105 transition-transform">
                     {user.avatarUrl ? (
                       <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
                     ) : (

@@ -16,6 +16,7 @@ import {
   Link as LinkIcon,
   Pencil,
   MoreHorizontal,
+  Camera,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { VideoItem } from "@/types";
@@ -118,20 +119,43 @@ export default function ChannelProfilePage({
                 {/* Left: Circular Avatar + Name/Handle */}
                 <div className="flex items-end gap-3.5 sm:gap-4">
                   {/* Circular Avatar with Blue Status Dot */}
-                  <div className="relative flex-shrink-0 z-10">
-                    <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-full border-4 border-black bg-zinc-900 text-white shadow-2xl overflow-hidden flex items-center justify-center font-bold text-3xl sm:text-4xl">
-                      {channel.avatarUrl ? (
-                        <img src={channel.avatarUrl} alt={channel.displayName} className="h-full w-full object-cover" />
-                      ) : (
-                        <span>{channelInitial}</span>
-                      )}
+                  {isOwnProfile ? (
+                    <Link
+                      href="/profile"
+                      className="relative flex-shrink-0 z-10 cursor-pointer group text-left"
+                      title="Click to edit profile"
+                    >
+                      <div className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-full border-4 border-black bg-zinc-900 text-white shadow-2xl overflow-hidden flex items-center justify-center font-bold text-3xl sm:text-4xl transition-transform duration-200 group-hover:scale-105">
+                        {channel.avatarUrl ? (
+                          <img src={channel.avatarUrl} alt={channel.displayName} className="h-full w-full object-cover" />
+                        ) : (
+                          <span>{channelInitial}</span>
+                        )}
+                        <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-opacity text-white">
+                          <Camera className="h-6 w-6 mb-1" />
+                          <span className="text-[10px] font-semibold">Change</span>
+                        </div>
+                      </div>
+                      <span
+                        className="absolute bottom-1 right-1.5 h-4 w-4 rounded-full bg-[#00a8ff] border-2 border-black shadow-md ring-2 ring-[#00a8ff]/20"
+                        title="Online"
+                      />
+                    </Link>
+                  ) : (
+                    <div className="relative flex-shrink-0 z-10">
+                      <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-full border-4 border-black bg-zinc-900 text-white shadow-2xl overflow-hidden flex items-center justify-center font-bold text-3xl sm:text-4xl">
+                        {channel.avatarUrl ? (
+                          <img src={channel.avatarUrl} alt={channel.displayName} className="h-full w-full object-cover" />
+                        ) : (
+                          <span>{channelInitial}</span>
+                        )}
+                      </div>
+                      <span
+                        className="absolute bottom-1 right-1.5 h-4 w-4 rounded-full bg-[#00a8ff] border-2 border-black shadow-md ring-2 ring-[#00a8ff]/20"
+                        title="Online"
+                      />
                     </div>
-                    {/* Sky Blue Active Indicator Dot */}
-                    <span
-                      className="absolute bottom-1 right-1.5 h-4 w-4 rounded-full bg-[#00a8ff] border-2 border-black shadow-md ring-2 ring-[#00a8ff]/20"
-                      title="Online"
-                    />
-                  </div>
+                  )}
 
                   {/* Name and Handle */}
                   <div className="pb-1 sm:pb-2">

@@ -182,20 +182,31 @@ export default function ProfilePage() {
                 {/* Left: Circular Avatar + Name/Handle */}
                 <div className="flex items-end gap-3.5 sm:gap-4">
                   {/* Circular Avatar with Blue Status Dot */}
-                  <div className="relative flex-shrink-0 z-10">
-                    <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-full border-4 border-black bg-zinc-900 text-white shadow-2xl overflow-hidden flex items-center justify-center font-bold text-3xl sm:text-4xl">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(true)}
+                    className="relative flex-shrink-0 z-10 cursor-pointer group text-left"
+                    title="Click to edit profile"
+                    aria-label="Edit profile and avatar"
+                  >
+                    <div className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-full border-4 border-black bg-zinc-900 text-white shadow-2xl overflow-hidden flex items-center justify-center font-bold text-3xl sm:text-4xl transition-transform duration-200 group-hover:scale-105">
                       {user.avatarUrl ? (
                         <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
                       ) : (
                         <span>{userInitial}</span>
                       )}
+                      {/* Hover Overlay */}
+                      <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-opacity text-white">
+                        <Camera className="h-6 w-6 mb-1" />
+                        <span className="text-[10px] font-semibold">Change</span>
+                      </div>
                     </div>
                     {/* Sky Blue Active Indicator Dot */}
                     <span
                       className="absolute bottom-1 right-1.5 h-4 w-4 rounded-full bg-[#00a8ff] border-2 border-black shadow-md ring-2 ring-[#00a8ff]/20"
                       title="Online"
                     />
-                  </div>
+                  </button>
 
                   {/* Name and Handle */}
                   <div className="pb-1 sm:pb-2">
