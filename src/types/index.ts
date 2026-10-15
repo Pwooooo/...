@@ -52,3 +52,38 @@ export interface NewsPost {
   tag?: string;
   isPinned?: boolean;
 }
+
+export interface CommunityComment {
+  id: string;
+  authorHandle: string;
+  authorName: string;
+  authorAvatar?: string;
+  content: string;
+  createdAt: string;
+  likes: number;
+  hasLiked?: boolean;
+}
+
+export interface CommunityPollOption {
+  id: string;
+  text: string;
+  votes: number;
+}
+
+export interface CommunityPost {
+  id: string;
+  channelHandle: string;
+  channelName: string;
+  channelAvatar?: string;
+  content: string;
+  imageUrl?: string;
+  pollOptions?: CommunityPollOption[];
+  pollVotedId?: string;
+  publishedAt: string;
+  likes: number;
+  dislikes: number;
+  hasLiked?: boolean;
+  hasDisliked?: boolean;
+  comments: CommunityComment[];
+}
+

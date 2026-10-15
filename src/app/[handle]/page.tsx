@@ -28,6 +28,8 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { VideoItem } from "@/types";
 import Link from "next/link";
+import CommunityTab from "@/components/channel/CommunityTab";
+
 const CHANNEL_TABS = ["Videos", "Playlists", "Community", "About"];
 
 export default function ChannelProfilePage({
@@ -420,9 +422,15 @@ export default function ChannelProfilePage({
                 )}
 
                 {activeTab === "Community" && (
-                  <div className="py-12 text-center rounded-2xl bg-zinc-900/40 border border-dashed border-zinc-800 p-8">
-                    <p className="text-xs text-zinc-400">Community posts will appear here.</p>
-                  </div>
+                  <CommunityTab
+                    channel={{
+                      id: channel.id,
+                      handle: channel.handle,
+                      displayName: channel.displayName,
+                      avatarUrl: channel.avatarUrl || "",
+                    }}
+                    isOwnProfile={isOwnProfile}
+                  />
                 )}
 
                 {activeTab === "About" && (

@@ -30,6 +30,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { VideoItem } from "@/types";
+import CommunityTab from "@/components/channel/CommunityTab";
+
 const PROFILE_TABS = ["Videos", "Playlists", "Community", "About"];
 
 export default function ProfilePage() {
@@ -383,9 +385,15 @@ export default function ProfilePage() {
                 )}
 
                 {activeTab === "Community" && (
-                  <div className="py-12 text-center rounded-2xl bg-zinc-900/40 border border-dashed border-zinc-800 p-8">
-                    <p className="text-xs text-zinc-400">Community posts will appear here.</p>
-                  </div>
+                  <CommunityTab
+                    channel={{
+                      id: user.id,
+                      handle: user.handle,
+                      displayName: user.name,
+                      avatarUrl: user.avatarUrl || user.avatar || "",
+                    }}
+                    isOwnProfile={true}
+                  />
                 )}
 
                 {activeTab === "About" && (
