@@ -45,7 +45,7 @@ export default function ShortsPage() {
     setLikedMap((prev) => ({ ...prev, [id]: !isLiked }));
     setLikes((prev) => ({
       ...prev,
-      [id]: (prev[id] ?? currentShort.likesCount) + (isLiked ? -1 : 1),
+      [id]: Math.max(0, (prev[id] ?? currentShort.likesCount ?? 0) + (isLiked ? -1 : 1)),
     }));
   };
 
@@ -54,7 +54,7 @@ export default function ShortsPage() {
     setDislikedMap((prev) => ({ ...prev, [id]: !isDisliked }));
     setDislikes((prev) => ({
       ...prev,
-      [id]: (prev[id] ?? 1420) + (isDisliked ? -1 : 1),
+      [id]: Math.max(0, (prev[id] ?? 0) + (isDisliked ? -1 : 1)),
     }));
   };
 
@@ -145,7 +145,7 @@ export default function ShortsPage() {
                   <ThumbsUp className={`h-6 w-6 ${likedMap[currentShort.id] ? "fill-white text-white" : ""}`} />
                 </button>
                 <span className="text-xs font-semibold text-zinc-300">
-                  {((likes[currentShort.id] ?? currentShort.likesCount) / 1000).toFixed(1)}K
+                  {(likes[currentShort.id] ?? currentShort.likesCount ?? 0).toLocaleString()}
                 </span>
               </div>
 
@@ -163,7 +163,7 @@ export default function ShortsPage() {
                   <ThumbsDown className={`h-6 w-6 ${dislikedMap[currentShort.id] ? "fill-white" : ""}`} />
                 </button>
                 <span className="text-xs font-semibold text-zinc-300">
-                  {((dislikes[currentShort.id] ?? 1420) / 1000).toFixed(1)}K
+                  {(dislikes[currentShort.id] ?? 0).toLocaleString()}
                 </span>
               </div>
 

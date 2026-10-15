@@ -81,8 +81,8 @@ function WatchContent() {
   const [isChaptersPanelOpen, setIsChaptersPanelOpen] = useState(false);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
-  const [likes, setLikes] = useState(14250);
-  const [dislikes, setDislikes] = useState(420);
+  const [likes, setLikes] = useState(0);
+  const [dislikes, setDislikes] = useState(0);
   const [hasLiked, setHasLiked] = useState(false);
   const [hasDisliked, setHasDisliked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -104,6 +104,14 @@ function WatchContent() {
 
   useEffect(() => {
     try {
+      const storedLikes = localStorage.getItem(`entropy_video_likes_${currentVideo.id}`);
+      const storedDislikes = localStorage.getItem(`entropy_video_dislikes_${currentVideo.id}`);
+      const userVote = localStorage.getItem(`entropy_video_vote_${currentVideo.id}`);
+      setLikes(storedLikes ? parseInt(storedLikes, 10) : 0);
+      setDislikes(storedDislikes ? parseInt(storedDislikes, 10) : 0);
+      setHasLiked(userVote === "like");
+      setHasDisliked(userVote === "dislike");
+
       const stored = localStorage.getItem(`entropy_comments_${currentVideo.id}`);
       if (stored) {
         setComments(JSON.parse(stored));
@@ -111,6 +119,10 @@ function WatchContent() {
         setComments([]);
       }
     } catch {
+      setLikes(0);
+      setDislikes(0);
+      setHasLiked(false);
+      setHasDisliked(false);
       setComments([]);
     }
   }, [currentVideo.id]);
@@ -121,33 +133,69 @@ function WatchContent() {
   };
 
   const handleLike = () => {
+    let newLikes = likes;
+    let newDislikes = dislikes;
+    let newVote: "like" | null = null;
+
     if (hasLiked) {
       setHasLiked(false);
-      setLikes((prev) => prev - 1);
+      newLikes = Math.max(0, likes - 1);
+      setLikes(newLikes);
     } else {
       setHasLiked(true);
+      newVote = "like";
       if (hasDisliked) {
         setHasDisliked(false);
-        setDislikes((prev) => prev - 1);
+        newDislikes = Math.max(0, dislikes - 1);
+        setDislikes(newDislikes);
       }
-      setLikes((prev) => prev + 1);
+      newLikes = likes + 1;
+      setLikes(newLikes);
       showToast("Added to Liked videos");
     }
+
+    try {
+      localStorage.setItem(`entropy_video_likes_${currentVideo.id}`, newLikes.toString());
+      localStorage.setItem(`entropy_video_dislikes_${currentVideo.id}`, newDislikes.toString());
+      if (newVote) {
+        localStorage.setItem(`entropy_video_vote_${currentVideo.id}`, newVote);
+      } else {
+        localStorage.removeItem(`entropy_video_vote_${currentVideo.id}`);
+      }
+    } catch {}
   };
 
   const handleDislike = () => {
+    let newLikes = likes;
+    let newDislikes = dislikes;
+    let newVote: "dislike" | null = null;
+
     if (hasDisliked) {
       setHasDisliked(false);
-      setDislikes((prev) => prev - 1);
+      newDislikes = Math.max(0, dislikes - 1);
+      setDislikes(newDislikes);
     } else {
       setHasDisliked(true);
+      newVote = "dislike";
       if (hasLiked) {
         setHasLiked(false);
-        setLikes((prev) => prev - 1);
+        newLikes = Math.max(0, likes - 1);
+        setLikes(newLikes);
       }
-      setDislikes((prev) => prev + 1);
+      newDislikes = dislikes + 1;
+      setDislikes(newDislikes);
       showToast("Feedback recorded");
     }
+
+    try {
+      localStorage.setItem(`entropy_video_likes_${currentVideo.id}`, newLikes.toString());
+      localStorage.setItem(`entropy_video_dislikes_${currentVideo.id}`, newDislikes.toString());
+      if (newVote) {
+        localStorage.setItem(`entropy_video_vote_${currentVideo.id}`, newVote);
+      } else {
+        localStorage.removeItem(`entropy_video_vote_${currentVideo.id}`);
+      }
+    } catch {}
   };
 
   const handleCommentLike = (commentId: string) => {

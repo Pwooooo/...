@@ -71,7 +71,7 @@ export const SHORTS_FEED: ShortItem[] = [
     id: "short-1",
     title: "How Redis handles 100k requests/sec on a single thread ⚡",
     videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-    likesCount: 118400,
+    likesCount: 0,
     commentsCount: 0,
     channel: MOCK_CHANNELS.systemcraft,
     songName: "Cyberpunk Pulse - Synth Lab",
