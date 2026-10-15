@@ -376,14 +376,14 @@ export default function ProfilePage() {
 
       {/* Edit Profile Modal */}
       {isEditModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
           <div
             className="fixed inset-0"
             onClick={() => setIsEditModalOpen(false)}
           />
 
           <div
-            className="relative w-full max-w-md rounded-2xl bg-zinc-950 border border-white/10 p-6 shadow-2xl text-white z-10 animate-in zoom-in-95 duration-200"
+            className="relative w-full max-w-md rounded-2xl bg-black border border-white/10 p-6 shadow-2xl text-white z-10 animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
