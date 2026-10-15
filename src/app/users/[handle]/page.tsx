@@ -204,7 +204,7 @@ export default function UserProfilePage({
                   {isOwnProfile ? (
                     <Link
                       href="/profile"
-                      className="flex items-center gap-1.5 rounded-lg bg-[#1c1c1c] hover:bg-[#262626] border border-white/10 text-white px-3.5 py-1.5 text-xs font-medium transition-colors cursor-pointer"
+                      className="flex items-center gap-1.5 rounded-lg bg-[#1c1c1c] hover:bg-[#262626] text-white px-3.5 py-1.5 text-xs font-medium transition-colors cursor-pointer"
                     >
                       <Pencil className="h-3.5 w-3.5 text-zinc-300" />
                       <span>Edit Profile</span>
