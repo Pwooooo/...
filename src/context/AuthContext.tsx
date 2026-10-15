@@ -10,6 +10,7 @@ export interface User {
   handle: string;
   avatarUrl?: string;
   avatar?: string;
+  bio?: string;
 }
 
 interface AuthContextType {
@@ -19,6 +20,7 @@ interface AuthContextType {
   closeAuthModal: () => void;
   login: (userData?: Partial<User>) => void;
   logout: () => void;
+  updateUser: (userData: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -79,6 +81,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     showToast("Signed out");
   };
 
+  const updateUser = (userData: Partial<User>) => {
+    setUser((prev) => {
+      if (!prev) return null;
+      const updated = { ...prev, ...userData };
+      try {
+        localStorage.setItem("entropy_user", JSON.stringify(updated));
+      } catch {
+        // ignore
+      }
+      return updated;
+    });
+    showToast("Profile updated");
+  };
+
   const openAuthModal = () => setIsAuthModalOpen(true);
   const closeAuthModal = () => {
     setIsAuthModalOpen(false);
@@ -114,6 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         closeAuthModal,
         login,
         logout,
+        updateUser,
       }}
     >
       {children}

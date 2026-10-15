@@ -14,6 +14,8 @@ import {
   Plus,
   Tv,
   Link as LinkIcon,
+  Pencil,
+  MoreHorizontal,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { VideoItem } from "@/types";
@@ -33,6 +35,7 @@ export default function ChannelProfilePage({
   const [activeTab, setActiveTab] = useState("Videos");
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [userVideos, setUserVideos] = useState<VideoItem[]>([]);
 
   const isOwnProfile = user && user.handle.toLowerCase() === cleanHandle.toLowerCase();
@@ -97,76 +100,87 @@ export default function ChannelProfilePage({
         <Sidebar />
 
         <main className="flex-1 overflow-x-hidden p-4 md:p-8">
-          {/* Luduvo-style Profile Card Container */}
-          <div className="max-w-5xl mx-auto rounded-3xl bg-zinc-950 border border-white/10 overflow-hidden shadow-2xl">
-            {/* Banner Section */}
-            <div className="relative h-44 sm:h-56 md:h-64 w-full bg-gradient-to-r from-zinc-900 via-zinc-850 to-zinc-900 overflow-hidden">
-              {channel.bannerUrl ? (
+          <div className="max-w-5xl mx-auto">
+            {/* Dark Rounded Banner (as in screenshot) */}
+            <div className="relative h-36 sm:h-48 md:h-56 w-full rounded-2xl bg-[#171717] border border-white/5 overflow-hidden">
+              {channel.bannerUrl && (
                 <img
                   src={channel.bannerUrl}
                   alt={channel.displayName}
                   className="h-full w-full object-cover"
                 />
-              ) : (
-                <>
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.08),transparent_70%)]" />
-                  <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent,rgba(9,9,11,0.85))]" />
-                </>
               )}
-
-              <div className="absolute top-4 right-4 flex items-center gap-2">
-                <span className="px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-[10px] font-mono font-bold text-zinc-300">
-                  ID #247
-                </span>
-              </div>
             </div>
 
-            {/* Profile Info Header Bar (Overlapping Banner) */}
-            <div className="px-6 sm:px-8 pb-6">
-              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-14 sm:-mt-16 mb-5">
-                {/* Avatar with Status Ring */}
-                <div className="relative z-10 flex-shrink-0">
-                  <div className="h-28 w-28 sm:h-32 sm:w-32 rounded-2xl sm:rounded-3xl border-4 border-zinc-950 bg-white text-black shadow-2xl overflow-hidden flex items-center justify-center font-extrabold text-4xl sm:text-5xl">
-                    {channel.avatarUrl ? (
-                      <img src={channel.avatarUrl} alt={channel.displayName} className="h-full w-full object-cover" />
-                    ) : (
-                      <span>{channelInitial}</span>
-                    )}
+            {/* Profile Info Header Bar (Overlapping Banner - exact match to screenshot) */}
+            <div className="px-4 sm:px-6">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-12 sm:-mt-14 mb-6">
+                {/* Left: Circular Avatar + Name/Handle */}
+                <div className="flex items-end gap-3.5 sm:gap-4">
+                  {/* Circular Avatar with Blue Status Dot */}
+                  <div className="relative flex-shrink-0 z-10">
+                    <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-full border-4 border-black bg-zinc-900 text-white shadow-2xl overflow-hidden flex items-center justify-center font-bold text-3xl sm:text-4xl">
+                      {channel.avatarUrl ? (
+                        <img src={channel.avatarUrl} alt={channel.displayName} className="h-full w-full object-cover" />
+                      ) : (
+                        <span>{channelInitial}</span>
+                      )}
+                    </div>
+                    {/* Sky Blue Active Indicator Dot */}
+                    <span
+                      className="absolute bottom-1 right-1.5 h-4 w-4 rounded-full bg-[#00a8ff] border-2 border-black shadow-md ring-2 ring-[#00a8ff]/20"
+                      title="Online"
+                    />
                   </div>
-                  {/* Active status indicator dot */}
-                  <span
-                    className="absolute bottom-1 right-1 h-4 w-4 rounded-full bg-emerald-500 border-2 border-zinc-950 shadow-md ring-2 ring-emerald-500/20"
-                    title="Active"
-                  />
+
+                  {/* Name, Badges, and Handle */}
+                  <div className="pb-1 sm:pb-2">
+                    <div className="flex items-center gap-2">
+                      <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white leading-tight">
+                        {channel.displayName}
+                      </h1>
+                      {/* Cat-eared shield badge */}
+                      <span title="Verified" className="inline-flex items-center text-zinc-300">
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="h-4 w-4"
+                        >
+                          <path d="M4 8 L6 3 L9.5 5.2 C11 4.8 13 4.8 14.5 5.2 L18 3 L20 8 C20 14.5 12 21 12 21 C12 21 4 14.5 4 8 Z" />
+                        </svg>
+                      </span>
+                      {/* Rocket badge */}
+                      <span title="Booster" className="inline-flex items-center text-sm select-none">
+                        🚀
+                      </span>
+                    </div>
+                    <p className="text-xs sm:text-sm text-zinc-400 font-normal mt-0.5">
+                      @{channel.handle}
+                    </p>
+                  </div>
                 </div>
 
                 {/* Right Action Buttons */}
-                <div className="flex items-center gap-2.5 sm:mb-2">
+                <div className="flex items-center gap-2 pb-1 sm:pb-2 self-start sm:self-end">
                   {isOwnProfile ? (
-                    <>
-                      <Link
-                        href="/studio/upload"
-                        className="flex items-center gap-2 rounded-xl bg-white hover:bg-zinc-200 text-black px-4 py-2 text-xs font-bold transition-all cursor-pointer shadow-md"
-                      >
-                        <Plus className="h-4 w-4" />
-                        <span>Upload video</span>
-                      </Link>
-
-                      <Link
-                        href="/studio/videos"
-                        className="flex items-center gap-2 rounded-xl bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-200 px-4 py-2 text-xs font-bold transition-all"
-                      >
-                        <Tv className="h-4 w-4 text-zinc-400" />
-                        <span>Entropy Studio</span>
-                      </Link>
-                    </>
+                    <Link
+                      href="/profile"
+                      className="flex items-center gap-1.5 rounded-lg bg-[#1c1c1c] hover:bg-[#262626] border border-white/10 text-white px-3.5 py-1.5 text-xs font-medium transition-colors cursor-pointer"
+                    >
+                      <Pencil className="h-3.5 w-3.5 text-zinc-300" />
+                      <span>Edit Profile</span>
+                    </Link>
                   ) : (
                     <button
                       type="button"
                       onClick={() => setIsSubscribed(!isSubscribed)}
-                      className={`flex items-center gap-2 rounded-xl px-5 py-2 text-xs font-bold transition-all cursor-pointer ${
+                      className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
                         isSubscribed
-                          ? "bg-zinc-900 text-zinc-300 hover:bg-zinc-800 border border-zinc-800"
+                          ? "bg-[#1c1c1c] text-zinc-300 hover:bg-[#262626] border border-white/10"
                           : "bg-white text-black hover:bg-zinc-200"
                       }`}
                     >
@@ -175,49 +189,57 @@ export default function ChannelProfilePage({
                     </button>
                   )}
 
-                  <button
-                    type="button"
-                    onClick={handleShare}
-                    className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-colors cursor-pointer"
-                    title="Share channel"
-                  >
-                    <Share2 className="h-4 w-4" />
-                  </button>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsMenuOpen(!isMenuOpen)}
+                      className="p-2 rounded-lg bg-[#1c1c1c] hover:bg-[#262626] border border-white/10 text-white transition-colors cursor-pointer flex items-center justify-center"
+                      title="More options"
+                    >
+                      <MoreHorizontal className="h-4 w-4 text-zinc-200" />
+                    </button>
+
+                    {isMenuOpen && (
+                      <div className="absolute right-0 top-full mt-2 w-48 rounded-xl bg-zinc-900 border border-white/10 shadow-2xl py-1.5 z-30 animate-in fade-in zoom-in-95">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleShare();
+                            setIsMenuOpen(false);
+                          }}
+                          className="w-full px-3.5 py-2 text-left text-xs text-zinc-200 hover:bg-zinc-800 flex items-center gap-2 cursor-pointer"
+                        >
+                          <Share2 className="h-3.5 w-3.5 text-zinc-400" />
+                          <span>Copy channel link</span>
+                        </button>
+                        {isOwnProfile && (
+                          <Link
+                            href="/studio/upload"
+                            onClick={() => setIsMenuOpen(false)}
+                            className="w-full px-3.5 py-2 text-left text-xs text-zinc-200 hover:bg-zinc-800 flex items-center gap-2"
+                          >
+                            <Plus className="h-3.5 w-3.5 text-zinc-400" />
+                            <span>Upload video</span>
+                          </Link>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* User Names, Handle, Badges & Bio */}
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-                    {channel.displayName}
-                  </h1>
-                  <CheckCircle2 className="h-5 w-5 text-white fill-white/10" />
-                  <span className="px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-[10px] font-bold text-zinc-300 uppercase tracking-wider">
-                    Creator
-                  </span>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-400 font-mono">
-                  <span className="text-zinc-300 font-semibold">@{channel.handle}</span>
-                  <span>•</span>
-                  <span className="flex items-center gap-1.5 text-zinc-400 font-sans">
-                    <Calendar className="h-3.5 w-3.5" />
-                    Joined October 2026
-                  </span>
-                </div>
-
-                <p className="text-xs sm:text-sm text-zinc-300 max-w-2xl leading-relaxed">
+              {channel.description && (
+                <p className="text-xs sm:text-sm text-zinc-300 max-w-2xl leading-relaxed mb-4">
                   {channel.description}
                 </p>
+              )}
 
-                {isCopied && (
-                  <div className="text-xs font-semibold text-emerald-400 flex items-center gap-1 animate-in fade-in">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    <span>Channel link copied to clipboard!</span>
-                  </div>
-                )}
-              </div>
+              {isCopied && (
+                <div className="text-xs font-semibold text-emerald-400 flex items-center gap-1 mb-4 animate-in fade-in">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  <span>Channel link copied to clipboard!</span>
+                </div>
+              )}
 
               {/* Stats Bar */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-5 mt-5 border-t border-zinc-800/80">
