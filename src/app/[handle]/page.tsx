@@ -102,10 +102,10 @@ export default function ChannelProfilePage({
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-300 ease-out cursor-pointer border ${
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-300 ease-out cursor-pointer outline-none ${
                     activeTab === tab
-                      ? "bg-white/[0.08] text-white border-white/40 shadow-sm scale-[1.02]"
-                      : "bg-transparent text-zinc-400 border-white/5 hover:text-white hover:bg-white/[0.04]"
+                      ? "bg-white/[0.08] text-white shadow-sm scale-[1.02]"
+                      : "bg-transparent text-zinc-400 hover:text-white hover:bg-white/[0.04]"
                   }`}
                 >
                   {tab}
