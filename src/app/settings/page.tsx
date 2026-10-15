@@ -20,6 +20,7 @@ import {
   Eye,
 } from "lucide-react";
 import Link from "next/link";
+import SkyPills from "@/components/ui/SkyPills";
 
 interface EntropySettings {
   defaultQuality: string;
@@ -223,27 +224,15 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Navigation Tabs (Sidebar Pill Highlight Style) */}
-            <div className="flex items-center gap-2 mt-6 overflow-x-auto scrollbar-none pb-1">
-              {SETTINGS_SECTIONS.map((sec) => {
-                const Icon = sec.icon;
-                const isActive = activeSection === sec.id;
-                return (
-                  <button
-                    key={sec.id}
-                    type="button"
-                    onClick={() => setActiveSection(sec.id)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ease-out cursor-pointer ${
-                      isActive
-                        ? "bg-white/[0.08] text-white shadow-sm"
-                        : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span>{sec.label}</span>
-                  </button>
-                );
-              })}
+            {/* Navigation Tabs (Sky Pill Buttons) */}
+            <div className="mt-6 pb-1">
+              <SkyPills
+                items={SETTINGS_SECTIONS}
+                activeId={activeSection}
+                onChange={setActiveSection}
+                variant="sky"
+                fillColor="#141414"
+              />
             </div>
           </div>
 

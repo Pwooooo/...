@@ -21,6 +21,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { VideoItem } from "@/types";
 import Link from "next/link";
+import SkyPills from "@/components/ui/SkyPills";
 
 const CHANNEL_TABS = ["Videos", "Playlists", "Community", "About"];
 
@@ -257,22 +258,15 @@ export default function ChannelProfilePage({
                 </div>
               )}
 
-              {/* Navigation Tabs (Sidebar Pill Style) */}
-              <div className="flex items-center gap-2 mt-6 overflow-x-auto scrollbar-none pb-1">
-                {CHANNEL_TABS.map((tab) => (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => setActiveTab(tab)}
-                    className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ease-out cursor-pointer ${
-                      activeTab === tab
-                        ? "bg-white/[0.08] text-white shadow-sm"
-                        : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
-                    }`}
-                  >
-                    {tab}
-                  </button>
-                ))}
+              {/* Navigation Tabs (Sky Pill Buttons) */}
+              <div className="mt-6 pb-1">
+                <SkyPills
+                  items={CHANNEL_TABS}
+                  activeId={activeTab}
+                  onChange={setActiveTab}
+                  variant="sky"
+                  fillColor="#141414"
+                />
               </div>
 
               {/* Tab Content */}
