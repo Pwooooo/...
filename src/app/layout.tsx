@@ -12,6 +12,10 @@ const titilliumWeb = Titillium_Web({
 export const metadata: Metadata = {
   title: "Entropy",
   description: "Next-generation video streaming platform",
+  icons: {
+    icon: "/entropy-icon.png",
+    apple: "/entropy-icon.png",
+  },
 };
 
 export default function RootLayout({

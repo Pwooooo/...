@@ -41,10 +41,12 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
           <Menu className="h-5 w-5 text-zinc-300" />
         </button>
 
-        <Link href="/" className="flex items-center gap-2 focus:outline-none group">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-black shadow-sm group-hover:scale-105 transition-transform">
-            <Play className="h-3.5 w-3.5 fill-black stroke-none translate-x-0.5" />
-          </div>
+        <Link href="/" className="flex items-center gap-2.5 focus:outline-none group">
+          <img
+            src="/entropy-icon.png"
+            alt="Entropy logo"
+            className="h-8 w-8 object-contain group-hover:scale-110 transition-transform"
+          />
           <span className="font-bold text-lg tracking-tight text-white">
             Entropy
           </span>
