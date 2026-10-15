@@ -170,8 +170,8 @@ export default function ProfilePage() {
 
         <main className="flex-1 overflow-x-hidden p-4 md:p-8">
           <div className="max-w-5xl mx-auto">
-            {/* Dark Rounded Banner (as in screenshot) */}
-            <div className="relative h-36 sm:h-48 md:h-56 w-full rounded-2xl bg-[#171717] border border-white/5 overflow-hidden">
+            {/* Dark Rounded Banner (borderless) */}
+            <div className="relative h-36 sm:h-48 md:h-56 w-full rounded-2xl bg-[#171717] overflow-hidden">
               {/* Optional user banner if available */}
               <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20" />
             </div>
@@ -197,7 +197,7 @@ export default function ProfilePage() {
                     />
                   </div>
 
-                  {/* Name, Luduvo Badges, and Handle */}
+                  {/* Name and Handle */}
                   <div className="pb-1 sm:pb-2">
                     <div className="flex items-center gap-2">
                       <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white leading-tight">
@@ -214,12 +214,12 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                {/* Right: Edit Profile & More Options Buttons */}
+                {/* Right: Edit Profile & More Options Buttons (borderless) */}
                 <div className="flex items-center gap-2 pb-1 sm:pb-2 self-start sm:self-end">
                   <button
                     type="button"
                     onClick={() => setIsEditModalOpen(true)}
-                    className="flex items-center gap-1.5 rounded-lg bg-[#1c1c1c] hover:bg-[#262626] border border-white/10 text-white px-3.5 py-1.5 text-xs font-medium transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 rounded-lg bg-[#1c1c1c] hover:bg-[#262626] text-white px-3.5 py-1.5 text-xs font-medium transition-colors cursor-pointer"
                   >
                     <Pencil className="h-3.5 w-3.5 text-zinc-300" />
                     <span>Edit Profile</span>
@@ -229,14 +229,14 @@ export default function ProfilePage() {
                     <button
                       type="button"
                       onClick={() => setIsMenuOpen(!isMenuOpen)}
-                      className="p-2 rounded-lg bg-[#1c1c1c] hover:bg-[#262626] border border-white/10 text-white transition-colors cursor-pointer flex items-center justify-center"
+                      className="p-2 rounded-lg bg-[#1c1c1c] hover:bg-[#262626] text-white transition-colors cursor-pointer flex items-center justify-center"
                       title="More options"
                     >
                       <MoreHorizontal className="h-4 w-4 text-zinc-200" />
                     </button>
 
                     {isMenuOpen && (
-                      <div className="absolute right-0 top-full mt-2 w-52 rounded-2xl bg-[#121212] border border-white/10 shadow-2xl p-1.5 z-30 animate-in fade-in zoom-in-95 select-none">
+                      <div className="absolute right-0 top-full mt-2 w-52 rounded-2xl bg-[#121212] shadow-2xl p-1.5 z-30 animate-in fade-in zoom-in-95 select-none">
                         <button
                           type="button"
                           onClick={() => {
@@ -344,7 +344,7 @@ export default function ProfilePage() {
 
                 {activeTab === "About" && (
                   <div className="space-y-4 max-w-xl text-xs text-zinc-300">
-                    <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.05] space-y-2">
+                    <div className="p-4 rounded-2xl bg-white/[0.02] space-y-2">
                       <h4 className="font-bold text-white text-sm">Channel Details</h4>
                       <p className="text-zinc-400">
                         Official Entropy profile for <span className="text-white font-semibold">{user.name}</span> (@{user.handle}).
@@ -371,10 +371,10 @@ export default function ProfilePage() {
           />
 
           <div
-            className="relative w-full max-w-md rounded-2xl bg-zinc-950 border border-white/10 p-6 shadow-2xl text-white z-10 animate-in zoom-in-95 duration-200"
+            className="relative w-full max-w-md rounded-2xl bg-[#141414] p-6 shadow-2xl text-white z-10 animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
+            <div className="flex items-center justify-between pb-4 border-b border-zinc-800/60">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Pencil className="h-4 w-4 text-zinc-400" />
                 <span>Edit Profile</span>
@@ -398,7 +398,7 @@ export default function ProfilePage() {
                   required
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="w-full rounded-xl bg-zinc-900 border border-zinc-800 px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-white transition-colors"
+                  className="w-full rounded-xl bg-zinc-900 px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none transition-colors"
                 />
               </div>
 
@@ -411,19 +411,19 @@ export default function ProfilePage() {
                   value={editBio}
                   onChange={(e) => setEditBio(e.target.value)}
                   placeholder="Tell your viewers about yourself..."
-                  className="w-full rounded-xl bg-zinc-900 border border-zinc-800 px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-white transition-colors resize-none"
+                  className="w-full rounded-xl bg-zinc-900 px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none transition-colors resize-none"
                 />
               </div>
 
-              {/* Avatar Direct Image Import */}
+              {/* Avatar Direct Image Import (borderless) */}
               <div>
                 <label className="block text-xs font-semibold text-zinc-400 mb-2">
                   Profile Avatar
                 </label>
 
-                <div className="flex items-center gap-4 p-3 rounded-2xl bg-zinc-900 border border-zinc-800">
+                <div className="flex items-center gap-4 p-3 rounded-2xl bg-zinc-900">
                   {/* Live Avatar Preview */}
-                  <div className="relative h-16 w-16 rounded-full overflow-hidden border-2 border-white/20 bg-zinc-800 flex-shrink-0 flex items-center justify-center text-white font-bold text-xl shadow-inner">
+                  <div className="relative h-16 w-16 rounded-full overflow-hidden bg-zinc-800 flex-shrink-0 flex items-center justify-center text-white font-bold text-xl shadow-inner">
                     {editAvatarUrl ? (
                       <img src={editAvatarUrl} alt="Avatar preview" className="h-full w-full object-cover" />
                     ) : (

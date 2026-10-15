@@ -101,8 +101,8 @@ export default function ChannelProfilePage({
 
         <main className="flex-1 overflow-x-hidden p-4 md:p-8">
           <div className="max-w-5xl mx-auto">
-            {/* Dark Rounded Banner (as in screenshot) */}
-            <div className="relative h-36 sm:h-48 md:h-56 w-full rounded-2xl bg-[#171717] border border-white/5 overflow-hidden">
+            {/* Dark Rounded Banner (borderless) */}
+            <div className="relative h-36 sm:h-48 md:h-56 w-full rounded-2xl bg-[#171717] overflow-hidden">
               {channel.bannerUrl && (
                 <img
                   src={channel.bannerUrl}
@@ -133,7 +133,7 @@ export default function ChannelProfilePage({
                     />
                   </div>
 
-                  {/* Name, Badges, and Handle */}
+                  {/* Name and Handle */}
                   <div className="pb-1 sm:pb-2">
                     <div className="flex items-center gap-2">
                       <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white leading-tight">
@@ -156,12 +156,12 @@ export default function ChannelProfilePage({
                   </div>
                 </div>
 
-                {/* Right Action Buttons */}
+                {/* Right Action Buttons (borderless) */}
                 <div className="flex items-center gap-2 pb-1 sm:pb-2 self-start sm:self-end">
                   {isOwnProfile ? (
                     <Link
                       href="/profile"
-                      className="flex items-center gap-1.5 rounded-lg bg-[#1c1c1c] hover:bg-[#262626] border border-white/10 text-white px-3.5 py-1.5 text-xs font-medium transition-colors cursor-pointer"
+                      className="flex items-center gap-1.5 rounded-lg bg-[#1c1c1c] hover:bg-[#262626] text-white px-3.5 py-1.5 text-xs font-medium transition-colors cursor-pointer"
                     >
                       <Pencil className="h-3.5 w-3.5 text-zinc-300" />
                       <span>Edit Profile</span>
@@ -172,7 +172,7 @@ export default function ChannelProfilePage({
                       onClick={() => setIsSubscribed(!isSubscribed)}
                       className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
                         isSubscribed
-                          ? "bg-[#1c1c1c] text-zinc-300 hover:bg-[#262626] border border-white/10"
+                          ? "bg-[#1c1c1c] text-zinc-300 hover:bg-[#262626]"
                           : "bg-white text-black hover:bg-zinc-200"
                       }`}
                     >
@@ -185,14 +185,14 @@ export default function ChannelProfilePage({
                     <button
                       type="button"
                       onClick={() => setIsMenuOpen(!isMenuOpen)}
-                      className="p-2 rounded-lg bg-[#1c1c1c] hover:bg-[#262626] border border-white/10 text-white transition-colors cursor-pointer flex items-center justify-center"
+                      className="p-2 rounded-lg bg-[#1c1c1c] hover:bg-[#262626] text-white transition-colors cursor-pointer flex items-center justify-center"
                       title="More options"
                     >
                       <MoreHorizontal className="h-4 w-4 text-zinc-200" />
                     </button>
 
                     {isMenuOpen && (
-                      <div className="absolute right-0 top-full mt-2 w-52 rounded-2xl bg-[#121212] border border-white/10 shadow-2xl p-1.5 z-30 animate-in fade-in zoom-in-95 select-none">
+                      <div className="absolute right-0 top-full mt-2 w-52 rounded-2xl bg-[#121212] shadow-2xl p-1.5 z-30 animate-in fade-in zoom-in-95 select-none">
                         <button
                           type="button"
                           onClick={() => {
@@ -297,7 +297,7 @@ export default function ChannelProfilePage({
 
                 {activeTab === "About" && (
                   <div className="space-y-4 max-w-xl text-xs text-zinc-300">
-                    <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.05] space-y-2">
+                    <div className="p-4 rounded-2xl bg-white/[0.02] space-y-2">
                       <h4 className="font-bold text-white text-sm">Channel Details</h4>
                       <p className="text-zinc-400">{channel.description}</p>
                       <div className="pt-2 flex items-center gap-2 text-zinc-400">
