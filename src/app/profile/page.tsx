@@ -205,32 +205,32 @@ export default function ProfilePage() {
                     </button>
 
                     {isMenuOpen && (
-                      <div className="absolute right-0 top-full mt-2 w-48 rounded-xl bg-zinc-900 border border-white/10 shadow-2xl py-1.5 z-30 animate-in fade-in zoom-in-95">
+                      <div className="absolute right-0 top-full mt-2 w-52 rounded-2xl bg-[#121212] border border-white/10 shadow-2xl p-1.5 z-30 animate-in fade-in zoom-in-95 select-none">
                         <button
                           type="button"
                           onClick={() => {
                             handleShare();
                             setIsMenuOpen(false);
                           }}
-                          className="w-full px-3.5 py-2 text-left text-xs text-zinc-200 hover:bg-zinc-800 flex items-center gap-2 cursor-pointer"
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:text-white hover:bg-[#222222] transition-colors cursor-pointer text-left"
                         >
-                          <Share2 className="h-3.5 w-3.5 text-zinc-400" />
+                          <Share2 className="h-4 w-4 text-zinc-400" />
                           <span>Copy profile link</span>
                         </button>
                         <Link
                           href="/studio/upload"
                           onClick={() => setIsMenuOpen(false)}
-                          className="w-full px-3.5 py-2 text-left text-xs text-zinc-200 hover:bg-zinc-800 flex items-center gap-2"
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:text-white hover:bg-[#222222] transition-colors"
                         >
-                          <Plus className="h-3.5 w-3.5 text-zinc-400" />
+                          <Plus className="h-4 w-4 text-zinc-400" />
                           <span>Upload video</span>
                         </Link>
                         <Link
                           href="/studio/videos"
                           onClick={() => setIsMenuOpen(false)}
-                          className="w-full px-3.5 py-2 text-left text-xs text-zinc-200 hover:bg-zinc-800 flex items-center gap-2"
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:text-white hover:bg-[#222222] transition-colors"
                         >
-                          <Tv className="h-3.5 w-3.5 text-zinc-400" />
+                          <Tv className="h-4 w-4 text-zinc-400" />
                           <span>Entropy Studio</span>
                         </Link>
                       </div>

@@ -130,7 +130,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
               <Link
                 href="/studio/upload"
                 onClick={() => setIsCreateMenuOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs text-zinc-200 hover:text-white hover:bg-white/[0.08] transition-colors"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs text-zinc-200 hover:text-white hover:bg-[#222222] transition-colors"
               >
                 <UploadCloud className="h-4 w-4 text-zinc-400" />
                 <span>Upload video</span>
@@ -138,7 +138,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
               <Link
                 href="/studio/upload?mode=live"
                 onClick={() => setIsCreateMenuOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs text-zinc-200 hover:text-white hover:bg-white/[0.08] transition-colors"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs text-zinc-200 hover:text-white hover:bg-[#222222] transition-colors"
               >
                 <Radio className="h-4 w-4 text-zinc-400" />
                 <span>Go live</span>
@@ -205,7 +205,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
                   <Link
                     href="/profile"
                     onClick={() => setIsUserMenuOpen(false)}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-zinc-300 hover:text-white hover:bg-white/[0.08] transition-colors"
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-zinc-300 hover:text-white hover:bg-[#222222] transition-colors"
                   >
                     <User className="h-4 w-4 text-zinc-400" />
                     <span>Your profile</span>
@@ -214,7 +214,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
                   <Link
                     href="/studio/videos"
                     onClick={() => setIsUserMenuOpen(false)}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-zinc-300 hover:text-white hover:bg-white/[0.08] transition-colors"
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-zinc-300 hover:text-white hover:bg-[#222222] transition-colors"
                   >
                     <Tv className="h-4 w-4 text-zinc-400" />
                     <span>Entropy Studio</span>
@@ -227,7 +227,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
                       setIsUserMenuOpen(false);
                       logout();
                     }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-red-400 hover:text-red-300 hover:bg-white/[0.04] transition-colors text-left cursor-pointer"
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-red-400 hover:text-red-300 hover:bg-[#222222] transition-colors text-left cursor-pointer"
                   >
                     <LogOut className="h-4 w-4" />
                     <span>Sign out</span>
