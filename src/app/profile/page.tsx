@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Navbar from "@/components/navigation/Navbar";
 import Sidebar from "@/components/navigation/Sidebar";
 import VideoCard from "@/components/video/VideoCard";
@@ -20,6 +20,8 @@ import {
   Pencil,
   MoreHorizontal,
   X,
+  Camera,
+  Trash2,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { VideoItem } from "@/types";
@@ -36,6 +38,7 @@ export default function ProfilePage() {
   const [editName, setEditName] = useState("");
   const [editBio, setEditBio] = useState("");
   const [editAvatarUrl, setEditAvatarUrl] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     try {
@@ -60,6 +63,52 @@ export default function ProfilePage() {
       setEditAvatarUrl(user.avatarUrl || "");
     }
   }, [user]);
+
+  const handleImageFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Please select a valid image file.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const MAX_SIZE = 512;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_SIZE) {
+            height = Math.round((height * MAX_SIZE) / width);
+            width = MAX_SIZE;
+          }
+        } else {
+          if (height > MAX_SIZE) {
+            width = Math.round((width * MAX_SIZE) / height);
+            height = MAX_SIZE;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressed = canvas.toDataURL("image/jpeg", 0.9);
+          setEditAvatarUrl(compressed);
+        } else {
+          setEditAvatarUrl(event.target?.result as string);
+        }
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
@@ -384,17 +433,58 @@ export default function ProfilePage() {
                 />
               </div>
 
+              {/* Avatar Direct Image Import */}
               <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">
-                  Avatar Image URL
+                <label className="block text-xs font-semibold text-zinc-400 mb-2">
+                  Profile Avatar
                 </label>
-                <input
-                  type="url"
-                  value={editAvatarUrl}
-                  onChange={(e) => setEditAvatarUrl(e.target.value)}
-                  placeholder="https://example.com/avatar.png"
-                  className="w-full rounded-xl bg-zinc-900 border border-zinc-800 px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-white transition-colors"
-                />
+
+                <div className="flex items-center gap-4 p-3 rounded-2xl bg-zinc-900 border border-zinc-800">
+                  {/* Live Avatar Preview */}
+                  <div className="relative h-16 w-16 rounded-full overflow-hidden border-2 border-white/20 bg-zinc-800 flex-shrink-0 flex items-center justify-center text-white font-bold text-xl shadow-inner">
+                    {editAvatarUrl ? (
+                      <img src={editAvatarUrl} alt="Avatar preview" className="h-full w-full object-cover" />
+                    ) : (
+                      <span>{editName.slice(0, 1).toUpperCase() || "U"}</span>
+                    )}
+                  </div>
+
+                  {/* Import Controls */}
+                  <div className="flex-1 space-y-1.5">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleImageFileSelect}
+                      accept="image/*"
+                      className="hidden"
+                    />
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex items-center gap-2 rounded-xl bg-white hover:bg-zinc-200 text-black px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-sm"
+                      >
+                        <Camera className="h-3.5 w-3.5" />
+                        <span>Import Image</span>
+                      </button>
+
+                      {editAvatarUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setEditAvatarUrl("")}
+                          className="flex items-center gap-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-red-400 px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          <span>Remove</span>
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-zinc-500">
+                      Upload directly from your device (PNG, JPG, WebP)
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-3">
