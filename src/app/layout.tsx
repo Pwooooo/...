@@ -1,5 +1,13 @@
 import type { Metadata } from "next";
+import { Titillium_Web } from "next/font/google";
 import "./globals.css";
+
+const titilliumWeb = Titillium_Web({
+  subsets: ["latin"],
+  weight: ["300", "400", "600", "700"],
+  variable: "--font-titillium",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Entropy",
@@ -12,8 +20,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark h-full antialiased">
-      <body className="min-h-full flex flex-col bg-black text-white font-sans selection:bg-white selection:text-black">
+    <html lang="en" className={`dark h-full antialiased ${titilliumWeb.variable}`}>
+      <body className={`min-h-full flex flex-col bg-black text-white ${titilliumWeb.className} selection:bg-white selection:text-black`}>
         {children}
       </body>
     </html>
