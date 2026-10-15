@@ -48,6 +48,7 @@ export default function UserProfilePage({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editName, setEditName] = useState("");
   const [editBio, setEditBio] = useState("");
+  const [editCountry, setEditCountry] = useState("");
   const [editAvatarUrl, setEditAvatarUrl] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [userVideos, setUserVideos] = useState<VideoItem[]>([]);
@@ -62,6 +63,7 @@ export default function UserProfilePage({
     if (user && isOwnProfile) {
       setEditName(user.name || "");
       setEditBio(user.bio || "");
+      setEditCountry(user.country || "");
       setEditAvatarUrl(user.avatarUrl || user.avatar || "");
     }
   }, [user, isOwnProfile]);
@@ -118,6 +120,7 @@ export default function UserProfilePage({
     updateUser({
       name: editName.trim(),
       bio: editBio.trim(),
+      country: editCountry.trim(),
       avatarUrl: editAvatarUrl.trim(),
     });
     setIsEditModalOpen(false);
@@ -151,6 +154,8 @@ export default function UserProfilePage({
         bannerUrl: "",
         subscribersCount: 0,
         description: user.bio || "Welcome to my Entropy channel! Streaming, creating, and connecting.",
+        country: user.country || "",
+        joinedAt: user.joinedAt || "Joined recently",
       }
     : isZeroUser
     ? {
@@ -161,6 +166,8 @@ export default function UserProfilePage({
         bannerUrl: "",
         subscribersCount: 69,
         description: "Entropy User #0 • Genesis Pioneer & Founder",
+        country: "Global",
+        joinedAt: "Joined Oct 1, 2025",
       }
     : MOCK_CHANNELS[cleanHandle] || {
         id: `user-${cleanHandle}`,
@@ -170,6 +177,8 @@ export default function UserProfilePage({
         bannerUrl: "",
         subscribersCount: 0,
         description: `Official Entropy profile for @${cleanHandle}.`,
+        country: "",
+        joinedAt: "Joined recently",
       };
 
   const channelVideos = isOwnProfile
@@ -444,19 +453,21 @@ export default function UserProfilePage({
                       <div className="space-y-4 text-xs sm:text-sm text-zinc-200">
                         <div className="flex items-center gap-3.5">
                           <Tv className="h-4 w-4 text-zinc-400 flex-shrink-0" />
-                          <span className="truncate hover:underline cursor-pointer select-all">
+                          <span className="truncate hover:underline cursor-pointer select-all" onClick={handleShare}>
                             www.entropy.tv/@{channel.handle}
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-3.5">
-                          <Globe className="h-4 w-4 text-zinc-400 flex-shrink-0" />
-                          <span>Greece</span>
-                        </div>
+                        {channel.country && (
+                          <div className="flex items-center gap-3.5">
+                            <Globe className="h-4 w-4 text-zinc-400 flex-shrink-0" />
+                            <span>{channel.country}</span>
+                          </div>
+                        )}
 
                         <div className="flex items-center gap-3.5">
                           <Info className="h-4 w-4 text-zinc-400 flex-shrink-0" />
-                          <span>Joined Nov 10, 2025</span>
+                          <span>{channel.joinedAt || "Joined recently"}</span>
                         </div>
 
                         <div className="flex items-center gap-3.5">
@@ -464,7 +475,7 @@ export default function UserProfilePage({
                           <span>
                             {channel.subscribersCount != null
                               ? `${channel.subscribersCount >= 1000 ? `${(channel.subscribersCount / 1000).toFixed(1)}K` : channel.subscribersCount} subscribers`
-                              : "69 subscribers"}
+                              : "0 subscribers"}
                           </span>
                         </div>
 
@@ -475,7 +486,7 @@ export default function UserProfilePage({
 
                         <div className="flex items-center gap-3.5">
                           <TrendingUp className="h-4 w-4 text-zinc-400 flex-shrink-0" />
-                          <span>{totalViews > 0 ? totalViews.toLocaleString() : "5,144"} views</span>
+                          <span>{totalViews.toLocaleString()} {totalViews === 1 ? "view" : "views"}</span>
                         </div>
                       </div>
                     </div>
@@ -521,19 +532,21 @@ export default function UserProfilePage({
                 <div className="space-y-4 text-xs sm:text-sm text-zinc-200">
                   <div className="flex items-center gap-3.5">
                     <Tv className="h-4 w-4 text-zinc-400 flex-shrink-0" />
-                    <span className="truncate hover:underline cursor-pointer select-all">
+                    <span className="truncate hover:underline cursor-pointer select-all" onClick={handleShare}>
                       www.entropy.tv/@{channel.handle}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-3.5">
-                    <Globe className="h-4 w-4 text-zinc-400 flex-shrink-0" />
-                    <span>Greece</span>
-                  </div>
+                  {channel.country && (
+                    <div className="flex items-center gap-3.5">
+                      <Globe className="h-4 w-4 text-zinc-400 flex-shrink-0" />
+                      <span>{channel.country}</span>
+                    </div>
+                  )}
 
                   <div className="flex items-center gap-3.5">
                     <Info className="h-4 w-4 text-zinc-400 flex-shrink-0" />
-                    <span>Joined Nov 10, 2025</span>
+                    <span>{channel.joinedAt || "Joined recently"}</span>
                   </div>
 
                   <div className="flex items-center gap-3.5">
@@ -541,7 +554,7 @@ export default function UserProfilePage({
                     <span>
                       {channel.subscribersCount != null
                         ? `${channel.subscribersCount >= 1000 ? `${(channel.subscribersCount / 1000).toFixed(1)}K` : channel.subscribersCount} subscribers`
-                        : "69 subscribers"}
+                        : "0 subscribers"}
                     </span>
                   </div>
 
@@ -552,7 +565,7 @@ export default function UserProfilePage({
 
                   <div className="flex items-center gap-3.5">
                     <TrendingUp className="h-4 w-4 text-zinc-400 flex-shrink-0" />
-                    <span>{totalViews > 0 ? totalViews.toLocaleString() : "5,144"} views</span>
+                    <span>{totalViews.toLocaleString()} {totalViews === 1 ? "view" : "views"}</span>
                   </div>
                 </div>
               </div>
@@ -611,6 +624,19 @@ export default function UserProfilePage({
                   onChange={(e) => setEditBio(e.target.value)}
                   placeholder="Tell your viewers about yourself..."
                   className="w-full rounded-xl bg-[#0a0a0a] border border-white/[0.08] px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">
+                  Country / Location
+                </label>
+                <input
+                  type="text"
+                  value={editCountry}
+                  onChange={(e) => setEditCountry(e.target.value)}
+                  placeholder="e.g. United States, United Kingdom, Greece..."
+                  className="w-full rounded-xl bg-[#0a0a0a] border border-white/[0.08] px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors"
                 />
               </div>
 

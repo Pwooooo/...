@@ -89,6 +89,7 @@ export default function SettingsPage() {
   const [name, setName] = useState("");
   const [handle, setHandle] = useState("");
   const [bio, setBio] = useState("");
+  const [country, setCountry] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -101,6 +102,7 @@ export default function SettingsPage() {
       setName(user.name || "");
       setHandle(user.handle || "");
       setBio(user.bio || "");
+      setCountry(user.country || "");
       setAvatarUrl(user.avatarUrl || "");
     }
   }, [user]);
@@ -175,6 +177,7 @@ export default function SettingsPage() {
       name: name.trim(),
       handle: handle.trim().replace(/^@/, "").toLowerCase() || "user",
       bio: bio.trim(),
+      country: country.trim(),
       avatarUrl: avatarUrl.trim(),
     });
 
@@ -368,6 +371,19 @@ export default function SettingsPage() {
                       />
                     </div>
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                    Country / Location
+                  </label>
+                  <input
+                    type="text"
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                    placeholder="e.g. United States, United Kingdom, Greece..."
+                    className="w-full rounded-xl bg-[#0a0a0a] border border-white/[0.08] px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors"
+                  />
                 </div>
 
                 <div>

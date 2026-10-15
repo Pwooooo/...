@@ -28,6 +28,8 @@ export const MOCK_CHANNELS: Record<string, ChannelBasic & { bannerUrl?: string; 
     bannerUrl: "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&w=1600&q=80",
     subscribersCount: 245000,
     description: "Deep dive tutorials on distributed systems, streaming architectures, and high-performance backend engineering.",
+    country: "United States",
+    joinedAt: "Joined Jan 15, 2023",
   },
   reactmastery: {
     id: "ch-2",
@@ -37,6 +39,8 @@ export const MOCK_CHANNELS: Record<string, ChannelBasic & { bannerUrl?: string; 
     bannerUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1600&q=80",
     subscribersCount: 112000,
     description: "Level up your modern frontend skills with React, Next.js, and TypeScript masterpieces.",
+    country: "Germany",
+    joinedAt: "Joined Jun 22, 2022",
   },
   csinsights: {
     id: "ch-3",
@@ -46,6 +50,8 @@ export const MOCK_CHANNELS: Record<string, ChannelBasic & { bannerUrl?: string; 
     bannerUrl: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1600&q=80",
     subscribersCount: 580000,
     description: "Visual computer science breakdowns covering OS kernels, compiler optimization, and memory models.",
+    country: "United Kingdom",
+    joinedAt: "Joined Sep 10, 2021",
   },
   creativecode: {
     id: "ch-4",
@@ -55,6 +61,8 @@ export const MOCK_CHANNELS: Record<string, ChannelBasic & { bannerUrl?: string; 
     bannerUrl: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=1600&q=80",
     subscribersCount: 49000,
     description: "Interactive 3D WebGL, GLSL shaders, canvas mechanics, and game development experiments.",
+    country: "Canada",
+    joinedAt: "Joined Apr 5, 2023",
   },
   musicpulse: {
     id: "ch-5",
@@ -64,6 +72,8 @@ export const MOCK_CHANNELS: Record<string, ChannelBasic & { bannerUrl?: string; 
     bannerUrl: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=1600&q=80",
     subscribersCount: 890000,
     description: "The hottest daily electronic, lofi, and ambient soundscapes curated for coding and flow state.",
+    country: "Japan",
+    joinedAt: "Joined Nov 12, 2020",
   },
   gamingarena: {
     id: "ch-6",
@@ -73,6 +83,8 @@ export const MOCK_CHANNELS: Record<string, ChannelBasic & { bannerUrl?: string; 
     bannerUrl: "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1600&q=80",
     subscribersCount: 1250000,
     description: "High-octane esports highlights, speedruns, hardware reviews, and competitive gameplay.",
+    country: "South Korea",
+    joinedAt: "Joined Aug 19, 2019",
   },
 };
 

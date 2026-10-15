@@ -11,6 +11,8 @@ export interface User {
   avatarUrl?: string;
   avatar?: string;
   bio?: string;
+  country?: string;
+  joinedAt?: string;
 }
 
 interface AuthContextType {
@@ -24,6 +26,11 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+function formatJoinedDate(timestamp?: number) {
+  const d = timestamp ? new Date(timestamp) : new Date();
+  return `Joined ${d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -40,7 +47,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const saved = localStorage.getItem("entropy_user");
         if (saved) {
-          setUser(JSON.parse(saved));
+          const parsed: User = JSON.parse(saved);
+          if (!parsed.joinedAt) {
+            let jAt = "";
+            if (parsed.id?.startsWith("u-")) {
+              const ts = parseInt(parsed.id.replace("u-", ""), 10);
+              if (!isNaN(ts) && ts > 1500000000000) {
+                jAt = formatJoinedDate(ts);
+              }
+            }
+            parsed.joinedAt = jAt || formatJoinedDate();
+            try {
+              localStorage.setItem("entropy_user", JSON.stringify(parsed));
+            } catch {
+              // ignore
+            }
+          }
+          setUser(parsed);
         }
       } catch {
         // ignore
@@ -66,14 +89,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = (userData?: Partial<User>) => {
     const username = userData?.name || "User";
+    const id = userData?.id || `u-${Date.now()}`;
+
+    let userJoinedAt = userData?.joinedAt;
+    if (!userJoinedAt) {
+      if (id.startsWith("u-")) {
+        const ts = parseInt(id.replace("u-", ""), 10);
+        if (!isNaN(ts) && ts > 1500000000000) {
+          userJoinedAt = formatJoinedDate(ts);
+        }
+      }
+      if (!userJoinedAt) {
+        userJoinedAt = formatJoinedDate();
+      }
+    }
+
     const newUser: User = {
-      id: userData?.id || `u-${Date.now()}`,
+      id,
       name: username,
       email: userData?.email || "user@entropy.stream",
       handle: userData?.handle || username.toLowerCase().replace(/[^a-z0-9]/g, "") || "user",
       avatarUrl: userData?.avatarUrl || "",
       avatar: userData?.avatar || "",
       bio: userData?.bio || "",
+      country: userData?.country || "",
+      joinedAt: userJoinedAt,
     };
     setUser(newUser);
     try {

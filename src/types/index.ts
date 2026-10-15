@@ -4,6 +4,8 @@ export interface ChannelBasic {
   displayName: string;
   avatarUrl?: string | null;
   subscribersCount?: number;
+  country?: string;
+  joinedAt?: string;
 }
 
 export interface VideoChapter {
