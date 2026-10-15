@@ -77,6 +77,12 @@ function WatchContent() {
   const allRecommendedVideos = getAllCombinedVideos().filter((v) => v.id !== currentVideo.id);
 
   const { user, openAuthModal } = useAuth();
+  const isOwnVideo = Boolean(
+    user &&
+      (currentVideo.id.startsWith("v-user-") ||
+        currentVideo.channel?.handle?.toLowerCase() === user.handle.toLowerCase() ||
+        currentVideo.channel?.id === user.id)
+  );
   const [currentPlaybackTime, setCurrentPlaybackTime] = useState(0);
   const [isChaptersPanelOpen, setIsChaptersPanelOpen] = useState(false);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
@@ -365,17 +371,19 @@ function WatchContent() {
               </p>
             </div>
 
-            <button
-              onClick={handleToggleSubscribe}
-              className={`ml-3 rounded-full px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
-                isSubscribed
-                  ? "bg-[#181818] text-zinc-300 hover:bg-[#222222] border border-white/[0.08] flex items-center gap-1.5"
-                  : "bg-white text-black hover:bg-zinc-200"
-              }`}
-            >
-              {isSubscribed && <Bell className="h-3.5 w-3.5" />}
-              {isSubscribed ? "Subscribed" : "Subscribe"}
-            </button>
+            {!isOwnVideo && (
+              <button
+                onClick={handleToggleSubscribe}
+                className={`ml-3 rounded-full px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
+                  isSubscribed
+                    ? "bg-[#181818] text-zinc-300 hover:bg-[#222222] border border-white/[0.08] flex items-center gap-1.5"
+                    : "bg-white text-black hover:bg-zinc-200"
+                }`}
+              >
+                {isSubscribed && <Bell className="h-3.5 w-3.5" />}
+                {isSubscribed ? "Subscribed" : "Subscribe"}
+              </button>
+            )}
           </div>
 
           {/* Action Pills */}
