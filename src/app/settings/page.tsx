@@ -20,7 +20,7 @@ import {
   Eye,
 } from "lucide-react";
 import Link from "next/link";
-import SkyPills from "@/components/ui/SkyPills";
+import BoxTabs from "@/components/ui/BoxTabs";
 
 interface EntropySettings {
   defaultQuality: string;
@@ -224,14 +224,12 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Navigation Tabs (Sky Pill Buttons) */}
+            {/* Navigation Tabs (Box Style) */}
             <div className="mt-6 pb-1">
-              <SkyPills
+              <BoxTabs
                 items={SETTINGS_SECTIONS}
                 activeId={activeSection}
                 onChange={setActiveSection}
-                variant="sky"
-                fillColor="#141414"
               />
             </div>
           </div>

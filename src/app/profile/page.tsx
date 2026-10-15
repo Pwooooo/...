@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Navbar from "@/components/navigation/Navbar";
 import Sidebar from "@/components/navigation/Sidebar";
 import VideoCard from "@/components/video/VideoCard";
-import SkyPills from "@/components/ui/SkyPills";
+import BoxTabs from "@/components/ui/BoxTabs";
 import Link from "next/link";
 import {
   CheckCircle2,
@@ -305,14 +305,12 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              {/* Navigation Tabs (Sky Pill Buttons) */}
+              {/* Navigation Tabs (Box Style) */}
               <div className="mt-6 pb-1">
-                <SkyPills
+                <BoxTabs
                   items={PROFILE_TABS}
                   activeId={activeTab}
                   onChange={setActiveTab}
-                  variant="sky"
-                  fillColor="#141414"
                 />
               </div>
 

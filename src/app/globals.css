@@ -66,33 +66,4 @@ body {
   padding: 0;
 }
 
-/* Sky Pill Buttons (converted from tuff ui/sky-pills) */
-.sky-tab-pill {
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.sky-tab-pill::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  border-radius: 11px;
-  background: color-mix(in srgb, #ececee 4%, transparent);
-  opacity: 0;
-  pointer-events: none;
-  z-index: -1;
-  transition: opacity 0.15s;
-}
-
-.sky-tab-pill:not([data-tab-active="true"]):hover::before {
-  opacity: 1;
-}
-
-.sky-tab-slider,
-.sky-pill-slider {
-  transition: left 0.22s cubic-bezier(0.4, 0, 0.2, 1), width 0.22s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.12s ease;
-}
 

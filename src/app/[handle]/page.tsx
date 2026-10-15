@@ -21,7 +21,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { VideoItem } from "@/types";
 import Link from "next/link";
-import SkyPills from "@/components/ui/SkyPills";
+import BoxTabs from "@/components/ui/BoxTabs";
 
 const CHANNEL_TABS = ["Videos", "Playlists", "Community", "About"];
 
@@ -258,14 +258,12 @@ export default function ChannelProfilePage({
                 </div>
               )}
 
-              {/* Navigation Tabs (Sky Pill Buttons) */}
+              {/* Navigation Tabs (Box Style) */}
               <div className="mt-6 pb-1">
-                <SkyPills
+                <BoxTabs
                   items={CHANNEL_TABS}
                   activeId={activeTab}
                   onChange={setActiveTab}
-                  variant="sky"
-                  fillColor="#141414"
                 />
               </div>
 

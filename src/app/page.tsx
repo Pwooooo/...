@@ -4,7 +4,7 @@ import React, { useState, useMemo } from "react";
 import Navbar from "@/components/navigation/Navbar";
 import Sidebar from "@/components/navigation/Sidebar";
 import VideoCard from "@/components/video/VideoCard";
-import SkyPills from "@/components/ui/SkyPills";
+import BoxTabs from "@/components/ui/BoxTabs";
 import { ALL_VIDEOS } from "@/lib/mock-data";
 
 const CATEGORIES = [
@@ -42,14 +42,12 @@ export default function HomePage() {
 
         {/* Content Area */}
         <main className="flex-1 min-w-0 px-4 md:px-8 pb-12">
-          {/* Smooth Category Chips Bar (Sky Pill Buttons) */}
+          {/* Smooth Category Chips Bar (Box Style) */}
           <div className="sticky top-14 z-30 bg-black/95 backdrop-blur-md py-3 -mx-4 md:-mx-8 px-4 md:px-8 mb-6">
-            <SkyPills
+            <BoxTabs
               items={CATEGORIES}
               activeId={activeCategory}
               onChange={setActiveCategory}
-              variant="pill"
-              fillColor="rgba(255, 255, 255, 0.08)"
             />
           </div>
 
