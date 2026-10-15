@@ -17,14 +17,24 @@ import {
   History,
   Video,
   ListVideo,
+  Menu,
+  Play,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SidebarProps {
   collapsed?: boolean;
+  drawer?: boolean;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-export default function Sidebar({ collapsed = false }: SidebarProps) {
+export default function Sidebar({
+  collapsed = false,
+  drawer = false,
+  isOpen = false,
+  onClose,
+}: SidebarProps) {
   const pathname = usePathname();
 
   const mainLinks = [
@@ -48,6 +58,120 @@ export default function Sidebar({ collapsed = false }: SidebarProps) {
     { label: "News", href: "/channel/news", icon: Newspaper },
     { label: "Sports", href: "/channel/sports", icon: Trophy },
   ];
+
+  if (drawer) {
+    if (!isOpen) return null;
+    return (
+      <div className="fixed inset-0 z-50 flex">
+        {/* Backdrop */}
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity duration-200 cursor-pointer"
+          onClick={onClose}
+        />
+
+        {/* Slide-over Drawer Panel */}
+        <aside className="relative flex h-full w-64 flex-col bg-black text-zinc-200 border-r border-zinc-900 z-50 overflow-y-auto px-3 py-2 shadow-2xl animate-in slide-in-from-left duration-250 select-none">
+          {/* Drawer Top Header (Menu + Logo) */}
+          <div className="flex items-center gap-4 px-1 h-12 mb-2 border-b border-zinc-900/80">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-full p-2 hover:bg-zinc-900 focus:outline-none transition-colors cursor-pointer"
+              aria-label="Close menu"
+            >
+              <Menu className="h-5 w-5 text-zinc-300" />
+            </button>
+            <Link href="/" onClick={onClose} className="flex items-center gap-2 focus:outline-none group">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-black shadow-sm group-hover:scale-105 transition-transform">
+                <Play className="h-3.5 w-3.5 fill-black stroke-none translate-x-0.5" />
+              </div>
+              <span className="font-bold text-lg tracking-tight text-white">
+                Entropy
+              </span>
+            </Link>
+          </div>
+
+          {/* Primary Section */}
+          <div className="space-y-1 pb-3 border-b border-zinc-900">
+            {mainLinks.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={onClose}
+                  className={cn(
+                    "flex items-center gap-4 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ease-out",
+                    isActive
+                      ? "bg-white/[0.08] text-white font-semibold shadow-sm"
+                      : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
+                  )}
+                >
+                  <Icon className="h-5 w-5" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Library Section */}
+          <div className="space-y-1 py-3 border-b border-zinc-900">
+            <h3 className="px-3.5 text-[11px] font-bold uppercase tracking-wider text-zinc-500">
+              You
+            </h3>
+            {libraryLinks.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={onClose}
+                  className={cn(
+                    "flex items-center gap-4 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ease-out",
+                    isActive
+                      ? "bg-white/[0.08] text-white font-semibold shadow-sm"
+                      : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
+                  )}
+                >
+                  <Icon className="h-5 w-5" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Explore Section */}
+          <div className="space-y-1 py-3">
+            <h3 className="px-3.5 text-[11px] font-bold uppercase tracking-wider text-zinc-500">
+              Explore
+            </h3>
+            {exploreLinks.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={onClose}
+                  className={cn(
+                    "flex items-center gap-4 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ease-out",
+                    isActive
+                      ? "bg-white/[0.08] text-white font-semibold shadow-sm"
+                      : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
+                  )}
+                >
+                  <Icon className="h-5 w-5" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </aside>
+      </div>
+    );
+  }
 
   if (collapsed) {
     return (

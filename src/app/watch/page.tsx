@@ -3,6 +3,7 @@
 import React, { useState, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/navigation/Navbar";
+import Sidebar from "@/components/navigation/Sidebar";
 import VideoPlayer, { VideoPlayerHandle } from "@/components/video/VideoPlayer";
 import {
   ThumbsUp,
@@ -18,6 +19,10 @@ import {
   Check,
   ChevronRight,
   X,
+  Scissors,
+  ListPlus,
+  FileText,
+  Flag,
 } from "lucide-react";
 import { formatDuration, formatViews } from "@/lib/utils";
 import { ALL_VIDEOS, SAMPLE_CHAPTERS, SAMPLE_HIGHLIGHTS } from "@/lib/mock-data";
@@ -35,6 +40,7 @@ function WatchContent() {
 
   const [currentPlaybackTime, setCurrentPlaybackTime] = useState(0);
   const [isChaptersPanelOpen, setIsChaptersPanelOpen] = useState(false);
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [likes, setLikes] = useState(14250);
   const [dislikes, setDislikes] = useState(420);
@@ -262,10 +268,73 @@ function WatchContent() {
               <span>{isSaved ? "Saved" : "Save"}</span>
             </button>
 
-            {/* More */}
-            <button className="rounded-full bg-zinc-900 p-2 text-zinc-300 hover:bg-zinc-800 border border-zinc-800 transition-colors cursor-pointer">
-              <MoreHorizontal className="h-4 w-4" />
-            </button>
+            {/* More / Action Menu */}
+            <div className="relative">
+              <button
+                onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
+                className={`rounded-full p-2 transition-colors cursor-pointer border ${
+                  isMoreMenuOpen
+                    ? "bg-white text-black border-white"
+                    : "bg-zinc-900 text-zinc-300 hover:bg-zinc-800 border-zinc-800"
+                }`}
+                title="More actions"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </button>
+
+              {isMoreMenuOpen && (
+                <div
+                  className="absolute right-0 top-full mt-2 w-52 rounded-2xl bg-zinc-950 border border-white/10 p-1.5 shadow-2xl z-40 animate-in fade-in slide-in-from-top-1 duration-150 select-none"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    onClick={() => {
+                      setIsMoreMenuOpen(false);
+                      showToast("Transcript opened");
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs text-zinc-300 hover:text-white hover:bg-white/10 transition-colors text-left cursor-pointer"
+                  >
+                    <FileText className="h-4 w-4 text-zinc-400" />
+                    <span>Show transcript</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setIsMoreMenuOpen(false);
+                      showToast("Clip editor opened");
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs text-zinc-300 hover:text-white hover:bg-white/10 transition-colors text-left cursor-pointer"
+                  >
+                    <Scissors className="h-4 w-4 text-zinc-400" />
+                    <span>Clip</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setIsMoreMenuOpen(false);
+                      showToast("Saved to playlist");
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs text-zinc-300 hover:text-white hover:bg-white/10 transition-colors text-left cursor-pointer"
+                  >
+                    <ListPlus className="h-4 w-4 text-zinc-400" />
+                    <span>Save to playlist</span>
+                  </button>
+
+                  <div className="my-1 border-t border-zinc-800" />
+
+                  <button
+                    onClick={() => {
+                      setIsMoreMenuOpen(false);
+                      showToast("Report submitted");
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs text-zinc-300 hover:text-white hover:bg-white/10 transition-colors text-left cursor-pointer"
+                  >
+                    <Flag className="h-4 w-4 text-zinc-400" />
+                    <span>Report</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -513,9 +582,12 @@ function WatchContent() {
 }
 
 export default function WatchPage() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
-      <Navbar />
+      <Navbar onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)} />
+      <Sidebar drawer isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       <main className="flex-1">
         <Suspense fallback={<div className="p-8 text-center text-zinc-400">Loading video player...</div>}>
           <WatchContent />
