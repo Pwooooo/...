@@ -191,6 +191,21 @@ export function saveUserVideoMetadata(video: VideoItem): void {
   }
 }
 
+export function updateUserVideo(videoId: string, updates: Partial<VideoItem>): void {
+  if (typeof window === "undefined") return;
+  try {
+    const current = getUserVideos();
+    const index = current.findIndex((v) => v.id === videoId);
+    if (index !== -1) {
+      current[index] = { ...current[index], ...updates };
+      localStorage.setItem("entropy_user_videos", JSON.stringify(current));
+      window.dispatchEvent(new Event("entropy_videos_updated"));
+    }
+  } catch (e) {
+    console.warn("Could not update video metadata:", e);
+  }
+}
+
 export function deleteUserVideo(videoId: string): void {
   if (typeof window === "undefined") return;
   try {
