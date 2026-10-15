@@ -256,8 +256,8 @@ export default function StudioVideosPage() {
 
                       {/* Visibility */}
                       <td className="py-3 px-4">
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-medium">
-                          <Eye className="h-3 w-3" /> Public
+                        <span className="inline-flex items-center gap-1.5 text-white font-medium">
+                          <Eye className="h-3.5 w-3.5" /> Public
                         </span>
                       </td>
 
