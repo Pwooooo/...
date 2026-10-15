@@ -30,6 +30,7 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { getUserVideos, getVideoBlob, getAllCombinedVideos, fetchServerVideos } from "@/lib/video-storage";
 import { VideoItem } from "@/types";
+import VerifiedBadge from "@/components/common/VerifiedBadge";
 
 function WatchContent() {
   const searchParams = useSearchParams();
@@ -399,9 +400,9 @@ function WatchContent() {
               </div>
             </Link>
             <div>
-              <Link href={`/@${currentVideo.channel.handle}`} className="flex items-center gap-1 font-semibold text-sm text-white hover:text-zinc-300 transition-colors">
+              <Link href={`/@${currentVideo.channel.handle}`} className="flex items-center gap-1.5 font-semibold text-sm text-white hover:text-zinc-300 transition-colors">
                 <span>{currentVideo.channel.displayName}</span>
-                <CheckCircle2 className="h-3.5 w-3.5 text-zinc-400" />
+                <VerifiedBadge subscribersCount={currentVideo.channel?.subscribersCount} className="h-4 w-4" />
               </Link>
               <p className="text-xs text-zinc-400">
                 {formatSubscribers(currentVideo.channel.subscribersCount)}

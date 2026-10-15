@@ -9,7 +9,8 @@ import { getAllCombinedVideos, fetchServerVideos } from "@/lib/video-storage";
 import { VideoItem } from "@/types";
 import Link from "next/link";
 import { formatDuration, formatViews } from "@/lib/utils";
-import { CheckCircle2, SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
+import VerifiedBadge from "@/components/common/VerifiedBadge";
 
 function SearchResultsContent() {
   const searchParams = useSearchParams();
@@ -100,7 +101,7 @@ function SearchResultsContent() {
                     />
                   </div>
                   <span>{video.channel.displayName}</span>
-                  <CheckCircle2 className="h-3 w-3 text-zinc-400" />
+                  <VerifiedBadge subscribersCount={video.channel.subscribersCount} className="h-3.5 w-3.5" />
                 </Link>
 
                 <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">

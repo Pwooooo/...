@@ -19,6 +19,7 @@ import {
 import { CommunityPost, CommunityComment, CommunityPollOption } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
+import VerifiedBadge from "@/components/common/VerifiedBadge";
 
 interface CommunityTabProps {
   channel: {
@@ -26,6 +27,7 @@ interface CommunityTabProps {
     handle: string;
     displayName: string;
     avatarUrl?: string;
+    subscribersCount?: number;
   };
   isOwnProfile: boolean;
 }
@@ -578,8 +580,9 @@ export default function CommunityTab({ channel, isOwnProfile }: CommunityTabProp
                       )}
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         <span className="font-bold text-sm text-white">{post.channelName}</span>
+                        <VerifiedBadge subscribersCount={channel?.subscribersCount} className="h-4 w-4" />
                       </div>
                       <div className="flex items-center gap-1.5 text-xs text-zinc-500 mt-0.5">
                         <span>@{post.channelHandle}</span>

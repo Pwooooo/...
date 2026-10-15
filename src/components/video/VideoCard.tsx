@@ -3,7 +3,8 @@ import Link from "next/link";
 import { formatDuration, formatViews } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { VideoItem } from "@/types";
-import { MoreVertical, CheckCircle2 } from "lucide-react";
+import { MoreVertical } from "lucide-react";
+import VerifiedBadge from "@/components/common/VerifiedBadge";
 
 interface VideoCardProps {
   video: VideoItem;
@@ -81,7 +82,7 @@ export default function VideoCard({ video }: VideoCardProps) {
             className="mt-1 flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
           >
             <span>{video.channel.displayName}</span>
-            <CheckCircle2 className="h-3 w-3 text-zinc-400" />
+            <VerifiedBadge subscribersCount={video.channel.subscribersCount} className="h-3.5 w-3.5" />
           </Link>
 
           <div className="flex items-center text-xs text-zinc-400 gap-1.5 mt-0.5">

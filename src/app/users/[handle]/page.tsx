@@ -30,6 +30,7 @@ import { VideoItem } from "@/types";
 import Link from "next/link";
 import CommunityTab from "@/components/channel/CommunityTab";
 import { getAllCombinedVideos, getUserVideos, fetchServerVideos } from "@/lib/video-storage";
+import VerifiedBadge from "@/components/common/VerifiedBadge";
 
 const USER_TABS = ["Videos", "Playlists", "Community", "About"];
 
@@ -283,8 +284,9 @@ export default function UserProfilePage({
                   {/* Name and Handle with Subscriber/Video Count */}
                   <div className="pb-1 sm:pb-2">
                     <div className="flex items-center gap-2">
-                      <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white leading-tight">
-                        {channel.displayName}
+                      <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white leading-tight flex items-center gap-1.5">
+                        <span>{channel.displayName}</span>
+                        <VerifiedBadge subscribersCount={channel.subscribersCount} className="h-5 w-5" />
                       </h1>
                     </div>
                     <p className="text-xs sm:text-sm text-zinc-400 font-normal mt-0.5 flex flex-wrap items-center gap-1.5">
