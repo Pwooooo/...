@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -13,6 +13,8 @@ import {
   Play,
   LogOut,
   Tv,
+  UploadCloud,
+  Radio,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -23,8 +25,29 @@ interface NavbarProps {
 export default function Navbar({ onToggleSidebar }: NavbarProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
   const { user, openAuthModal, logout } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setIsUserMenuOpen(false);
+      setIsCreateMenuOpen(false);
+    };
+    if (isUserMenuOpen || isCreateMenuOpen) {
+      window.addEventListener("click", handleClickOutside);
+      return () => window.removeEventListener("click", handleClickOutside);
+    }
+  }, [isUserMenuOpen, isCreateMenuOpen]);
+
+  const handleCreateClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) {
+      openAuthModal();
+    } else {
+      setIsCreateMenuOpen(!isCreateMenuOpen);
+    }
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,13 +111,41 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
 
       {/* Right: Actions & User Login / Account */}
       <div className="flex items-center gap-2 sm:gap-3">
-        <Link
-          href="/studio/upload"
-          className="flex items-center gap-1.5 rounded-full bg-zinc-900 hover:bg-zinc-800 px-3.5 py-1.5 text-xs font-semibold text-white border border-zinc-800 transition-colors"
-        >
-          <VideoIcon className="h-4 w-4 text-white" />
-          <span className="hidden md:inline">Create</span>
-        </Link>
+        {/* Create Button with Menu */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={handleCreateClick}
+            className="flex items-center gap-1.5 rounded-full bg-zinc-900 hover:bg-zinc-800 px-3.5 py-1.5 text-xs font-semibold text-white border border-zinc-800 transition-colors cursor-pointer"
+          >
+            <VideoIcon className="h-4 w-4 text-white" />
+            <span className="hidden md:inline">Create</span>
+          </button>
+
+          {user && isCreateMenuOpen && (
+            <div
+              className="absolute right-0 top-full mt-2 w-48 rounded-2xl bg-zinc-950 border border-white/10 p-1.5 shadow-2xl z-50 animate-in fade-in slide-in-from-top-1 duration-150 select-none text-white"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Link
+                href="/studio/upload"
+                onClick={() => setIsCreateMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs text-zinc-200 hover:text-white hover:bg-white/[0.08] transition-colors"
+              >
+                <UploadCloud className="h-4 w-4 text-zinc-400" />
+                <span>Upload video</span>
+              </Link>
+              <Link
+                href="/studio/upload?mode=live"
+                onClick={() => setIsCreateMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs text-zinc-200 hover:text-white hover:bg-white/[0.08] transition-colors"
+              >
+                <Radio className="h-4 w-4 text-zinc-400" />
+                <span>Go live</span>
+              </Link>
+            </div>
+          )}
+        </div>
 
         <button
           type="button"

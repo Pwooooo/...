@@ -5,7 +5,10 @@ import Navbar from "@/components/navigation/Navbar";
 import Sidebar from "@/components/navigation/Sidebar";
 import { UploadCloud, CheckCircle2, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
+
 export default function StudioUploadPage() {
+  const { user, openAuthModal } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -58,21 +61,40 @@ export default function StudioUploadPage() {
         <Sidebar />
 
         <main className="flex-1 overflow-x-hidden px-4 md:px-8 py-8 max-w-4xl mx-auto w-full">
-          <div className="flex items-center justify-between pb-4 border-b border-zinc-800 mb-6">
-            <div>
-              <h1 className="text-2xl font-bold text-white">Upload videos</h1>
-              <p className="text-xs text-zinc-400 mt-0.5">Post new video content to your channel</p>
+          {!user ? (
+            <div className="py-16 max-w-md mx-auto text-center flex flex-col items-center">
+              <div className="h-16 w-16 rounded-full bg-white/[0.05] border border-white/10 flex items-center justify-center text-white mb-4">
+                <UploadCloud className="h-8 w-8 text-zinc-300" />
+              </div>
+              <h2 className="text-xl font-bold text-white mb-2">Want to create and upload videos?</h2>
+              <p className="text-xs text-zinc-400 mb-6 max-w-sm">
+                Sign in to your Entropy account to start uploading, managing videos, and growing your audience.
+              </p>
+              <button
+                type="button"
+                onClick={openAuthModal}
+                className="rounded-full bg-white hover:bg-zinc-200 text-black px-6 py-2.5 text-xs font-bold transition-all cursor-pointer shadow-lg"
+              >
+                Sign In
+              </button>
             </div>
-            <Link
-              href="/studio/videos"
-              className="text-xs text-zinc-400 hover:text-white font-semibold"
-            >
-              Cancel & Exit
-            </Link>
-          </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between pb-4 border-b border-zinc-800 mb-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-white">Upload videos</h1>
+                  <p className="text-xs text-zinc-400 mt-0.5">Post new video content to your channel</p>
+                </div>
+                <Link
+                  href="/studio/videos"
+                  className="text-xs text-zinc-400 hover:text-white font-semibold"
+                >
+                  Cancel & Exit
+                </Link>
+              </div>
 
-          {!isCompleted ? (
-            <form onSubmit={handleStartUpload} className="space-y-6">
+              {!isCompleted ? (
+                <form onSubmit={handleStartUpload} className="space-y-6">
               {/* Drag and Drop Box */}
               <div
                 onDragOver={(e) => e.preventDefault()}
@@ -205,7 +227,9 @@ export default function StudioUploadPage() {
               </div>
             </div>
           )}
-        </main>
+        </>
+      )}
+    </main>
       </div>
     </div>
   );
