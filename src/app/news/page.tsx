@@ -19,7 +19,6 @@ import {
   MessageSquare,
   BarChart2,
   Plus,
-  Radio,
   ExternalLink,
 } from "lucide-react";
 import { NewsPost, CommunityComment, CommunityPollOption } from "@/types";
@@ -435,7 +434,7 @@ export default function GlobalNewsPage() {
                 <div>
                   <h1 className="text-2xl font-bold text-white tracking-tight">News & Announcements</h1>
                   <p className="text-xs text-zinc-400 mt-1 max-w-xl">
-                    Live updates, patch notes, releases, and creator broadcasts across Entropy.
+                    Live updates, patch notes, and releases across Entropy.
                   </p>
                 </div>
               </div>
@@ -632,7 +631,7 @@ export default function GlobalNewsPage() {
                       </div>
                       <div>
                         <h3 className="text-sm font-bold text-white">Share news with your audience</h3>
-                        <p className="text-xs text-zinc-400">Sign in to broadcast updates, announcements, and polls.</p>
+                        <p className="text-xs text-zinc-400">Sign in to share updates, announcements, and polls.</p>
                       </div>
                     </div>
                     <button
@@ -931,28 +930,6 @@ export default function GlobalNewsPage() {
               </div>
 
               <div className="lg:col-span-4 space-y-5 lg:sticky lg:top-20">
-                <div className="rounded-2xl bg-[#141414] border border-white/[0.08] p-5 shadow-xl">
-                  <div className="flex items-center gap-2.5 mb-3 text-sm font-bold text-white">
-                    <Radio className="h-4 w-4 text-white" />
-                    <span>Entropy Broadcasts</span>
-                  </div>
-                  <p className="text-xs text-zinc-400 leading-relaxed mb-4">
-                    The official feed for game patch notes, releases, community announcements, and developer updates.
-                  </p>
-                  <div className="pt-3 border-t border-white/[0.08] space-y-2.5 text-xs text-zinc-300">
-                    <div className="flex items-center justify-between">
-                      <span className="text-zinc-500">Live Status</span>
-                      <span className="text-emerald-400 font-semibold flex items-center gap-1.5">
-                        <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                        Operational
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-zinc-500">Platform</span>
-                      <span className="text-white font-medium">Entropy 2.0</span>
-                    </div>
-                  </div>
-                </div>
 
                 <div className="rounded-2xl bg-[#141414] border border-white/[0.08] p-5 shadow-xl">
                   <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-3">
