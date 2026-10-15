@@ -24,7 +24,7 @@ import {
   FileText,
   Flag,
 } from "lucide-react";
-import { formatDuration, formatViews } from "@/lib/utils";
+import { formatDuration, formatViews, formatTimeAgo } from "@/lib/utils";
 import { ALL_VIDEOS, SAMPLE_CHAPTERS, SAMPLE_HIGHLIGHTS } from "@/lib/mock-data";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
@@ -88,28 +88,32 @@ function WatchContent() {
   const [isSaved, setIsSaved] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  interface CommentItem {
+    id: string;
+    user: string;
+    avatar: string;
+    content: string;
+    timeAgo: string;
+    likes: number;
+    dislikes: number;
+  }
+
   const [commentText, setCommentText] = useState("");
   const [commentVotes, setCommentVotes] = useState<Record<string, "like" | "dislike">>({});
-  const [comments, setComments] = useState([
-    {
-      id: "c-1",
-      user: "DevOpsNinja",
-      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80",
-      content: "The explanation of multi-bitrate HLS ladders and segment packaging was crystal clear. Thanks!",
-      timeAgo: "2 days ago",
-      likes: 124,
-      dislikes: 3,
-    },
-    {
-      id: "c-2",
-      user: "AsyncStreamer",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80",
-      content: "Are you planning to cover WebRTC low-latency streaming in a follow-up video?",
-      timeAgo: "1 day ago",
-      likes: 42,
-      dislikes: 1,
-    },
-  ]);
+  const [comments, setComments] = useState<CommentItem[]>([]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(`entropy_comments_${currentVideo.id}`);
+      if (stored) {
+        setComments(JSON.parse(stored));
+      } else {
+        setComments([]);
+      }
+    } catch {
+      setComments([]);
+    }
+  }, [currentVideo.id]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -150,26 +154,29 @@ function WatchContent() {
     setCommentVotes((prev) => {
       const current = prev[commentId];
       const newVotes = { ...prev };
+      let updatedComments: CommentItem[];
       if (current === "like") {
         delete newVotes[commentId];
-        setComments((list) =>
-          list.map((c) => (c.id === commentId ? { ...c, likes: Math.max(0, c.likes - 1) } : c))
+        updatedComments = comments.map((c) =>
+          c.id === commentId ? { ...c, likes: Math.max(0, c.likes - 1) } : c
         );
       } else {
         newVotes[commentId] = "like";
-        setComments((list) =>
-          list.map((c) => {
-            if (c.id === commentId) {
-              return {
-                ...c,
-                likes: c.likes + 1,
-                dislikes: current === "dislike" ? Math.max(0, c.dislikes - 1) : c.dislikes,
-              };
-            }
-            return c;
-          })
-        );
+        updatedComments = comments.map((c) => {
+          if (c.id === commentId) {
+            return {
+              ...c,
+              likes: c.likes + 1,
+              dislikes: current === "dislike" ? Math.max(0, c.dislikes - 1) : c.dislikes,
+            };
+          }
+          return c;
+        });
       }
+      setComments(updatedComments);
+      try {
+        localStorage.setItem(`entropy_comments_${currentVideo.id}`, JSON.stringify(updatedComments));
+      } catch {}
       return newVotes;
     });
   };
@@ -178,26 +185,29 @@ function WatchContent() {
     setCommentVotes((prev) => {
       const current = prev[commentId];
       const newVotes = { ...prev };
+      let updatedComments: CommentItem[];
       if (current === "dislike") {
         delete newVotes[commentId];
-        setComments((list) =>
-          list.map((c) => (c.id === commentId ? { ...c, dislikes: Math.max(0, c.dislikes - 1) } : c))
+        updatedComments = comments.map((c) =>
+          c.id === commentId ? { ...c, dislikes: Math.max(0, c.dislikes - 1) } : c
         );
       } else {
         newVotes[commentId] = "dislike";
-        setComments((list) =>
-          list.map((c) => {
-            if (c.id === commentId) {
-              return {
-                ...c,
-                dislikes: c.dislikes + 1,
-                likes: current === "like" ? Math.max(0, c.likes - 1) : c.likes,
-              };
-            }
-            return c;
-          })
-        );
+        updatedComments = comments.map((c) => {
+          if (c.id === commentId) {
+            return {
+              ...c,
+              dislikes: c.dislikes + 1,
+              likes: current === "like" ? Math.max(0, c.likes - 1) : c.likes,
+            };
+          }
+          return c;
+        });
       }
+      setComments(updatedComments);
+      try {
+        localStorage.setItem(`entropy_comments_${currentVideo.id}`, JSON.stringify(updatedComments));
+      } catch {}
       return newVotes;
     });
   };
@@ -236,18 +246,21 @@ function WatchContent() {
     e.preventDefault();
     if (!commentText.trim()) return;
 
-    setComments([
-      {
-        id: `c-${Date.now()}`,
-        user: user ? user.name : "Guest User",
-        avatar: user?.avatar || "",
-        content: commentText.trim(),
-        timeAgo: "Just now",
-        likes: 0,
-        dislikes: 0,
-      },
-      ...comments,
-    ]);
+    const newComment: CommentItem = {
+      id: `c-${Date.now()}`,
+      user: user ? user.name : "Guest User",
+      avatar: user?.avatarUrl || user?.avatar || "",
+      content: commentText.trim(),
+      timeAgo: "Just now",
+      likes: 0,
+      dislikes: 0,
+    };
+
+    const updated = [newComment, ...comments];
+    setComments(updated);
+    try {
+      localStorage.setItem(`entropy_comments_${currentVideo.id}`, JSON.stringify(updated));
+    } catch {}
     setCommentText("");
     showToast("Comment published");
   };
@@ -443,7 +456,7 @@ function WatchContent() {
           <div className="flex flex-wrap items-center gap-2 font-semibold text-white mb-2">
             <span>{formatViews(currentVideo.viewCount)}</span>
             <span>•</span>
-            <span>2 days ago</span>
+            <span>{formatTimeAgo(currentVideo.publishedAt)}</span>
             {currentVideo.tags && (
               <div className="flex items-center gap-2 ml-1">
                 {currentVideo.tags.slice(0, 3).map((tag) => (
@@ -515,53 +528,59 @@ function WatchContent() {
           </form>
 
           {/* Comment List */}
-          <div className="space-y-5">
-            {comments.map((comment) => (
-              <div key={comment.id} className="flex gap-3">
-                <div className="h-9 w-9 overflow-hidden rounded-full bg-[#181818] border border-white/[0.08] flex-shrink-0">
-                  {comment.avatar ? (
-                    <img src={comment.avatar} alt={comment.user} className="h-full w-full object-cover" />
-                  ) : (
-                    <div className="h-full w-full bg-[#222222] flex items-center justify-center text-xs font-bold text-white">
-                      {comment.user.slice(0, 1)}
+          {comments.length === 0 ? (
+            <div className="py-8 text-center text-zinc-500 text-sm">
+              No comments yet. Be the first to comment!
+            </div>
+          ) : (
+            <div className="space-y-5">
+              {comments.map((comment) => (
+                <div key={comment.id} className="flex gap-3">
+                  <div className="h-9 w-9 overflow-hidden rounded-full bg-[#181818] border border-white/[0.08] flex-shrink-0">
+                    {comment.avatar ? (
+                      <img src={comment.avatar} alt={comment.user} className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="h-full w-full bg-[#222222] flex items-center justify-center text-xs font-bold text-white">
+                        {comment.user.slice(0, 1)}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 text-xs">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-semibold text-zinc-200">@{comment.user}</span>
+                      <span className="text-zinc-500">{comment.timeAgo}</span>
                     </div>
-                  )}
-                </div>
-                <div className="flex-1 text-xs">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-zinc-200">@{comment.user}</span>
-                    <span className="text-zinc-500">{comment.timeAgo}</span>
-                  </div>
-                  <p className="text-zinc-300 text-sm leading-relaxed">{comment.content}</p>
-                  <div className="flex items-center gap-4 mt-2 text-zinc-400">
-                    <button
-                      type="button"
-                      onClick={() => handleCommentLike(comment.id)}
-                      className={`flex items-center gap-1.5 transition-colors cursor-pointer ${
-                        commentVotes[comment.id] === "like" ? "text-white font-semibold" : "hover:text-white"
-                      }`}
-                    >
-                      <ThumbsUp className={`h-3.5 w-3.5 ${commentVotes[comment.id] === "like" ? "fill-white" : ""}`} />
-                      <span>{comment.likes}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleCommentDislike(comment.id)}
-                      className={`flex items-center gap-1.5 transition-colors cursor-pointer ${
-                        commentVotes[comment.id] === "dislike" ? "text-white font-semibold" : "hover:text-white"
-                      }`}
-                    >
-                      <ThumbsDown className={`h-3.5 w-3.5 ${commentVotes[comment.id] === "dislike" ? "fill-white" : ""}`} />
-                      <span>{comment.dislikes ?? 0}</span>
-                    </button>
-                    <button type="button" className="font-semibold hover:text-white transition-colors cursor-pointer">
-                      Reply
-                    </button>
+                    <p className="text-zinc-300 text-sm leading-relaxed">{comment.content}</p>
+                    <div className="flex items-center gap-4 mt-2 text-zinc-400">
+                      <button
+                        type="button"
+                        onClick={() => handleCommentLike(comment.id)}
+                        className={`flex items-center gap-1.5 transition-colors cursor-pointer ${
+                          commentVotes[comment.id] === "like" ? "text-white font-semibold" : "hover:text-white"
+                        }`}
+                      >
+                        <ThumbsUp className={`h-3.5 w-3.5 ${commentVotes[comment.id] === "like" ? "fill-white" : ""}`} />
+                        <span>{comment.likes}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCommentDislike(comment.id)}
+                        className={`flex items-center gap-1.5 transition-colors cursor-pointer ${
+                          commentVotes[comment.id] === "dislike" ? "text-white font-semibold" : "hover:text-white"
+                        }`}
+                      >
+                        <ThumbsDown className={`h-3.5 w-3.5 ${commentVotes[comment.id] === "dislike" ? "fill-white" : ""}`} />
+                        <span>{comment.dislikes ?? 0}</span>
+                      </button>
+                      <button type="button" className="font-semibold hover:text-white transition-colors cursor-pointer">
+                        Reply
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
