@@ -951,7 +951,7 @@ export default function GlobalNewsPage() {
                           }`}
                         >
                           <span>{cat}</span>
-                          <span className="text-[11px] text-zinc-500 bg-white/[0.04] px-2 py-0.5 rounded-md">
+                          <span className="text-[11px] text-zinc-500 font-medium tabular-nums">
                             {count}
                           </span>
                         </button>
