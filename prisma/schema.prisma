@@ -1,0 +1,172 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum VideoStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum VideoVisibility {
+  PUBLIC
+  UNLISTED
+  PRIVATE
+}
+
+model User {
+  id            String         @id @default(uuid())
+  name          String?
+  email         String         @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+  channels      Channel[]
+  comments      Comment[]
+  likes         Like[]
+  watchHistory  WatchHistory[]
+  subscriptions Subscription[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Channel {
+  id              String         @id @default(uuid())
+  userId          String
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  handle          String         @unique
+  displayName     String
+  avatarUrl       String?
+  bannerUrl       String?
+  description     String?
+  subscribersCount Int           @default(0)
+  videos          Video[]
+  playlists       Playlist[]
+  subscribers     Subscription[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([userId])
+}
+
+model Video {
+  id                String          @id @default(uuid())
+  channelId         String
+  channel           Channel         @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  title             String
+  description       String?
+  thumbnailUrl      String?
+  masterPlaylistUrl String?
+  rawVideoUrl       String?
+  durationSeconds   Int             @default(0)
+  status            VideoStatus     @default(PENDING)
+  visibility        VideoVisibility @default(PUBLIC)
+  viewCount         Int             @default(0)
+  likesCount        Int             @default(0)
+  dislikesCount     Int             @default(0)
+  category          String?         @default("General")
+  tags              String[]        @default([])
+  comments          Comment[]
+  likes             Like[]
+  watchHistory      WatchHistory[]
+  playlistItems     PlaylistItem[]
+  publishedAt       DateTime?       @default(now())
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([channelId])
+  @@index([status, visibility])
+}
+
+model Subscription {
+  id           String   @id @default(uuid())
+  channelId    String
+  subscriberId String
+  channel      Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  subscriber   User     @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+
+  @@unique([channelId, subscriberId])
+  @@index([subscriberId])
+}
+
+model Like {
+  id        String   @id @default(uuid())
+  videoId   String
+  userId    String
+  isDislike Boolean  @default(false)
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([videoId, userId])
+  @@index([videoId])
+  @@index([userId])
+}
+
+model Comment {
+  id        String    @id @default(uuid())
+  videoId   String
+  userId    String
+  parentId  String?
+  content   String
+  video     Video     @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+  likesCount Int      @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([videoId])
+  @@index([parentId])
+  @@index([userId])
+}
+
+model WatchHistory {
+  id              String   @id @default(uuid())
+  videoId         String
+  userId          String
+  watchedSeconds  Int      @default(0)
+  completed       Boolean  @default(false)
+  video           Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now())
+
+  @@unique([videoId, userId])
+  @@index([userId])
+}
+
+model Playlist {
+  id          String          @id @default(uuid())
+  channelId   String
+  channel     Channel         @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  visibility  VideoVisibility @default(PUBLIC)
+  items       PlaylistItem[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([channelId])
+}
+
+model PlaylistItem {
+  id         String   @id @default(uuid())
+  playlistId String
+  videoId    String
+  position   Int      @default(0)
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  video      Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  addedAt    DateTime @default(now())
+
+  @@unique([playlistId, videoId])
+  @@index([playlistId])
+}

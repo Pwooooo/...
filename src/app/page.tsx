@@ -1,69 +1,137 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import React, { useState } from "react";
+import Navbar from "@/components/navigation/Navbar";
+import Sidebar from "@/components/navigation/Sidebar";
+import VideoCard from "@/components/video/VideoCard";
+import { VideoItem } from "@/types";
+
+const CATEGORIES = [
+  "All",
+  "Gaming",
+  "Technology",
+  "Music",
+  "Web Development",
+  "Artificial Intelligence",
+  "Podcasts",
+  "Design",
+  "Live Streams",
+  "Science & Nature",
+  "Recently Uploaded",
+];
+
+const SAMPLE_VIDEOS: VideoItem[] = [
+  {
+    id: "sample-1",
+    title: "Building a Distributed Video Transcoder with Go, FFmpeg & S3",
+    description: "Learn how modern video platforms transcode petabytes of video into multi-bitrate HLS streams asynchronously.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80",
+    masterPlaylistUrl: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+    durationSeconds: 1420,
+    viewCount: 142500,
+    publishedAt: "2026-10-13T14:00:00.000Z",
+    channel: {
+      id: "ch-1",
+      handle: "systemcraft",
+      displayName: "SystemCraft Tech",
+      avatarUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80",
+      subscribersCount: 245000,
+    },
+  },
+  {
+    id: "sample-2",
+    title: "Next.js 16 Full Stack Architecture Deep Dive",
+    description: "In-depth exploration of server actions, streaming rendering, and cache lifecycles.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1200&q=80",
+    masterPlaylistUrl: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+    durationSeconds: 890,
+    viewCount: 88400,
+    publishedAt: "2026-10-14T10:30:00.000Z",
+    channel: {
+      id: "ch-2",
+      handle: "reactmastery",
+      displayName: "React Mastery",
+      avatarUrl: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=200&q=80",
+      subscribersCount: 112000,
+    },
+  },
+  {
+    id: "sample-3",
+    title: "Why Modern Operating Systems Are So Complex",
+    description: "Exploring memory paging, context switching, cache hierarchies, and kernel space architecture.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80",
+    masterPlaylistUrl: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+    durationSeconds: 2310,
+    viewCount: 420000,
+    publishedAt: "2026-10-08T09:15:00.000Z",
+    channel: {
+      id: "ch-3",
+      handle: "csinsights",
+      displayName: "CS Insights",
+      avatarUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80",
+      subscribersCount: 580000,
+    },
+  },
+  {
+    id: "sample-4",
+    title: "Designing Interactive Visualizations with Shaders & WebGL",
+    description: "Create mind-blowing graphical effects directly in the browser with fragment shaders and GLSL.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1200&q=80",
+    masterPlaylistUrl: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+    durationSeconds: 615,
+    viewCount: 31200,
+    publishedAt: "2026-10-12T16:45:00.000Z",
+    channel: {
+      id: "ch-4",
+      handle: "creativecode",
+      displayName: "Creative Code Labs",
+      avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
+      subscribersCount: 49000,
+    },
+  },
+];
+
+export default function HomePage() {
+  const [collapsedSidebar, setCollapsedSidebar] = useState(false);
+  const [activeCategory, setActiveCategory] = useState("All");
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="min-h-screen bg-[#0f0f0f] text-zinc-100 flex flex-col">
+      {/* Top Navbar */}
+      <Navbar onToggleSidebar={() => setCollapsedSidebar(!collapsedSidebar)} />
+
+      {/* Main Body */}
+      <div className="flex flex-1">
+        {/* Sidebar */}
+        <Sidebar collapsed={collapsedSidebar} />
+
+        {/* Content Area */}
+        <main className="flex-1 overflow-x-hidden px-4 md:px-6 py-3">
+          {/* Category Chips Bar */}
+          <div className="sticky top-14 z-30 flex items-center gap-2 overflow-x-auto pb-4 pt-1 bg-[#0f0f0f]/95 backdrop-blur scrollbar-none">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={`flex-shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                  activeCategory === cat
+                    ? "bg-zinc-100 text-zinc-900"
+                    : "bg-zinc-800 text-zinc-200 hover:bg-zinc-700"
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          {/* Videos Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-7 pt-2">
+            {SAMPLE_VIDEOS.map((video) => (
+              <VideoCard key={video.id} video={video} />
+            ))}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
