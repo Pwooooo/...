@@ -802,8 +802,7 @@ export default function GlobalNewsPage() {
                           setActiveCategory(cat.name);
                           setActiveSubcategory(null);
                         }}
-                        className="grid grid-cols-12 px-6 py-5 hover:bg-white/[0.03] transition-colors cursor-pointer group items-start border-l-[5px]"
-                        style={{ borderLeftColor: cat.color }}
+                        className="grid grid-cols-12 px-6 py-5 hover:bg-white/[0.03] transition-colors cursor-pointer group items-start"
                       >
                         <div className="col-span-9 sm:col-span-10 pr-4">
                           <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-zinc-200 transition-colors">
@@ -823,13 +822,9 @@ export default function GlobalNewsPage() {
                                   setActiveCategory(cat.name);
                                   setActiveSubcategory(sub);
                                 }}
-                                className="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                                className="text-xs text-zinc-400 hover:text-white hover:underline transition-colors cursor-pointer"
                               >
-                                <span
-                                  className="w-2 h-2 rounded-sm flex-shrink-0"
-                                  style={{ backgroundColor: cat.color }}
-                                />
-                                <span>{sub}</span>
+                                {sub}
                               </button>
                             ))}
                           </div>
@@ -849,10 +844,7 @@ export default function GlobalNewsPage() {
               /* Topic Feed View (Category focused, Latest, or Top) */
               <div className="space-y-6">
                 {activeCategory && selectedCategoryObj && (
-                  <div
-                    className="rounded-2xl bg-[#141414] border border-white/[0.08] p-6 shadow-xl border-l-[5px]"
-                    style={{ borderLeftColor: selectedCategoryObj.color }}
-                  >
+                  <div className="rounded-2xl bg-[#141414] border border-white/[0.08] p-6 shadow-xl">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div>
                         <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
@@ -885,17 +877,13 @@ export default function GlobalNewsPage() {
                           key={sub}
                           type="button"
                           onClick={() => setActiveSubcategory(sub)}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                          className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                             activeSubcategory === sub
                               ? "bg-white text-black font-bold shadow-sm"
                               : "bg-[#0a0a0a] text-zinc-400 hover:text-white border border-white/[0.08]"
                           }`}
                         >
-                          <span
-                            className="w-2 h-2 rounded-sm"
-                            style={{ backgroundColor: selectedCategoryObj.color }}
-                          />
-                          <span>{sub}</span>
+                          {sub}
                         </button>
                       ))}
                     </div>
