@@ -29,7 +29,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
   };
 
   return (
-    <header className="sticky top-0 z-50 flex h-14 w-full items-center justify-between bg-black/95 backdrop-blur-md px-4 text-white border-b border-zinc-900">
+    <header className="sticky top-0 z-50 flex h-14 w-full items-center justify-between bg-black/95 backdrop-blur-md px-4 text-white">
       {/* Left: Hamburger + Brand Logo */}
       <div className="flex items-center gap-4">
         <button
