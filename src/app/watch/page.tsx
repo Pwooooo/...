@@ -166,6 +166,7 @@ function WatchContent() {
           poster={currentVideo.thumbnailUrl || undefined}
           autoPlay={true}
           chapters={chapters}
+          highlights={highlights}
           onTimeChange={setCurrentPlaybackTime}
           onToggleChapters={handleToggleChapters}
         />

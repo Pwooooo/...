@@ -19,9 +19,12 @@ import {
   Settings,
   RotateCcw,
   ChevronRight,
+  X,
+  Layers,
+  Sparkles,
 } from "lucide-react";
 import { formatDuration } from "@/lib/utils";
-import { VideoChapter } from "@/types";
+import { VideoChapter, VideoHighlight } from "@/types";
 
 export interface VideoPlayerHandle {
   seekTo: (seconds: number) => void;
@@ -35,12 +38,24 @@ interface VideoPlayerProps {
   poster?: string;
   autoPlay?: boolean;
   chapters?: VideoChapter[];
+  highlights?: VideoHighlight[];
   onTimeChange?: (time: number) => void;
   onToggleChapters?: () => void;
 }
 
 const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
-  ({ src, poster, autoPlay = false, chapters = [], onTimeChange, onToggleChapters }, ref) => {
+  (
+    {
+      src,
+      poster,
+      autoPlay = false,
+      chapters = [],
+      highlights = [],
+      onTimeChange,
+      onToggleChapters,
+    },
+    ref
+  ) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const hlsRef = useRef<Hls | null>(null);
@@ -54,6 +69,7 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     const [levels, setLevels] = useState<{ id: number; height: number; bitrate: number }[]>([]);
     const [currentLevel, setCurrentLevel] = useState<number>(-1); // -1 = Auto
     const [showSettings, setShowSettings] = useState(false);
+    const [showChaptersDrawer, setShowChaptersDrawer] = useState(false);
     const [hoverTime, setHoverTime] = useState<number | null>(null);
     const [hoverPos, setHoverPos] = useState<number>(0);
 
@@ -290,9 +306,9 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
 
           {/* Bottom Bar */}
           <div className="flex flex-col gap-2">
-            {/* Interactive Timeline with Chapter Ticks and Hover Tooltip */}
+            {/* YouTube-Style Segmented Timeline with Chapter Gaps and Hover Preview */}
             <div
-              className="relative w-full py-1 cursor-pointer"
+              className="group/timeline relative w-full h-4 flex items-center cursor-pointer select-none py-1"
               onMouseMove={handleMouseMoveTimeline}
               onMouseLeave={handleMouseLeaveTimeline}
             >
@@ -316,27 +332,61 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
                 </div>
               )}
 
-              {/* Chapter Tick Marks */}
-              {duration > 0 &&
-                chapters.map((ch) => {
-                  const leftPercent = (ch.seconds / duration) * 100;
-                  return (
-                    <div
-                      key={ch.id}
-                      className="absolute top-1/2 -translate-y-1/2 w-0.5 h-3 bg-white/40 pointer-events-none z-10"
-                      style={{ left: `${leftPercent}%` }}
-                      title={ch.title}
-                    />
-                  );
-                })}
+              {/* Segmented Timeline Track (YouTube Style with 2px gaps between chapters) */}
+              {duration > 0 && chapters.length > 0 ? (
+                <div className="absolute inset-x-0 h-1 group-hover/timeline:h-2 flex gap-[2px] transition-all duration-150 pointer-events-none z-10">
+                  {chapters.map((ch, idx) => {
+                    const nextChapter = chapters[idx + 1];
+                    const chStart = ch.seconds;
+                    const chEnd = nextChapter ? nextChapter.seconds : duration || 100;
+                    const chDuration = Math.max(0.1, chEnd - chStart);
+                    const totalDuration = duration || 100;
+                    const widthPercent = (chDuration / totalDuration) * 100;
 
+                    let fillPercent = 0;
+                    if (currentTime >= chEnd) {
+                      fillPercent = 100;
+                    } else if (currentTime > chStart) {
+                      fillPercent = Math.min(100, Math.max(0, ((currentTime - chStart) / chDuration) * 100));
+                    }
+
+                    return (
+                      <div
+                        key={ch.id}
+                        className="relative h-full bg-white/20 overflow-hidden rounded-[1px]"
+                        style={{ width: `${widthPercent}%` }}
+                      >
+                        <div
+                          className="h-full bg-white transition-[width] duration-75"
+                          style={{ width: `${fillPercent}%` }}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="absolute inset-x-0 h-1 group-hover/timeline:h-2 bg-white/20 rounded-[1px] overflow-hidden pointer-events-none z-10 transition-all duration-150">
+                  <div
+                    className="h-full bg-white"
+                    style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+                  />
+                </div>
+              )}
+
+              {/* Current playhead thumb indicator on hover */}
+              <div
+                className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-3.5 w-3.5 rounded-full bg-white shadow-lg pointer-events-none transition-transform scale-0 group-hover/timeline:scale-100 z-20"
+                style={{ left: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+              />
+
+              {/* Invisible range input for smooth scrub interaction */}
               <input
                 type="range"
                 min={0}
                 max={duration || 100}
                 value={currentTime}
                 onChange={handleSeek}
-                className="w-full h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-white hover:h-2 transition-all relative z-20"
+                className="w-full h-full opacity-0 cursor-pointer absolute inset-0 z-30"
               />
             </div>
 
@@ -385,10 +435,11 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
+                        setShowChaptersDrawer((prev) => !prev);
                         if (onToggleChapters) onToggleChapters();
                       }}
                       className="inline-flex items-center gap-1 text-xs text-zinc-300 hover:text-white font-sans font-medium ml-1.5 px-2 py-0.5 rounded-md hover:bg-white/10 transition-colors cursor-pointer group/chap"
-                      title="View chapters & most watched parts"
+                      title="Click to view chapters & most watched parts"
                     >
                       <span className="truncate max-w-[130px] sm:max-w-[200px] md:max-w-[240px]">
                         • {(chapters.slice().reverse().find((c) => currentTime >= c.seconds) || chapters[0]).title}
@@ -444,6 +495,120 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
             </div>
           </div>
         </div>
+
+        {/* In-Player YouTube Chapters & Most Watched Drawer */}
+        {showChaptersDrawer && chapters.length > 0 && (
+          <div
+            className="absolute inset-y-0 right-0 w-80 max-w-[85%] bg-black/95 backdrop-blur-xl border-l border-white/10 z-40 flex flex-col p-4 shadow-2xl animate-in slide-in-from-right duration-250 select-none"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Drawer Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80 mb-3">
+              <div className="flex items-center gap-2">
+                <Layers className="h-4 w-4 text-zinc-300" />
+                <h3 className="font-bold text-white text-sm">Chapters</h3>
+                <span className="text-zinc-500 text-xs">({chapters.length})</span>
+              </div>
+              <button
+                onClick={() => setShowChaptersDrawer(false)}
+                className="p-1 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+                title="Close chapters"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Most Watched Part Highlight Card */}
+            {highlights.length > 0 && (
+              <div
+                onClick={() => {
+                  const seekTime = highlights[1]?.startTime || 525;
+                  const video = videoRef.current;
+                  if (video) {
+                    video.currentTime = seekTime;
+                    setCurrentTime(seekTime);
+                    if (video.paused) video.play().catch(() => {});
+                  }
+                }}
+                className="mb-3 p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 cursor-pointer transition-all flex items-center justify-between group"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="h-7 w-7 rounded-lg bg-white text-black flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                    <Play className="h-3 w-3 fill-black ml-0.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[9px] font-extrabold uppercase tracking-wider bg-white text-black px-1.5 py-0.2 rounded">
+                        Most watched
+                      </span>
+                      <span className="font-mono text-xs font-bold text-white">
+                        {formatDuration(highlights[1]?.startTime || 525)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-300 truncate mt-0.5 group-hover:text-white font-medium">
+                      {highlights[1]?.title || chapters[2]?.title}
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="h-3.5 w-3.5 text-zinc-400 group-hover:text-white group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+              </div>
+            )}
+
+            {/* Vertical Chapters List */}
+            <div className="flex-1 space-y-2 overflow-y-auto pr-1">
+              {chapters.map((ch, idx) => {
+                const isActive =
+                  currentTime >= ch.seconds &&
+                  (idx === chapters.length - 1 || currentTime < chapters[idx + 1].seconds);
+
+                return (
+                  <button
+                    key={ch.id}
+                    onClick={() => {
+                      const video = videoRef.current;
+                      if (video) {
+                        video.currentTime = ch.seconds;
+                        setCurrentTime(ch.seconds);
+                        if (video.paused) video.play().catch(() => {});
+                      }
+                    }}
+                    className={`w-full flex items-center gap-2.5 p-2 rounded-xl text-left transition-all cursor-pointer border ${
+                      isActive
+                        ? "bg-white/15 border-white text-white shadow-md scale-[1.01]"
+                        : "bg-zinc-900/60 border-zinc-800/60 text-zinc-300 hover:bg-zinc-900 hover:border-zinc-700 hover:text-white"
+                    }`}
+                  >
+                    <div className="relative aspect-video w-20 flex-shrink-0 rounded-lg overflow-hidden bg-zinc-800">
+                      <img src={ch.thumbnailUrl} alt={ch.title} className="h-full w-full object-cover" />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                        <Play className="h-3.5 w-3.5 fill-white" />
+                      </div>
+                      <span className="absolute bottom-1 right-1 rounded bg-black/90 px-1 text-[9px] font-mono font-bold text-white">
+                        {formatDuration(ch.seconds)}
+                      </span>
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-[11px] font-bold text-zinc-400">
+                          {formatDuration(ch.seconds)}
+                        </span>
+                        {idx === 2 && (
+                          <span className="text-[9px] font-extrabold uppercase bg-white text-black px-1.5 py-0.2 rounded">
+                            Most watched
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs font-semibold line-clamp-2 leading-snug mt-0.5">
+                        {ch.title}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
