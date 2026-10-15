@@ -436,19 +436,7 @@ export default function ChannelProfilePage({
                 {activeTab === "About" && (
                   <div className="space-y-6 max-w-xl text-xs sm:text-sm text-zinc-300">
                     <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-sm font-bold text-white">Description</h4>
-                        {isOwnProfile && (
-                          <button
-                            type="button"
-                            onClick={() => setIsEditModalOpen(true)}
-                            className="text-xs font-medium text-zinc-400 hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
-                          >
-                            <Pencil className="h-3 w-3" />
-                            <span>Edit</span>
-                          </button>
-                        )}
-                      </div>
+                      <h4 className="text-sm font-bold text-white mb-2">Description</h4>
                       <p className="text-zinc-300 leading-relaxed whitespace-pre-line">
                         {channel.description || "No description provided."}
                       </p>
