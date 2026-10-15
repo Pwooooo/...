@@ -8,20 +8,21 @@ import {
   Megaphone,
   Send,
   Image as ImageIcon,
-  Heart,
+  ThumbsUp,
+  ThumbsDown,
   Share2,
   Trash2,
   Pin,
   Sparkles,
   CheckCircle2,
   X,
-  Compass,
-  TrendingUp,
+  MessageSquare,
+  BarChart2,
+  Plus,
   Radio,
   ExternalLink,
-  Users,
 } from "lucide-react";
-import { NewsPost } from "@/types";
+import { NewsPost, CommunityComment, CommunityPollOption } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 
@@ -43,6 +44,10 @@ export default function GlobalNewsPage() {
   const [selectedTag, setSelectedTag] = useState("Announcement");
   const [isPinned, setIsPinned] = useState(false);
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
+  const [showPollCreator, setShowPollCreator] = useState(false);
+  const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
+  const [openCommentsPostId, setOpenCommentsPostId] = useState<string | null>(null);
+  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -130,9 +135,39 @@ export default function GlobalNewsPage() {
     reader.readAsDataURL(file);
   };
 
+  const handleAddPollOption = () => {
+    if (pollOptions.length < 5) {
+      setPollOptions([...pollOptions, ""]);
+    }
+  };
+
+  const handleRemovePollOption = (idx: number) => {
+    if (pollOptions.length > 2) {
+      setPollOptions(pollOptions.filter((_, i) => i !== idx));
+    }
+  };
+
+  const handlePollOptionChange = (idx: number, val: string) => {
+    const updated = [...pollOptions];
+    updated[idx] = val;
+    setPollOptions(updated);
+  };
+
   const handleCreatePost = (e: React.FormEvent) => {
     e.preventDefault();
     if (!postText.trim() || !user) return;
+
+    let pollData: CommunityPollOption[] | undefined = undefined;
+    if (showPollCreator) {
+      const validOptions = pollOptions.map((opt) => opt.trim()).filter(Boolean);
+      if (validOptions.length >= 2) {
+        pollData = validOptions.map((opt, i) => ({
+          id: `opt-${i}-${Date.now()}`,
+          text: opt,
+          votes: 0,
+        }));
+      }
+    }
 
     const newPost: NewsPost = {
       id: `post-${Date.now()}`,
@@ -141,11 +176,15 @@ export default function GlobalNewsPage() {
       channelAvatar: user.avatarUrl || user.avatar || "",
       content: postText.trim(),
       imageUrl: attachedImage || undefined,
+      pollOptions: pollData,
       publishedAt: new Date().toISOString(),
       likes: 0,
+      dislikes: 0,
       hasLiked: false,
+      hasDisliked: false,
       tag: selectedTag,
       isPinned,
+      comments: [],
     };
 
     try {
@@ -161,6 +200,8 @@ export default function GlobalNewsPage() {
 
       setPostText("");
       setAttachedImage(null);
+      setShowPollCreator(false);
+      setPollOptions(["", ""]);
       setIsPinned(false);
       showToast("News update published!");
     } catch {
@@ -168,21 +209,79 @@ export default function GlobalNewsPage() {
     }
   };
 
-  const handleToggleLike = (postId: string) => {
+  const handleVotePoll = (postId: string, optionId: string) => {
     try {
       const stored = localStorage.getItem("entropy_news_posts");
       const allPosts: NewsPost[] = stored ? JSON.parse(stored) : [];
 
-      const updated = allPosts.map((p) => {
-        if (p.id === postId) {
-          const currentlyLiked = Boolean(p.hasLiked);
+      const updated = allPosts.map((post) => {
+        if (post.id === postId && post.pollOptions) {
+          if (post.pollVotedId) return post;
+          const options = post.pollOptions.map((opt) => {
+            if (opt.id === optionId) {
+              return { ...opt, votes: opt.votes + 1 };
+            }
+            return opt;
+          });
+          return { ...post, pollOptions: options, pollVotedId: optionId };
+        }
+        return post;
+      });
+
+      localStorage.setItem("entropy_news_posts", JSON.stringify(updated));
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("entropy_news_updated"));
+      }
+    } catch {
+    }
+  };
+
+  const handleLikePost = (postId: string) => {
+    try {
+      const stored = localStorage.getItem("entropy_news_posts");
+      const allPosts: NewsPost[] = stored ? JSON.parse(stored) : [];
+
+      const updated = allPosts.map((post) => {
+        if (post.id === postId) {
+          const currentlyLiked = Boolean(post.hasLiked);
+          const currentlyDisliked = Boolean(post.hasDisliked);
           return {
-            ...p,
+            ...post,
             hasLiked: !currentlyLiked,
-            likes: currentlyLiked ? Math.max(0, (p.likes || 1) - 1) : (p.likes || 0) + 1,
+            likes: currentlyLiked ? Math.max(0, post.likes - 1) : post.likes + 1,
+            hasDisliked: false,
+            dislikes: currentlyDisliked ? Math.max(0, (post.dislikes || 1) - 1) : post.dislikes,
           };
         }
-        return p;
+        return post;
+      });
+
+      localStorage.setItem("entropy_news_posts", JSON.stringify(updated));
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("entropy_news_updated"));
+      }
+    } catch {
+    }
+  };
+
+  const handleDislikePost = (postId: string) => {
+    try {
+      const stored = localStorage.getItem("entropy_news_posts");
+      const allPosts: NewsPost[] = stored ? JSON.parse(stored) : [];
+
+      const updated = allPosts.map((post) => {
+        if (post.id === postId) {
+          const currentlyDisliked = Boolean(post.hasDisliked);
+          const currentlyLiked = Boolean(post.hasLiked);
+          return {
+            ...post,
+            hasDisliked: !currentlyDisliked,
+            dislikes: currentlyDisliked ? Math.max(0, (post.dislikes || 1) - 1) : (post.dislikes || 0) + 1,
+            hasLiked: false,
+            likes: currentlyLiked ? Math.max(0, post.likes - 1) : post.likes,
+          };
+        }
+        return post;
       });
 
       localStorage.setItem("entropy_news_posts", JSON.stringify(updated));
@@ -215,6 +314,74 @@ export default function GlobalNewsPage() {
       const shareUrl = `${window.location.origin}/@${post.channelHandle}?tab=Community#${post.id}`;
       navigator.clipboard?.writeText(shareUrl);
       showToast("Post link copied to clipboard!");
+    }
+  };
+
+  const handleAddComment = (postId: string) => {
+    const text = (commentInputs[postId] || "").trim();
+    if (!text) return;
+
+    if (!user) {
+      openAuthModal();
+      return;
+    }
+
+    const newComment: CommunityComment = {
+      id: `comm-${Date.now()}`,
+      authorHandle: user.handle,
+      authorName: user.name || user.handle,
+      authorAvatar: user.avatarUrl || user.avatar || "",
+      content: text,
+      createdAt: new Date().toISOString(),
+      likes: 0,
+    };
+
+    try {
+      const stored = localStorage.getItem("entropy_news_posts");
+      const allPosts: NewsPost[] = stored ? JSON.parse(stored) : [];
+
+      const updated = allPosts.map((p) => {
+        if (p.id === postId) {
+          return {
+            ...p,
+            comments: [newComment, ...(p.comments || [])],
+          };
+        }
+        return p;
+      });
+
+      localStorage.setItem("entropy_news_posts", JSON.stringify(updated));
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("entropy_news_updated"));
+      }
+
+      setCommentInputs({ ...commentInputs, [postId]: "" });
+      showToast("Comment added!");
+    } catch {
+    }
+  };
+
+  const handleDeleteComment = (postId: string, commentId: string) => {
+    try {
+      const stored = localStorage.getItem("entropy_news_posts");
+      if (stored) {
+        const allPosts: NewsPost[] = JSON.parse(stored);
+        const updated = allPosts.map((p) => {
+          if (p.id === postId) {
+            return {
+              ...p,
+              comments: (p.comments || []).filter((c) => c.id !== commentId),
+            };
+          }
+          return p;
+        });
+
+        localStorage.setItem("entropy_news_posts", JSON.stringify(updated));
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("entropy_news_updated"));
+        }
+      }
+    } catch {
     }
   };
 
@@ -266,9 +433,9 @@ export default function GlobalNewsPage() {
                   <Newspaper className="h-7 w-7" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-white tracking-tight">News & Updates</h1>
+                  <h1 className="text-2xl font-bold text-white tracking-tight">News & Announcements</h1>
                   <p className="text-xs text-zinc-400 mt-1 max-w-xl">
-                    Live broadcasts, release notes, creator announcements, and platform updates.
+                    Live updates, patch notes, releases, and creator broadcasts across Entropy.
                   </p>
                 </div>
               </div>
@@ -281,7 +448,7 @@ export default function GlobalNewsPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      const el = document.getElementById("post-composer-textarea");
+                      const el = document.getElementById("news-composer-textarea");
                       el?.focus();
                     }}
                     className="rounded-xl bg-white hover:bg-zinc-200 text-black px-4 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-sm"
@@ -299,11 +466,6 @@ export default function GlobalNewsPage() {
                     onSubmit={handleCreatePost}
                     className="rounded-2xl bg-[#141414] border border-white/[0.08] p-4 sm:p-5 shadow-xl transition-all"
                   >
-                    <div className="flex items-center gap-2.5 mb-3 text-xs font-semibold text-zinc-300">
-                      <Megaphone className="h-4 w-4 text-white" />
-                      <span>Post an Update to Entropy News</span>
-                    </div>
-
                     <div className="flex gap-3">
                       <div className="h-10 w-10 rounded-full bg-[#181818] border border-white/[0.08] flex-shrink-0 overflow-hidden flex items-center justify-center font-bold text-sm text-white">
                         {user.avatarUrl ? (
@@ -315,12 +477,12 @@ export default function GlobalNewsPage() {
 
                       <div className="flex-1 space-y-3">
                         <textarea
-                          id="post-composer-textarea"
+                          id="news-composer-textarea"
                           rows={3}
                           required
                           value={postText}
                           onChange={(e) => setPostText(e.target.value)}
-                          placeholder="Share an announcement, patch note, release, or preview..."
+                          placeholder="Post an update, announcement, or patch note to your audience..."
                           className="w-full rounded-xl bg-[#0a0a0a] border border-white/[0.08] p-3 text-xs sm:text-sm text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors resize-none leading-relaxed"
                         />
 
@@ -330,11 +492,59 @@ export default function GlobalNewsPage() {
                             <button
                               type="button"
                               onClick={() => setAttachedImage(null)}
-                              className="absolute top-2 right-2 p-1.5 rounded-full bg-black/75 hover:bg-black text-white transition-colors cursor-pointer"
+                              className="absolute top-2 right-2 p-1.5 rounded-full bg-black/80 hover:bg-black text-white transition-colors cursor-pointer"
                               title="Remove image"
                             >
                               <X className="h-4 w-4" />
                             </button>
+                          </div>
+                        )}
+
+                        {showPollCreator && (
+                          <div className="rounded-xl bg-[#0a0a0a] border border-white/[0.08] p-3 space-y-2">
+                            <div className="flex items-center justify-between text-xs font-semibold text-zinc-300 mb-1">
+                              <span className="flex items-center gap-1.5">
+                                <BarChart2 className="h-3.5 w-3.5 text-zinc-400" />
+                                Poll Options
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setShowPollCreator(false)}
+                                className="text-zinc-500 hover:text-white"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                            {pollOptions.map((opt, idx) => (
+                              <div key={idx} className="flex items-center gap-2">
+                                <input
+                                  type="text"
+                                  value={opt}
+                                  onChange={(e) => handlePollOptionChange(idx, e.target.value)}
+                                  placeholder={`Option ${idx + 1}`}
+                                  className="flex-1 rounded-lg bg-[#141414] border border-white/[0.08] px-3 py-1.5 text-xs text-white placeholder-zinc-600 outline-none focus:border-white/20"
+                                />
+                                {pollOptions.length > 2 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemovePollOption(idx)}
+                                    className="p-1 text-zinc-500 hover:text-red-400"
+                                  >
+                                    <X className="h-3.5 w-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                            {pollOptions.length < 5 && (
+                              <button
+                                type="button"
+                                onClick={handleAddPollOption}
+                                className="text-xs text-zinc-400 hover:text-white flex items-center gap-1 pt-1 font-medium cursor-pointer"
+                              >
+                                <Plus className="h-3 w-3" />
+                                <span>Add option</span>
+                              </button>
+                            )}
                           </div>
                         )}
 
@@ -368,10 +578,24 @@ export default function GlobalNewsPage() {
                               type="button"
                               onClick={() => fileInputRef.current?.click()}
                               className="flex items-center gap-1.5 rounded-xl bg-[#181818] hover:bg-[#222222] text-zinc-300 hover:text-white border border-white/[0.08] px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer"
-                              title="Attach image"
+                              title="Add image"
                             >
                               <ImageIcon className="h-3.5 w-3.5 text-zinc-400" />
-                              <span className="hidden sm:inline">Photo</span>
+                              <span className="hidden sm:inline">Image</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setShowPollCreator(!showPollCreator)}
+                              className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer border ${
+                                showPollCreator
+                                  ? "bg-white text-black font-semibold border-white"
+                                  : "bg-[#181818] text-zinc-300 hover:text-white hover:bg-[#222222] border-white/[0.08]"
+                              }`}
+                              title="Add poll"
+                            >
+                              <BarChart2 className="h-3.5 w-3.5" />
+                              <span className="hidden sm:inline">Poll</span>
                             </button>
 
                             <button
@@ -382,7 +606,7 @@ export default function GlobalNewsPage() {
                                   ? "bg-white text-black font-semibold border-white"
                                   : "bg-[#181818] text-zinc-400 hover:text-white hover:bg-[#222222] border-white/[0.08]"
                               }`}
-                              title={isPinned ? "Pinned" : "Pin post"}
+                              title={isPinned ? "Pinned to top" : "Pin post"}
                             >
                               <Pin className={`h-3.5 w-3.5 ${isPinned ? "fill-black" : ""}`} />
                               <span className="hidden sm:inline">Pin</span>
@@ -391,10 +615,9 @@ export default function GlobalNewsPage() {
                             <button
                               type="submit"
                               disabled={!postText.trim()}
-                              className="flex items-center gap-1.5 rounded-xl bg-white hover:bg-zinc-200 disabled:opacity-40 disabled:cursor-not-allowed text-black px-4 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-md"
+                              className="rounded-full bg-white hover:bg-zinc-200 disabled:opacity-40 disabled:cursor-not-allowed text-black px-5 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-md"
                             >
-                              <Send className="h-3.5 w-3.5" />
-                              <span>Publish</span>
+                              Post
                             </button>
                           </div>
                         </div>
@@ -409,7 +632,7 @@ export default function GlobalNewsPage() {
                       </div>
                       <div>
                         <h3 className="text-sm font-bold text-white">Share news with your audience</h3>
-                        <p className="text-xs text-zinc-400">Sign in to broadcast updates and announcements.</p>
+                        <p className="text-xs text-zinc-400">Sign in to broadcast updates, announcements, and polls.</p>
                       </div>
                     </div>
                     <button
@@ -446,114 +669,263 @@ export default function GlobalNewsPage() {
                       <h3 className="text-base font-bold text-white mb-1">No updates posted yet</h3>
                       <p className="text-xs text-zinc-400 max-w-sm">
                         {user
-                          ? "Be the first to share an announcement, release, or update with the community above."
+                          ? "Give a shoutout, share sneak peeks, announcements, or start discussions above!"
                           : "Check back soon for new creator posts and patch notes."}
                       </p>
                     </div>
                   ) : (
-                    filteredPosts.map((post) => (
-                      <article
-                        key={post.id}
-                        id={post.id}
-                        className="rounded-2xl bg-[#141414] border border-white/[0.08] p-5 sm:p-6 shadow-xl transition-all hover:border-white/[0.14]"
-                      >
-                        <div className="flex items-start justify-between gap-3 mb-3">
-                          <Link
-                            href={`/@${post.channelHandle}`}
-                            className="flex items-center gap-3 group"
-                          >
-                            <div className="h-11 w-11 rounded-full bg-[#181818] border border-white/[0.08] flex-shrink-0 overflow-hidden flex items-center justify-center font-bold text-sm text-white group-hover:ring-2 group-hover:ring-white/20 transition-all">
-                              {post.channelAvatar ? (
-                                <img src={post.channelAvatar} alt={post.channelName || "Channel"} className="h-full w-full object-cover" />
-                              ) : (
-                                <span>{(post.channelName || post.channelHandle || "C").slice(0, 1).toUpperCase()}</span>
-                              )}
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-bold text-sm text-white group-hover:underline">
-                                  {post.channelName || post.channelHandle}
-                                </span>
-                                {post.isPinned && (
-                                  <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/20">
-                                    <Pin className="h-2.5 w-2.5 fill-amber-400" />
-                                    <span>Pinned</span>
-                                  </span>
-                                )}
-                                {post.tag && (
-                                  <span className="text-[10px] font-semibold text-zinc-300 bg-white/[0.06] border border-white/[0.08] px-2 py-0.5 rounded-full">
-                                    {post.tag}
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-1.5 text-xs text-zinc-500 mt-0.5">
-                                <span>@{post.channelHandle}</span>
-                                <span>•</span>
-                                <span>{formatPostTime(post.publishedAt)}</span>
-                              </div>
-                            </div>
-                          </Link>
+                    filteredPosts.map((post) => {
+                      const isCommentsOpen = openCommentsPostId === post.id;
+                      const totalPollVotes = post.pollOptions?.reduce((acc, o) => acc + o.votes, 0) || 0;
 
-                          {user && (user.handle.toLowerCase() === post.channelHandle.toLowerCase()) && (
+                      return (
+                        <article
+                          key={post.id}
+                          id={post.id}
+                          className="rounded-2xl bg-[#141414] border border-white/[0.08] p-5 sm:p-6 shadow-xl transition-all"
+                        >
+                          <div className="flex items-start justify-between gap-3 mb-3">
+                            <Link
+                              href={`/@${post.channelHandle}`}
+                              className="flex items-center gap-3 group"
+                            >
+                              <div className="h-11 w-11 rounded-full bg-[#181818] border border-white/[0.08] flex-shrink-0 overflow-hidden flex items-center justify-center font-bold text-sm text-white group-hover:ring-2 group-hover:ring-white/20 transition-all">
+                                {post.channelAvatar ? (
+                                  <img src={post.channelAvatar} alt={post.channelName || "Channel"} className="h-full w-full object-cover" />
+                                ) : (
+                                  <span>{(post.channelName || post.channelHandle || "C").slice(0, 1).toUpperCase()}</span>
+                                )}
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-sm text-white group-hover:underline">
+                                    {post.channelName || post.channelHandle}
+                                  </span>
+                                  {post.isPinned && (
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/20">
+                                      <Pin className="h-2.5 w-2.5 fill-amber-400" />
+                                      <span>Pinned</span>
+                                    </span>
+                                  )}
+                                  {post.tag && (
+                                    <span className="text-[10px] font-semibold text-zinc-300 bg-white/[0.06] border border-white/[0.08] px-2.5 py-0.5 rounded-full">
+                                      {post.tag}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-1.5 text-xs text-zinc-500 mt-0.5">
+                                  <span>@{post.channelHandle}</span>
+                                  <span>•</span>
+                                  <span>{formatPostTime(post.publishedAt)}</span>
+                                </div>
+                              </div>
+                            </Link>
+
+                            {user && (user.handle.toLowerCase() === post.channelHandle.toLowerCase()) && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeletePost(post.id)}
+                                className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-white/[0.06] transition-colors cursor-pointer"
+                                title="Delete update"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="text-xs sm:text-sm text-zinc-100 leading-relaxed whitespace-pre-line mb-4 font-normal">
+                            {post.content}
+                          </div>
+
+                          {post.imageUrl && (
+                            <div className="rounded-xl overflow-hidden border border-white/[0.08] mb-4 max-h-[520px] bg-[#0a0a0a]">
+                              <img
+                                src={post.imageUrl}
+                                alt="Update media"
+                                className="w-full h-full object-cover cursor-pointer hover:opacity-95 transition-opacity"
+                              />
+                            </div>
+                          )}
+
+                          {post.pollOptions && post.pollOptions.length > 0 && (
+                            <div className="space-y-2 mb-4 bg-[#0a0a0a] border border-white/[0.06] rounded-xl p-3">
+                              {post.pollOptions.map((opt) => {
+                                const percent = totalPollVotes > 0 ? Math.round((opt.votes / totalPollVotes) * 100) : 0;
+                                const hasVotedThis = post.pollVotedId === opt.id;
+                                const hasVotedAny = Boolean(post.pollVotedId);
+
+                                return (
+                                  <button
+                                    key={opt.id}
+                                    type="button"
+                                    disabled={hasVotedAny}
+                                    onClick={() => handleVotePoll(post.id, opt.id)}
+                                    className={`relative w-full overflow-hidden rounded-lg p-2.5 text-xs font-semibold text-left transition-all flex items-center justify-between border ${
+                                      hasVotedThis
+                                        ? "border-white/30 text-white"
+                                        : "border-white/[0.08] text-zinc-300 hover:border-white/20"
+                                    } ${!hasVotedAny ? "cursor-pointer" : "cursor-default"}`}
+                                  >
+                                    {hasVotedAny && (
+                                      <div
+                                        className={`absolute inset-0 transition-all duration-500 ${
+                                          hasVotedThis ? "bg-white/20" : "bg-white/[0.06]"
+                                        }`}
+                                        style={{ width: `${percent}%` }}
+                                      />
+                                    )}
+
+                                    <span className="relative z-10 flex items-center gap-2">
+                                      {hasVotedThis && <CheckCircle2 className="h-3.5 w-3.5 text-white" />}
+                                      <span>{opt.text}</span>
+                                    </span>
+
+                                    {hasVotedAny && (
+                                      <span className="relative z-10 font-bold text-zinc-300 ml-2">
+                                        {percent}%
+                                      </span>
+                                    )}
+                                  </button>
+                                );
+                              })}
+
+                              <p className="text-[11px] text-zinc-500 pt-1">
+                                {totalPollVotes} {totalPollVotes === 1 ? "vote" : "votes"}
+                              </p>
+                            </div>
+                          )}
+
+                          <div className="flex items-center gap-1 pt-2 border-t border-white/[0.06]">
                             <button
                               type="button"
-                              onClick={() => handleDeletePost(post.id)}
-                              className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-white/[0.06] transition-colors cursor-pointer"
-                              title="Delete update"
+                              onClick={() => handleLikePost(post.id)}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
+                                post.hasLiked
+                                  ? "text-white bg-white/[0.12]"
+                                  : "text-zinc-400 hover:text-white hover:bg-white/[0.06]"
+                              }`}
+                              title="Like"
                             >
-                              <Trash2 className="h-3.5 w-3.5" />
+                              <ThumbsUp className={`h-3.5 w-3.5 ${post.hasLiked ? "fill-white" : ""}`} />
+                              <span>{post.likes > 0 ? post.likes : ""}</span>
                             </button>
-                          )}
-                        </div>
 
-                        <div className="text-xs sm:text-sm text-zinc-200 leading-relaxed whitespace-pre-line mb-4 font-normal">
-                          {post.content}
-                        </div>
+                            <button
+                              type="button"
+                              onClick={() => handleDislikePost(post.id)}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
+                                post.hasDisliked
+                                  ? "text-white bg-white/[0.12]"
+                                  : "text-zinc-400 hover:text-white hover:bg-white/[0.06]"
+                              }`}
+                              title="Dislike"
+                            >
+                              <ThumbsDown className={`h-3.5 w-3.5 ${post.hasDisliked ? "fill-white" : ""}`} />
+                            </button>
 
-                        {post.imageUrl && (
-                          <div className="rounded-xl overflow-hidden border border-white/[0.08] mb-4 max-h-[520px] bg-[#0a0a0a]">
-                            <img
-                              src={post.imageUrl}
-                              alt="Update attachment"
-                              className="w-full h-full object-cover"
-                            />
+                            <button
+                              type="button"
+                              onClick={() => handleSharePost(post)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
+                              title="Share"
+                            >
+                              <Share2 className="h-3.5 w-3.5" />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setOpenCommentsPostId(isCommentsOpen ? null : post.id)}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ml-auto transition-colors cursor-pointer ${
+                                isCommentsOpen
+                                  ? "text-white bg-white/[0.12]"
+                                  : "text-zinc-400 hover:text-white hover:bg-white/[0.06]"
+                              }`}
+                              title="Comments"
+                            >
+                              <MessageSquare className="h-3.5 w-3.5" />
+                              <span>{(post.comments || []).length}</span>
+                            </button>
                           </div>
-                        )}
 
-                        <div className="flex items-center gap-2 pt-2 border-t border-white/[0.06]">
-                          <button
-                            type="button"
-                            onClick={() => handleToggleLike(post.id)}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
-                              post.hasLiked
-                                ? "text-rose-400 bg-rose-500/10 border border-rose-500/20"
-                                : "text-zinc-400 hover:text-white bg-[#181818] hover:bg-[#222222] border border-white/[0.08]"
-                            }`}
-                          >
-                            <Heart className={`h-3.5 w-3.5 ${post.hasLiked ? "fill-rose-400 text-rose-400" : ""}`} />
-                            <span>{post.likes}</span>
-                          </button>
+                          {isCommentsOpen && (
+                            <div className="mt-4 pt-4 border-t border-white/[0.08] space-y-4 animate-in fade-in duration-200">
+                              <div className="flex gap-2.5">
+                                <div className="h-8 w-8 rounded-full bg-[#181818] border border-white/[0.08] flex-shrink-0 overflow-hidden flex items-center justify-center font-bold text-xs text-white">
+                                  {user?.avatarUrl ? (
+                                    <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
+                                  ) : (
+                                    <span>{(user?.name || "U").slice(0, 1).toUpperCase()}</span>
+                                  )}
+                                </div>
 
-                          <button
-                            type="button"
-                            onClick={() => handleSharePost(post)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-zinc-400 hover:text-white bg-[#181818] hover:bg-[#222222] border border-white/[0.08] transition-colors cursor-pointer"
-                            title="Share update"
-                          >
-                            <Share2 className="h-3.5 w-3.5" />
-                            <span>Share</span>
-                          </button>
+                                <div className="flex-1 flex gap-2">
+                                  <input
+                                    type="text"
+                                    value={commentInputs[post.id] || ""}
+                                    onChange={(e) =>
+                                      setCommentInputs({ ...commentInputs, [post.id]: e.target.value })
+                                    }
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        handleAddComment(post.id);
+                                      }
+                                    }}
+                                    placeholder="Add a comment..."
+                                    className="flex-1 rounded-xl bg-[#0a0a0a] border border-white/[0.08] px-3 py-1.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/20"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAddComment(post.id)}
+                                    disabled={!(commentInputs[post.id] || "").trim()}
+                                    className="rounded-xl bg-white hover:bg-zinc-200 disabled:opacity-40 text-black px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer flex-shrink-0"
+                                  >
+                                    Comment
+                                  </button>
+                                </div>
+                              </div>
 
-                          <Link
-                            href={`/@${post.channelHandle}`}
-                            className="ml-auto text-xs font-medium text-zinc-400 hover:text-white transition-colors flex items-center gap-1"
-                          >
-                            <span>Channel</span>
-                            <ExternalLink className="h-3 w-3" />
-                          </Link>
-                        </div>
-                      </article>
-                    ))
+                              {(post.comments || []).length > 0 && (
+                                <div className="space-y-3 pt-2">
+                                  {(post.comments || []).map((comm) => (
+                                    <div key={comm.id} className="flex items-start justify-between gap-2.5 group">
+                                      <div className="flex gap-2.5">
+                                        <div className="h-7 w-7 rounded-full bg-[#181818] border border-white/[0.08] flex-shrink-0 overflow-hidden flex items-center justify-center font-bold text-[11px] text-white">
+                                          {comm.authorAvatar ? (
+                                            <img src={comm.authorAvatar} alt={comm.authorName} className="h-full w-full object-cover" />
+                                          ) : (
+                                            <span>{(comm.authorName || comm.authorHandle || "U").slice(0, 1).toUpperCase()}</span>
+                                          )}
+                                        </div>
+                                        <div className="text-xs">
+                                          <div className="flex items-center gap-1.5 text-zinc-400">
+                                            <span className="font-semibold text-white">@{comm.authorHandle}</span>
+                                            <span>•</span>
+                                            <span>{formatPostTime(comm.createdAt)}</span>
+                                          </div>
+                                          <p className="text-zinc-200 mt-0.5 leading-relaxed">{comm.content}</p>
+                                        </div>
+                                      </div>
+
+                                      {user && user.handle.toLowerCase() === comm.authorHandle.toLowerCase() && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDeleteComment(post.id, comm.id)}
+                                          className="opacity-0 group-hover:opacity-100 p-1 text-zinc-500 hover:text-red-400 transition-opacity"
+                                          title="Delete comment"
+                                        >
+                                          <Trash2 className="h-3 w-3" />
+                                        </button>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </article>
+                      );
+                    })
                   )}
                 </div>
               </div>
@@ -584,7 +956,7 @@ export default function GlobalNewsPage() {
 
                 <div className="rounded-2xl bg-[#141414] border border-white/[0.08] p-5 shadow-xl">
                   <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-3">
-                    Categories
+                    Filter by Tag
                   </h3>
                   <div className="space-y-1.5">
                     {NEWS_CATEGORIES.map((cat) => {

@@ -46,11 +46,16 @@ export interface NewsPost {
   channelAvatar?: string;
   content: string;
   imageUrl?: string;
+  pollOptions?: CommunityPollOption[];
+  pollVotedId?: string;
   publishedAt: string;
   likes: number;
+  dislikes?: number;
   hasLiked?: boolean;
+  hasDisliked?: boolean;
   tag?: string;
   isPinned?: boolean;
+  comments?: CommunityComment[];
 }
 
 export interface CommunityComment {
