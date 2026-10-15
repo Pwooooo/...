@@ -21,7 +21,8 @@ function WatchContent() {
   const videoId = searchParams.get("v") || "sample-1";
 
   const [isSubscribed, setIsSubscribed] = useState(false);
-  const [likes, setLikes] = useState(14200);
+  const [likes, setLikes] = useState(14250);
+  const [dislikes, setDislikes] = useState(420);
   const [hasLiked, setHasLiked] = useState(false);
   const [hasDisliked, setHasDisliked] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
@@ -51,7 +52,10 @@ function WatchContent() {
       setLikes((prev) => prev - 1);
     } else {
       setHasLiked(true);
-      if (hasDisliked) setHasDisliked(false);
+      if (hasDisliked) {
+        setHasDisliked(false);
+        setDislikes((prev) => prev - 1);
+      }
       setLikes((prev) => prev + 1);
     }
   };
@@ -59,12 +63,14 @@ function WatchContent() {
   const handleDislike = () => {
     if (hasDisliked) {
       setHasDisliked(false);
+      setDislikes((prev) => prev - 1);
     } else {
       setHasDisliked(true);
       if (hasLiked) {
         setHasLiked(false);
         setLikes((prev) => prev - 1);
       }
+      setDislikes((prev) => prev + 1);
     }
   };
 
@@ -98,16 +104,16 @@ function WatchContent() {
         />
 
         {/* Video Title */}
-        <h1 className="mt-3 text-lg md:text-xl font-bold text-zinc-100 line-clamp-2">
+        <h1 className="mt-4 text-xl md:text-2xl font-bold text-white tracking-tight">
           Building a Distributed Video Transcoder with Go, FFmpeg & S3 (Video ID: {videoId})
         </h1>
 
         {/* Channel & Engagement Actions Bar */}
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-4 pb-3">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-zinc-900">
           {/* Channel Info & Subscribe */}
           <div className="flex items-center gap-3">
             <Link href="/@systemcraft">
-              <div className="h-10 w-10 overflow-hidden rounded-full bg-zinc-800">
+              <div className="h-10 w-10 overflow-hidden rounded-full bg-zinc-900 border border-zinc-800">
                 <img
                   src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80"
                   alt="SystemCraft Tech"
@@ -116,7 +122,7 @@ function WatchContent() {
               </div>
             </Link>
             <div>
-              <Link href="/@systemcraft" className="flex items-center gap-1 font-semibold text-sm text-zinc-100 hover:text-zinc-300">
+              <Link href="/@systemcraft" className="flex items-center gap-1 font-semibold text-sm text-white hover:text-zinc-300 transition-colors">
                 <span>SystemCraft Tech</span>
                 <CheckCircle2 className="h-3.5 w-3.5 text-zinc-400" />
               </Link>
@@ -125,10 +131,10 @@ function WatchContent() {
 
             <button
               onClick={() => setIsSubscribed(!isSubscribed)}
-              className={`ml-3 rounded-full px-4 py-2 text-xs font-semibold transition-all ${
+              className={`ml-3 rounded-full px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
                 isSubscribed
-                  ? "bg-zinc-800 text-zinc-200 hover:bg-zinc-700 flex items-center gap-1.5"
-                  : "bg-white text-zinc-900 hover:bg-zinc-200"
+                  ? "bg-zinc-900 text-zinc-300 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-1.5"
+                  : "bg-white text-black hover:bg-zinc-200"
               }`}
             >
               {isSubscribed && <Bell className="h-3.5 w-3.5" />}
@@ -138,42 +144,45 @@ function WatchContent() {
 
           {/* Action Pills */}
           <div className="flex items-center gap-2">
-            {/* Like / Dislike */}
-            <div className="flex items-center rounded-full bg-zinc-800 text-zinc-200 border border-zinc-700/50">
+            {/* Like / Dislike with Visible Dislike Count */}
+            <div className="flex items-center rounded-full bg-zinc-900 text-white border border-zinc-800">
               <button
                 onClick={handleLike}
-                className={`flex items-center gap-1.5 rounded-l-full px-3.5 py-1.5 text-xs font-semibold hover:bg-zinc-700 border-r border-zinc-700 ${
-                  hasLiked ? "text-blue-400" : ""
+                className={`flex items-center gap-2 rounded-l-full px-4 py-2 text-xs font-semibold hover:bg-zinc-800 border-r border-zinc-800 transition-colors cursor-pointer ${
+                  hasLiked ? "text-white font-bold bg-zinc-800" : "text-zinc-300"
                 }`}
+                title="I like this"
               >
-                <ThumbsUp className={`h-4 w-4 ${hasLiked ? "fill-blue-400" : ""}`} />
+                <ThumbsUp className={`h-4 w-4 ${hasLiked ? "fill-white" : ""}`} />
                 <span>{likes.toLocaleString()}</span>
               </button>
+
               <button
                 onClick={handleDislike}
-                className={`rounded-r-full px-3 py-1.5 text-xs hover:bg-zinc-700 ${
-                  hasDisliked ? "text-blue-400" : ""
+                className={`flex items-center gap-2 rounded-r-full px-4 py-2 text-xs font-semibold hover:bg-zinc-800 transition-colors cursor-pointer ${
+                  hasDisliked ? "text-white font-bold bg-zinc-800" : "text-zinc-300"
                 }`}
-                title="Dislike"
+                title="I dislike this"
               >
-                <ThumbsDown className={`h-4 w-4 ${hasDisliked ? "fill-blue-400" : ""}`} />
+                <ThumbsDown className={`h-4 w-4 ${hasDisliked ? "fill-white" : ""}`} />
+                <span>{dislikes.toLocaleString()}</span>
               </button>
             </div>
 
             {/* Share */}
-            <button className="flex items-center gap-1.5 rounded-full bg-zinc-800 px-3.5 py-1.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-700 border border-zinc-700/50">
+            <button className="flex items-center gap-2 rounded-full bg-zinc-900 px-4 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800 border border-zinc-800 transition-colors cursor-pointer">
               <Share2 className="h-4 w-4" />
               <span>Share</span>
             </button>
 
             {/* Save */}
-            <button className="hidden sm:flex items-center gap-1.5 rounded-full bg-zinc-800 px-3.5 py-1.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-700 border border-zinc-700/50">
+            <button className="hidden sm:flex items-center gap-2 rounded-full bg-zinc-900 px-4 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800 border border-zinc-800 transition-colors cursor-pointer">
               <Bookmark className="h-4 w-4" />
               <span>Save</span>
             </button>
 
             {/* More */}
-            <button className="rounded-full bg-zinc-800 p-2 text-zinc-200 hover:bg-zinc-700">
+            <button className="rounded-full bg-zinc-900 p-2 text-zinc-300 hover:bg-zinc-800 border border-zinc-800 transition-colors cursor-pointer">
               <MoreHorizontal className="h-4 w-4" />
             </button>
           </div>
@@ -182,14 +191,14 @@ function WatchContent() {
         {/* Expandable Description */}
         <div
           onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-          className="cursor-pointer rounded-xl bg-zinc-900/90 p-3 hover:bg-zinc-900 transition-colors text-sm text-zinc-200"
+          className="cursor-pointer rounded-2xl bg-zinc-950 p-4 hover:bg-zinc-900/60 transition-colors text-sm text-zinc-200 border border-zinc-900 mt-4"
         >
-          <div className="font-semibold text-xs text-zinc-300 flex items-center gap-2 mb-1">
+          <div className="font-semibold text-xs text-zinc-400 flex items-center gap-2 mb-1.5">
             <span>{formatViews(142500)}</span>
             <span>•</span>
             <span>2 days ago</span>
           </div>
-          <p className={isDescriptionExpanded ? "whitespace-pre-line" : "line-clamp-2"}>
+          <p className={isDescriptionExpanded ? "whitespace-pre-line text-zinc-300 leading-relaxed" : "line-clamp-2 text-zinc-400"}>
             In this complete architecture walkthrough, we build an end-to-end distributed video transcoding pipeline.
             We examine chunked uploads, direct S3 uploads with presigned URLs, asynchronous job queues using Redis and BullMQ,
             and FFmpeg HLS segmentation for multi-bitrate adaptive streaming.
@@ -201,22 +210,22 @@ function WatchContent() {
             {"\n"}15:30 - HLS Master Playlist & Chunk Generation
             {"\n"}22:00 - Client-side Adaptive Bitrate Playback
           </p>
-          <button className="mt-1 text-xs font-bold text-zinc-400 hover:text-white">
+          <button className="mt-2 text-xs font-bold text-zinc-400 hover:text-white">
             {isDescriptionExpanded ? "Show less" : "...more"}
           </button>
         </div>
 
         {/* Comments Section */}
-        <div className="mt-6">
+        <div className="mt-8">
           <div className="flex items-center gap-6 mb-4">
-            <h3 className="text-base font-bold text-zinc-100">
+            <h3 className="text-base font-bold text-white">
               {comments.length} Comments
             </h3>
           </div>
 
           {/* Add Comment Input */}
           <form onSubmit={handleAddComment} className="flex gap-3 mb-6">
-            <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-purple-600 to-red-600 flex items-center justify-center font-bold text-xs text-white flex-shrink-0">
+            <div className="h-9 w-9 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center font-bold text-xs text-white flex-shrink-0">
               U
             </div>
             <div className="flex-1 flex flex-col gap-2">
@@ -225,20 +234,20 @@ function WatchContent() {
                 placeholder="Add a comment..."
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
-                className="w-full bg-transparent border-b border-zinc-700 focus:border-white outline-none pb-1 text-sm text-zinc-100 placeholder-zinc-500 transition-colors"
+                className="w-full bg-transparent border-b border-zinc-800 focus:border-white outline-none pb-1.5 text-sm text-white placeholder-zinc-500 transition-colors"
               />
               {commentText.trim() && (
-                <div className="flex justify-end gap-2">
+                <div className="flex justify-end gap-2 pt-1">
                   <button
                     type="button"
                     onClick={() => setCommentText("")}
-                    className="px-3 py-1.5 text-xs font-semibold text-zinc-400 hover:text-white"
+                    className="px-3.5 py-1.5 text-xs font-semibold text-zinc-400 hover:text-white transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="rounded-full bg-blue-600 hover:bg-blue-500 px-4 py-1.5 text-xs font-semibold text-white"
+                    className="rounded-full bg-white hover:bg-zinc-200 text-black px-4 py-1.5 text-xs font-bold transition-colors"
                   >
                     Comment
                   </button>
@@ -248,14 +257,14 @@ function WatchContent() {
           </form>
 
           {/* Comment List */}
-          <div className="space-y-4">
+          <div className="space-y-5">
             {comments.map((comment) => (
               <div key={comment.id} className="flex gap-3">
-                <div className="h-9 w-9 overflow-hidden rounded-full bg-zinc-800 flex-shrink-0">
+                <div className="h-9 w-9 overflow-hidden rounded-full bg-zinc-900 border border-zinc-800 flex-shrink-0">
                   {comment.avatar ? (
                     <img src={comment.avatar} alt={comment.user} className="h-full w-full object-cover" />
                   ) : (
-                    <div className="h-full w-full bg-zinc-700 flex items-center justify-center text-xs font-bold">
+                    <div className="h-full w-full bg-zinc-800 flex items-center justify-center text-xs font-bold text-white">
                       {comment.user.slice(0, 1)}
                     </div>
                   )}
@@ -266,15 +275,15 @@ function WatchContent() {
                     <span className="text-zinc-500">{comment.timeAgo}</span>
                   </div>
                   <p className="text-zinc-300 text-sm leading-relaxed">{comment.content}</p>
-                  <div className="flex items-center gap-3 mt-2 text-zinc-400">
-                    <button className="flex items-center gap-1 hover:text-zinc-200">
+                  <div className="flex items-center gap-4 mt-2 text-zinc-400">
+                    <button className="flex items-center gap-1.5 hover:text-white transition-colors">
                       <ThumbsUp className="h-3.5 w-3.5" />
                       <span>{comment.likes || ""}</span>
                     </button>
-                    <button className="hover:text-zinc-200">
+                    <button className="hover:text-white transition-colors">
                       <ThumbsDown className="h-3.5 w-3.5" />
                     </button>
-                    <button className="font-semibold hover:text-zinc-200">Reply</button>
+                    <button className="font-semibold hover:text-white transition-colors">Reply</button>
                   </div>
                 </div>
               </div>
@@ -285,7 +294,7 @@ function WatchContent() {
 
       {/* Recommended Up Next Videos (Right Column) */}
       <div className="w-full lg:w-[400px] flex flex-col gap-3">
-        <h3 className="text-sm font-bold text-zinc-200 mb-1">Up next</h3>
+        <h3 className="text-sm font-bold text-zinc-300 mb-1">Up next</h3>
         {[
           {
             id: "sample-2",
@@ -318,20 +327,20 @@ function WatchContent() {
           <Link
             key={rec.id}
             href={`/watch?v=${rec.id}`}
-            className="flex gap-2.5 group cursor-pointer"
+            className="flex gap-2.5 group cursor-pointer p-1 rounded-xl hover:bg-zinc-950 transition-colors"
           >
-            <div className="relative aspect-video w-40 flex-shrink-0 overflow-hidden rounded-lg bg-zinc-800">
+            <div className="relative aspect-video w-40 flex-shrink-0 overflow-hidden rounded-xl bg-zinc-900 border border-zinc-800">
               <img
                 src={rec.thumb}
                 alt={rec.title}
                 className="h-full w-full object-cover group-hover:scale-105 transition-transform"
               />
-              <span className="absolute bottom-1 right-1 rounded bg-black/80 px-1 text-[10px] font-semibold text-white">
+              <span className="absolute bottom-1 right-1 rounded bg-black/90 px-1 text-[10px] font-semibold text-white">
                 {rec.duration}
               </span>
             </div>
             <div className="flex flex-col flex-1">
-              <h4 className="line-clamp-2 text-xs font-semibold text-zinc-100 group-hover:text-blue-400">
+              <h4 className="line-clamp-2 text-xs font-semibold text-zinc-100 group-hover:text-zinc-300 transition-colors">
                 {rec.title}
               </h4>
               <p className="mt-1 text-[11px] text-zinc-400">{rec.channel}</p>
@@ -348,7 +357,7 @@ function WatchContent() {
 
 export default function WatchPage() {
   return (
-    <div className="min-h-screen bg-[#0f0f0f] text-zinc-100 flex flex-col">
+    <div className="min-h-screen bg-black text-white flex flex-col">
       <Navbar />
       <main className="flex-1">
         <Suspense fallback={<div className="p-8 text-center text-zinc-400">Loading video player...</div>}>

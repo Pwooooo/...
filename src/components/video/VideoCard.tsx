@@ -71,7 +71,7 @@ export default function VideoCard({ video }: VideoCardProps) {
         <div className="flex flex-1 flex-col">
           <Link
             href={`/watch?v=${video.id}`}
-            className="line-clamp-2 text-sm font-semibold text-zinc-100 group-hover:text-blue-400 transition-colors"
+            className="line-clamp-2 text-sm font-semibold text-zinc-100 group-hover:text-white transition-colors"
           >
             {video.title}
           </Link>

@@ -15,7 +15,7 @@ export default function SubscriptionsPage() {
   const channelsList = Object.values(MOCK_CHANNELS);
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] text-zinc-100 flex flex-col">
+    <div className="min-h-screen bg-black text-zinc-100 flex flex-col">
       <Navbar onToggleSidebar={() => setCollapsedSidebar(!collapsedSidebar)} />
 
       <div className="flex flex-1">
@@ -30,7 +30,7 @@ export default function SubscriptionsPage() {
                 href={`/@${channel.handle}`}
                 className="flex flex-col items-center gap-1.5 flex-shrink-0 group"
               >
-                <div className="relative h-14 w-14 rounded-full overflow-hidden bg-zinc-800 ring-2 ring-red-600 ring-offset-2 ring-offset-[#0f0f0f] group-hover:scale-105 transition-transform">
+                <div className="relative h-14 w-14 rounded-full overflow-hidden bg-zinc-900 ring-2 ring-white ring-offset-2 ring-offset-black group-hover:scale-105 transition-transform">
                   <img
                     src={channel.avatarUrl || ""}
                     alt={channel.displayName}

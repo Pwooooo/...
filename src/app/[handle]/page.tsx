@@ -35,7 +35,7 @@ export default function ChannelProfilePage({
   );
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] text-zinc-100 flex flex-col">
+    <div className="min-h-screen bg-black text-zinc-100 flex flex-col">
       <Navbar />
 
       <div className="flex flex-1">
@@ -57,7 +57,7 @@ export default function ChannelProfilePage({
             {/* Header / Avatar / Subscribe */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 py-6 border-b border-zinc-800">
               <div className="flex items-center gap-5">
-                <div className="h-20 w-20 md:h-28 md:w-28 rounded-full overflow-hidden bg-zinc-800 ring-4 ring-[#0f0f0f] shadow-xl flex-shrink-0">
+                <div className="h-20 w-20 md:h-28 md:w-28 rounded-full overflow-hidden bg-zinc-800 ring-4 ring-black shadow-xl flex-shrink-0">
                   <img
                     src={channel.avatarUrl || ""}
                     alt={channel.displayName}

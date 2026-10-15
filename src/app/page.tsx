@@ -30,7 +30,7 @@ export default function HomePage() {
   }, [activeCategory]);
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] text-zinc-100 flex flex-col">
+    <div className="min-h-screen bg-black text-zinc-100 flex flex-col">
       {/* Top Navbar */}
       <Navbar onToggleSidebar={() => setCollapsedSidebar(!collapsedSidebar)} />
 
@@ -42,7 +42,7 @@ export default function HomePage() {
         {/* Content Area */}
         <main className="flex-1 overflow-x-hidden px-4 md:px-6 py-3">
           {/* Category Chips Bar */}
-          <div className="sticky top-14 z-30 flex items-center gap-2 overflow-x-auto pb-4 pt-1 bg-[#0f0f0f]/95 backdrop-blur scrollbar-none">
+          <div className="sticky top-14 z-30 flex items-center gap-2 overflow-x-auto pb-4 pt-1 bg-black/95 backdrop-blur scrollbar-none">
             {CATEGORIES.map((cat) => (
               <button
                 key={cat}

@@ -24,7 +24,7 @@ export default function StudioVideosPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] text-zinc-100 flex flex-col">
+    <div className="min-h-screen bg-black text-zinc-100 flex flex-col">
       <Navbar />
 
       <div className="flex flex-1">
@@ -39,7 +39,7 @@ export default function StudioVideosPage() {
 
             <Link
               href="/studio/upload"
-              className="flex items-center gap-2 rounded-full bg-red-600 hover:bg-red-700 px-4 py-2 text-xs font-bold text-white shadow-md transition-colors"
+              className="flex items-center gap-2 rounded-full bg-white hover:bg-zinc-200 px-4 py-2 text-xs font-bold text-black shadow-md transition-colors"
             >
               <Upload className="h-4 w-4" />
               <span>Create / Upload</span>

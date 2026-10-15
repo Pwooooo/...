@@ -51,7 +51,7 @@ export default function StudioUploadPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] text-zinc-100 flex flex-col">
+    <div className="min-h-screen bg-black text-zinc-100 flex flex-col">
       <Navbar />
 
       <div className="flex flex-1">
@@ -116,7 +116,7 @@ export default function StudioUploadPage() {
                     placeholder="Add a title that describes your video"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-blue-500"
+                    className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-white"
                   />
                 </div>
 
@@ -129,7 +129,7 @@ export default function StudioUploadPage() {
                     placeholder="Tell viewers about your video"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-blue-500"
+                    className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-white"
                   />
                 </div>
 
@@ -140,7 +140,7 @@ export default function StudioUploadPage() {
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-2 text-sm text-zinc-100 outline-none focus:border-blue-500"
+                    className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-2 text-sm text-zinc-100 outline-none focus:border-white"
                   >
                     <option value="Technology">Technology</option>
                     <option value="Web Development">Web Development</option>
@@ -160,7 +160,7 @@ export default function StudioUploadPage() {
                   </div>
                   <div className="w-full h-2 bg-zinc-800 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-blue-600 transition-all duration-300 rounded-full"
+                      className="h-full bg-white transition-all duration-300 rounded-full"
                       style={{ width: `${uploadProgress}%` }}
                     />
                   </div>
@@ -172,7 +172,7 @@ export default function StudioUploadPage() {
                 <button
                   type="submit"
                   disabled={isUploading || (!file && !title)}
-                  className="flex items-center gap-2 rounded-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-6 py-2.5 text-xs font-bold transition-all shadow-md"
+                  className="flex items-center gap-2 rounded-full bg-white hover:bg-zinc-200 disabled:opacity-40 text-black px-6 py-2.5 text-xs font-bold transition-all shadow-md cursor-pointer"
                 >
                   <span>{isUploading ? "Uploading..." : "Publish Video"}</span>
                   <ArrowRight className="h-4 w-4" />

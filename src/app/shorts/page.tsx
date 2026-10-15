@@ -51,7 +51,7 @@ export default function ShortsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] text-zinc-100 flex flex-col">
+    <div className="min-h-screen bg-black text-zinc-100 flex flex-col">
       <Navbar />
 
       <div className="flex flex-1">
@@ -97,10 +97,10 @@ export default function ShortsPage() {
                     </Link>
                     <button
                       onClick={() => toggleSubscribe(currentShort.channel.handle)}
-                      className={`rounded-full px-3 py-1 text-xs font-bold transition-colors ${
+                      className={`rounded-full px-3.5 py-1 text-xs font-bold transition-colors cursor-pointer ${
                         subscribedMap[currentShort.channel.handle]
-                          ? "bg-zinc-800 text-zinc-300"
-                          : "bg-red-600 text-white hover:bg-red-700"
+                          ? "bg-zinc-900 border border-zinc-700 text-zinc-300"
+                          : "bg-white text-black hover:bg-zinc-200"
                       }`}
                     >
                       {subscribedMap[currentShort.channel.handle] ? "Subscribed" : "Subscribe"}
@@ -111,7 +111,7 @@ export default function ShortsPage() {
                     {currentShort.title}
                   </p>
 
-                  <div className="flex items-center gap-2 text-xs text-zinc-300">
+                  <div className="flex items-center gap-2 text-xs text-zinc-400">
                     <Music className="h-3.5 w-3.5" />
                     <span className="truncate">{currentShort.songName}</span>
                   </div>
@@ -125,13 +125,13 @@ export default function ShortsPage() {
               <div className="flex flex-col items-center gap-1">
                 <button
                   onClick={() => toggleLike(currentShort.id)}
-                  className={`rounded-full p-3 bg-zinc-900/90 hover:bg-zinc-800 transition-colors ${
-                    likedMap[currentShort.id] ? "text-blue-500" : "text-white"
+                  className={`rounded-full p-3 bg-zinc-900/90 hover:bg-zinc-800 transition-colors border border-zinc-800 cursor-pointer ${
+                    likedMap[currentShort.id] ? "text-white bg-zinc-800 border-white" : "text-zinc-300"
                   }`}
                 >
-                  <ThumbsUp className={`h-6 w-6 ${likedMap[currentShort.id] ? "fill-blue-500" : ""}`} />
+                  <ThumbsUp className={`h-6 w-6 ${likedMap[currentShort.id] ? "fill-white text-white" : ""}`} />
                 </button>
-                <span className="text-xs font-semibold text-zinc-200">
+                <span className="text-xs font-semibold text-zinc-300">
                   {((likes[currentShort.id] ?? currentShort.likesCount) / 1000).toFixed(1)}K
                 </span>
               </div>

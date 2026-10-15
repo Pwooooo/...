@@ -9,7 +9,7 @@ import { PlaySquare, ListVideo, Lock } from "lucide-react";
 
 export default function PlaylistsPage() {
   return (
-    <div className="min-h-screen bg-[#0f0f0f] text-zinc-100 flex flex-col">
+    <div className="min-h-screen bg-black text-zinc-100 flex flex-col">
       <Navbar />
 
       <div className="flex flex-1">

@@ -51,7 +51,7 @@ export default function Sidebar({ collapsed = false }: SidebarProps) {
 
   if (collapsed) {
     return (
-      <aside className="sticky top-14 flex h-[calc(100vh-3.5rem)] w-18 flex-col items-center py-2 bg-zinc-950 text-zinc-300 border-r border-zinc-900">
+      <aside className="sticky top-14 flex h-[calc(100vh-3.5rem)] w-18 flex-col items-center py-2 bg-black text-zinc-300 border-r border-zinc-900">
         {mainLinks.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
@@ -74,7 +74,7 @@ export default function Sidebar({ collapsed = false }: SidebarProps) {
   }
 
   return (
-    <aside className="sticky top-14 hidden md:flex h-[calc(100vh-3.5rem)] w-60 flex-col overflow-y-auto px-3 py-3 bg-zinc-950 text-zinc-200 border-r border-zinc-900 scrollbar-thin">
+    <aside className="sticky top-14 hidden md:flex h-[calc(100vh-3.5rem)] w-60 flex-col overflow-y-auto px-3 py-3 bg-black text-zinc-200 border-r border-zinc-900 scrollbar-none">
       {/* Primary Section */}
       <div className="space-y-1 pb-3 border-b border-zinc-800">
         {mainLinks.map((item) => {

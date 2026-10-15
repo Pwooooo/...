@@ -160,7 +160,7 @@ export default function VideoPlayer({
   return (
     <div
       ref={containerRef}
-      className="group relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-2xl bg-black shadow-2xl select-none"
+      className="group relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-2xl bg-black border border-zinc-900 shadow-2xl select-none"
     >
       <video
         ref={videoRef}
@@ -174,53 +174,53 @@ export default function VideoPlayer({
       />
 
       {/* Control Overlay */}
-      <div className="absolute inset-0 flex flex-col justify-between bg-gradient-to-t from-black/80 via-transparent to-black/20 opacity-0 group-hover:opacity-100 transition-opacity p-4">
+      <div className="absolute inset-0 flex flex-col justify-between bg-gradient-to-t from-black/90 via-transparent to-black/20 opacity-0 group-hover:opacity-100 transition-opacity p-4">
         <div />
 
         {/* Center Big Play/Pause Button on Pause */}
         {!isPlaying && (
           <button
             onClick={togglePlay}
-            className="self-center rounded-full bg-red-600/90 p-4 text-white shadow-lg hover:bg-red-600 hover:scale-110 transition-transform"
+            className="self-center rounded-full bg-white text-black p-4 shadow-2xl hover:scale-110 transition-transform cursor-pointer"
             aria-label="Play video"
           >
-            <Play className="h-8 w-8 fill-white translate-x-0.5" />
+            <Play className="h-8 w-8 fill-black translate-x-0.5" />
           </button>
         )}
 
         {/* Bottom Bar */}
         <div className="flex flex-col gap-2">
-          {/* Scrubber Slider */}
+          {/* Monochrome White Scrubber Slider */}
           <input
             type="range"
             min={0}
             max={duration || 100}
             value={currentTime}
             onChange={handleSeek}
-            className="w-full h-1.5 bg-zinc-600 rounded-lg appearance-none cursor-pointer accent-red-600 hover:h-2 transition-all"
+            className="w-full h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-white hover:h-2 transition-all"
           />
 
           <div className="flex items-center justify-between text-white text-xs">
             {/* Left Controls */}
             <div className="flex items-center gap-3">
-              <button onClick={togglePlay} className="hover:text-red-500 transition-colors">
-                {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 fill-white" />}
+              <button onClick={togglePlay} className="hover:text-zinc-300 transition-colors cursor-pointer">
+                {isPlaying ? <Pause className="h-5 w-5 fill-white" /> : <Play className="h-5 w-5 fill-white" />}
               </button>
 
               <button
                 onClick={() => {
                   if (videoRef.current) videoRef.current.currentTime -= 10;
                 }}
-                className="hover:text-red-500 transition-colors"
+                className="hover:text-zinc-300 transition-colors cursor-pointer"
                 title="Rewind 10s"
               >
                 <RotateCcw className="h-4 w-4" />
               </button>
 
               <div className="flex items-center gap-2 group/volume">
-                <button onClick={toggleMute} className="hover:text-red-500">
+                <button onClick={toggleMute} className="hover:text-zinc-300 cursor-pointer">
                   {isMuted || volume === 0 ? (
-                    <VolumeX className="h-5 w-5 text-red-500" />
+                    <VolumeX className="h-5 w-5 text-zinc-400" />
                   ) : (
                     <Volume2 className="h-5 w-5" />
                   )}
@@ -232,7 +232,7 @@ export default function VideoPlayer({
                   step={0.05}
                   value={isMuted ? 0 : volume}
                   onChange={handleVolumeChange}
-                  className="w-16 h-1 bg-zinc-500 rounded appearance-none cursor-pointer accent-white"
+                  className="w-16 h-1 bg-zinc-600 rounded appearance-none cursor-pointer accent-white"
                 />
               </div>
 
@@ -247,18 +247,18 @@ export default function VideoPlayer({
                 <div className="relative">
                   <button
                     onClick={() => setShowSettings(!showSettings)}
-                    className="hover:text-red-500 transition-colors"
+                    className="hover:text-zinc-300 transition-colors cursor-pointer"
                     title="Playback Quality"
                   >
                     <Settings className="h-5 w-5" />
                   </button>
 
                   {showSettings && (
-                    <div className="absolute right-0 bottom-8 bg-zinc-900 border border-zinc-700 rounded-lg p-2 shadow-xl flex flex-col gap-1 w-32 z-50">
+                    <div className="absolute right-0 bottom-8 bg-zinc-950 border border-zinc-800 rounded-xl p-1.5 shadow-2xl flex flex-col gap-1 w-32 z-50">
                       <button
                         onClick={() => handleQualityChange(-1)}
-                        className={`text-left px-2 py-1 rounded text-xs hover:bg-zinc-800 ${
-                          currentLevel === -1 ? "font-bold text-red-500" : "text-zinc-200"
+                        className={`text-left px-2.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
+                          currentLevel === -1 ? "font-bold bg-white text-black" : "text-zinc-300 hover:bg-zinc-900"
                         }`}
                       >
                         Auto
@@ -267,8 +267,8 @@ export default function VideoPlayer({
                         <button
                           key={lvl.id}
                           onClick={() => handleQualityChange(lvl.id)}
-                          className={`text-left px-2 py-1 rounded text-xs hover:bg-zinc-800 ${
-                            currentLevel === lvl.id ? "font-bold text-red-500" : "text-zinc-200"
+                          className={`text-left px-2.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
+                            currentLevel === lvl.id ? "font-bold bg-white text-black" : "text-zinc-300 hover:bg-zinc-900"
                           }`}
                         >
                           {lvl.height}p
@@ -279,7 +279,7 @@ export default function VideoPlayer({
                 </div>
               )}
 
-              <button onClick={toggleFullscreen} className="hover:text-red-500 transition-colors">
+              <button onClick={toggleFullscreen} className="hover:text-zinc-300 transition-colors cursor-pointer">
                 {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
               </button>
             </div>

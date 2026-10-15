@@ -25,7 +25,7 @@ export default function TrendingPage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] text-zinc-100 flex flex-col">
+    <div className="min-h-screen bg-black text-zinc-100 flex flex-col">
       <Navbar />
 
       <div className="flex flex-1">
@@ -34,10 +34,10 @@ export default function TrendingPage() {
         <main className="flex-1 overflow-x-hidden px-4 md:px-8 py-6 max-w-5xl">
           {/* Trending Header Banner */}
           <div className="flex items-center gap-4 mb-6">
-            <div className="h-14 w-14 rounded-full bg-red-600 flex items-center justify-center text-white shadow-lg">
-              <Flame className="h-8 w-8" />
+            <div className="h-14 w-14 rounded-2xl bg-white flex items-center justify-center text-black shadow-lg">
+              <Flame className="h-7 w-7" />
             </div>
-            <h1 className="text-2xl font-bold text-zinc-100">Trending</h1>
+            <h1 className="text-2xl font-bold text-white">Trending</h1>
           </div>
 
           {/* Sub-Tabs */}
