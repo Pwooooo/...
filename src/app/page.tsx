@@ -40,29 +40,31 @@ export default function HomePage() {
         <Sidebar collapsed={collapsedSidebar} />
 
         {/* Content Area */}
-        <main className="flex-1 overflow-x-hidden px-4 md:px-8 py-4">
+        <main className="flex-1 min-w-0 px-4 md:px-8 pb-12">
           {/* Smooth Category Chips Bar */}
-          <div className="sticky top-14 z-30 flex items-center gap-2 overflow-x-auto pb-4 pt-1 bg-black/95 backdrop-blur-md scrollbar-none">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-300 ease-out cursor-pointer outline-none ${
-                  activeCategory === cat
-                    ? "bg-white/[0.08] text-white backdrop-blur-md scale-[1.02]"
-                    : "bg-transparent text-zinc-400 hover:bg-white/[0.04] hover:text-white"
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
+          <div className="sticky top-14 z-30 bg-black/95 backdrop-blur-md py-3 -mx-4 md:-mx-8 px-4 md:px-8 border-b border-zinc-900/60 mb-6">
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-none">
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ease-out cursor-pointer outline-none ${
+                    activeCategory === cat
+                      ? "bg-white/[0.08] text-white shadow-sm"
+                      : "bg-transparent text-zinc-400 hover:bg-white/[0.04] hover:text-white"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Videos Grid with Smooth Fade Transition */}
           {filteredVideos.length > 0 ? (
             <div
               key={activeCategory}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-5 gap-y-8 pt-3 transition-opacity duration-300 animate-in fade-in"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-5 gap-y-8 transition-opacity duration-300 animate-in fade-in"
             >
               {filteredVideos.map((video) => (
                 <VideoCard key={video.id} video={video} />
