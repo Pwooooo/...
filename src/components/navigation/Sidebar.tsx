@@ -62,8 +62,8 @@ export default function Sidebar({ collapsed = false }: SidebarProps) {
               className={cn(
                 "flex flex-col items-center justify-center w-16 py-3 rounded-2xl text-[10px] gap-1.5 transition-all duration-200 ease-out",
                 isActive
-                  ? "bg-white text-black font-bold shadow-md scale-95"
-                  : "text-zinc-400 hover:text-white hover:bg-zinc-900/80"
+                  ? "bg-white/[0.08] text-white font-bold border border-white/20 shadow-sm scale-95"
+                  : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
               )}
             >
               <Icon className="h-5 w-5" />
@@ -89,8 +89,8 @@ export default function Sidebar({ collapsed = false }: SidebarProps) {
               className={cn(
                 "flex items-center gap-4 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ease-out",
                 isActive
-                  ? "bg-white text-black shadow-sm"
-                  : "text-zinc-400 hover:text-white hover:bg-zinc-900/80"
+                  ? "bg-white/[0.08] text-white font-semibold border border-white/20 shadow-sm"
+                  : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
               )}
             >
               <Icon className="h-5 w-5" />
@@ -115,8 +115,8 @@ export default function Sidebar({ collapsed = false }: SidebarProps) {
               className={cn(
                 "flex items-center gap-4 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ease-out",
                 isActive
-                  ? "bg-white text-black shadow-sm"
-                  : "text-zinc-400 hover:text-white hover:bg-zinc-900/80"
+                  ? "bg-white/[0.08] text-white font-semibold border border-white/20 shadow-sm"
+                  : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
               )}
             >
               <Icon className="h-5 w-5" />
@@ -141,8 +141,8 @@ export default function Sidebar({ collapsed = false }: SidebarProps) {
               className={cn(
                 "flex items-center gap-4 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ease-out",
                 isActive
-                  ? "bg-white text-black shadow-sm"
-                  : "text-zinc-400 hover:text-white hover:bg-zinc-900/80"
+                  ? "bg-white/[0.08] text-white font-semibold border border-white/20 shadow-sm"
+                  : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
               )}
             >
               <Icon className="h-5 w-5" />

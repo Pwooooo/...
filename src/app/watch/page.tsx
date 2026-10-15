@@ -257,10 +257,10 @@ function WatchContent() {
           <div className="flex items-center gap-3 border-b border-zinc-800/80 pb-3 mb-4">
             <button
               onClick={() => setActiveTab("chapters")}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer border ${
                 activeTab === "chapters"
-                  ? "bg-white text-black"
-                  : "bg-zinc-900 text-zinc-400 hover:text-white"
+                  ? "bg-white/[0.08] text-white border-white/40 shadow-sm"
+                  : "bg-transparent text-zinc-400 border-transparent hover:text-white hover:bg-white/[0.04]"
               }`}
             >
               <Layers className="h-3.5 w-3.5" />
@@ -269,10 +269,10 @@ function WatchContent() {
 
             <button
               onClick={() => setActiveTab("highlights")}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer border ${
                 activeTab === "highlights"
-                  ? "bg-white text-black"
-                  : "bg-zinc-900 text-zinc-400 hover:text-white"
+                  ? "bg-white/[0.08] text-white border-white/40 shadow-sm"
+                  : "bg-transparent text-zinc-400 border-transparent hover:text-white hover:bg-white/[0.04]"
               }`}
             >
               <Sparkles className="h-3.5 w-3.5" />
@@ -281,10 +281,10 @@ function WatchContent() {
 
             <button
               onClick={() => setActiveTab("overview")}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer border ${
                 activeTab === "overview"
-                  ? "bg-white text-black"
-                  : "bg-zinc-900 text-zinc-400 hover:text-white"
+                  ? "bg-white/[0.08] text-white border-white/40 shadow-sm"
+                  : "bg-transparent text-zinc-400 border-transparent hover:text-white hover:bg-white/[0.04]"
               }`}
             >
               <span>Overview</span>

@@ -112,8 +112,8 @@ export default function HomePage() {
                 onClick={() => setActiveCategory(cat)}
                 className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-300 ease-out cursor-pointer border ${
                   activeCategory === cat
-                    ? "bg-white text-black border-white shadow-md scale-[1.03]"
-                    : "bg-zinc-950 text-zinc-300 border-zinc-800 hover:bg-zinc-900 hover:text-white hover:border-zinc-700"
+                    ? "bg-white/[0.08] text-white border-white/40 shadow-sm backdrop-blur-md scale-[1.02]"
+                    : "bg-transparent text-zinc-400 border-white/5 hover:bg-white/[0.04] hover:text-white hover:border-white/15"
                 }`}
               >
                 {cat}
