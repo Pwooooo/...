@@ -1,0 +1,193 @@
+"use client";
+
+import React, { useState } from "react";
+import Navbar from "@/components/navigation/Navbar";
+import Sidebar from "@/components/navigation/Sidebar";
+import { SHORTS_FEED } from "@/lib/mock-data";
+import {
+  ThumbsUp,
+  ThumbsDown,
+  MessageSquare,
+  Share2,
+  MoreVertical,
+  Music,
+  CheckCircle2,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react";
+import Link from "next/link";
+
+export default function ShortsPage() {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [likes, setLikes] = useState<Record<string, number>>({});
+  const [likedMap, setLikedMap] = useState<Record<string, boolean>>({});
+  const [subscribedMap, setSubscribedMap] = useState<Record<string, boolean>>({});
+
+  const currentShort = SHORTS_FEED[currentIndex] || SHORTS_FEED[0];
+
+  const handleNext = () => {
+    if (currentIndex < SHORTS_FEED.length - 1) {
+      setCurrentIndex((prev) => prev + 1);
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex((prev) => prev - 1);
+    }
+  };
+
+  const toggleLike = (id: string) => {
+    const isLiked = likedMap[id];
+    setLikedMap((prev) => ({ ...prev, [id]: !isLiked }));
+    setLikes((prev) => ({
+      ...prev,
+      [id]: (prev[id] ?? currentShort.likesCount) + (isLiked ? -1 : 1),
+    }));
+  };
+
+  const toggleSubscribe = (handle: string) => {
+    setSubscribedMap((prev) => ({ ...prev, [handle]: !prev[handle] }));
+  };
+
+  return (
+    <div className="min-h-screen bg-[#0f0f0f] text-zinc-100 flex flex-col">
+      <Navbar />
+
+      <div className="flex flex-1">
+        <Sidebar collapsed={true} />
+
+        <main className="flex-1 flex items-center justify-center py-6 px-4 relative">
+          <div className="flex items-end gap-4 max-w-[480px] w-full">
+            {/* Vertical Video Container */}
+            <div className="relative aspect-[9/16] w-full rounded-2xl overflow-hidden bg-black shadow-2xl border border-zinc-800 flex items-center justify-center">
+              <video
+                key={currentShort.id}
+                src={currentShort.videoUrl}
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="h-full w-full object-cover"
+              />
+
+              {/* Overlay Content */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 flex flex-col justify-between p-4 pointer-events-none">
+                <div />
+
+                {/* Bottom Channel & Title Info */}
+                <div className="pointer-events-auto flex flex-col gap-3">
+                  <div className="flex items-center gap-3">
+                    <Link
+                      href={`/@${currentShort.channel.handle}`}
+                      className="h-9 w-9 rounded-full overflow-hidden bg-zinc-800 flex-shrink-0"
+                    >
+                      <img
+                        src={currentShort.channel.avatarUrl || ""}
+                        alt={currentShort.channel.displayName}
+                        className="h-full w-full object-cover"
+                      />
+                    </Link>
+                    <Link
+                      href={`/@${currentShort.channel.handle}`}
+                      className="font-semibold text-sm text-white flex items-center gap-1 hover:underline"
+                    >
+                      <span>@{currentShort.channel.handle}</span>
+                      <CheckCircle2 className="h-3.5 w-3.5 text-zinc-400" />
+                    </Link>
+                    <button
+                      onClick={() => toggleSubscribe(currentShort.channel.handle)}
+                      className={`rounded-full px-3 py-1 text-xs font-bold transition-colors ${
+                        subscribedMap[currentShort.channel.handle]
+                          ? "bg-zinc-800 text-zinc-300"
+                          : "bg-red-600 text-white hover:bg-red-700"
+                      }`}
+                    >
+                      {subscribedMap[currentShort.channel.handle] ? "Subscribed" : "Subscribe"}
+                    </button>
+                  </div>
+
+                  <p className="text-sm text-zinc-100 font-medium line-clamp-2">
+                    {currentShort.title}
+                  </p>
+
+                  <div className="flex items-center gap-2 text-xs text-zinc-300">
+                    <Music className="h-3.5 w-3.5" />
+                    <span className="truncate">{currentShort.songName}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Action Bar */}
+            <div className="flex flex-col items-center gap-4 pb-2">
+              {/* Like */}
+              <div className="flex flex-col items-center gap-1">
+                <button
+                  onClick={() => toggleLike(currentShort.id)}
+                  className={`rounded-full p-3 bg-zinc-900/90 hover:bg-zinc-800 transition-colors ${
+                    likedMap[currentShort.id] ? "text-blue-500" : "text-white"
+                  }`}
+                >
+                  <ThumbsUp className={`h-6 w-6 ${likedMap[currentShort.id] ? "fill-blue-500" : ""}`} />
+                </button>
+                <span className="text-xs font-semibold text-zinc-200">
+                  {((likes[currentShort.id] ?? currentShort.likesCount) / 1000).toFixed(1)}K
+                </span>
+              </div>
+
+              {/* Dislike */}
+              <div className="flex flex-col items-center gap-1">
+                <button className="rounded-full p-3 bg-zinc-900/90 hover:bg-zinc-800 text-white transition-colors">
+                  <ThumbsDown className="h-6 w-6" />
+                </button>
+                <span className="text-xs font-semibold text-zinc-200">Dislike</span>
+              </div>
+
+              {/* Comments */}
+              <div className="flex flex-col items-center gap-1">
+                <button className="rounded-full p-3 bg-zinc-900/90 hover:bg-zinc-800 text-white transition-colors">
+                  <MessageSquare className="h-6 w-6" />
+                </button>
+                <span className="text-xs font-semibold text-zinc-200">{currentShort.commentsCount}</span>
+              </div>
+
+              {/* Share */}
+              <div className="flex flex-col items-center gap-1">
+                <button className="rounded-full p-3 bg-zinc-900/90 hover:bg-zinc-800 text-white transition-colors">
+                  <Share2 className="h-6 w-6" />
+                </button>
+                <span className="text-xs font-semibold text-zinc-200">Share</span>
+              </div>
+
+              {/* More */}
+              <button className="rounded-full p-3 bg-zinc-900/90 hover:bg-zinc-800 text-white transition-colors">
+                <MoreVertical className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Up/Down Navigation Controls */}
+            <div className="absolute right-8 top-1/2 -translate-y-1/2 hidden md:flex flex-col gap-3">
+              <button
+                onClick={handlePrev}
+                disabled={currentIndex === 0}
+                className="rounded-full p-3 bg-zinc-800 text-white disabled:opacity-30 hover:bg-zinc-700 transition-colors"
+                title="Previous Short"
+              >
+                <ChevronUp className="h-6 w-6" />
+              </button>
+              <button
+                onClick={handleNext}
+                disabled={currentIndex === SHORTS_FEED.length - 1}
+                className="rounded-full p-3 bg-zinc-800 text-white disabled:opacity-30 hover:bg-zinc-700 transition-colors"
+                title="Next Short"
+              >
+                <ChevronDown className="h-6 w-6" />
+              </button>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
