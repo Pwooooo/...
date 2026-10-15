@@ -1,4 +1,4 @@
-import { VideoItem, ChannelBasic } from "@/types";
+import { VideoItem, ChannelBasic, VideoChapter, VideoHighlight } from "@/types";
 
 export interface ShortItem {
   id: string;
@@ -76,6 +76,20 @@ export const MOCK_CHANNELS: Record<string, ChannelBasic & { bannerUrl?: string; 
   },
 };
 
+export const SAMPLE_CHAPTERS: VideoChapter[] = [
+  { id: "ch-1", title: "Introduction & Architecture Overview", seconds: 0, thumbnailUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=300&q=80" },
+  { id: "ch-2", title: "Direct Ingestion & S3 Setup", seconds: 200, thumbnailUrl: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=300&q=80" },
+  { id: "ch-3", title: "FFmpeg Multi-bitrate Command Formulation", seconds: 525, thumbnailUrl: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=300&q=80" },
+  { id: "ch-4", title: "HLS Master Playlist & Chunk Generation", seconds: 930, thumbnailUrl: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=300&q=80" },
+  { id: "ch-5", title: "Client-side Adaptive Bitrate Playback", seconds: 1320, thumbnailUrl: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=300&q=80" },
+];
+
+export const SAMPLE_HIGHLIGHTS: VideoHighlight[] = [
+  { id: "hl-1", title: "Architecture Flowchart Breakdown", startTime: 120, endTime: 195, tag: "Essential" },
+  { id: "hl-2", title: "Live FFmpeg Command Demo", startTime: 525, endTime: 640, tag: "Code Demo" },
+  { id: "hl-3", title: "Zero-Latency HLS Playback Test", startTime: 930, endTime: 1050, tag: "Benchmark" },
+];
+
 export const ALL_VIDEOS: (VideoItem & { category: string; tags: string[] })[] = [
   {
     id: "sample-1",
@@ -89,6 +103,9 @@ export const ALL_VIDEOS: (VideoItem & { category: string; tags: string[] })[] = 
     category: "Technology",
     tags: ["ffmpeg", "golang", "s3", "transcoding", "streaming"],
     channel: MOCK_CHANNELS.systemcraft,
+    featured: true,
+    chapters: SAMPLE_CHAPTERS,
+    highlights: SAMPLE_HIGHLIGHTS,
   },
   {
     id: "sample-2",
@@ -102,6 +119,8 @@ export const ALL_VIDEOS: (VideoItem & { category: string; tags: string[] })[] = 
     category: "Web Development",
     tags: ["nextjs", "react", "typescript", "turbopack"],
     channel: MOCK_CHANNELS.reactmastery,
+    chapters: SAMPLE_CHAPTERS,
+    highlights: SAMPLE_HIGHLIGHTS,
   },
   {
     id: "sample-3",
@@ -115,6 +134,8 @@ export const ALL_VIDEOS: (VideoItem & { category: string; tags: string[] })[] = 
     category: "Computer Science",
     tags: ["os", "linux", "kernel", "memory", "cpu"],
     channel: MOCK_CHANNELS.csinsights,
+    chapters: SAMPLE_CHAPTERS,
+    highlights: SAMPLE_HIGHLIGHTS,
   },
   {
     id: "sample-4",
@@ -128,6 +149,8 @@ export const ALL_VIDEOS: (VideoItem & { category: string; tags: string[] })[] = 
     category: "Design",
     tags: ["webgl", "threejs", "shaders", "creative coding"],
     channel: MOCK_CHANNELS.creativecode,
+    chapters: SAMPLE_CHAPTERS,
+    highlights: SAMPLE_HIGHLIGHTS,
   },
   {
     id: "sample-5",

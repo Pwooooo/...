@@ -6,6 +6,21 @@ export interface ChannelBasic {
   subscribersCount?: number;
 }
 
+export interface VideoChapter {
+  id: string;
+  title: string;
+  seconds: number;
+  thumbnailUrl?: string;
+}
+
+export interface VideoHighlight {
+  id: string;
+  title: string;
+  startTime: number;
+  endTime: number;
+  tag: string;
+}
+
 export interface VideoItem {
   id: string;
   title: string;
@@ -17,4 +32,7 @@ export interface VideoItem {
   viewCount: number;
   publishedAt: string | Date;
   channel: ChannelBasic;
+  featured?: boolean;
+  chapters?: VideoChapter[];
+  highlights?: VideoHighlight[];
 }

@@ -96,16 +96,16 @@ export default function ChannelProfilePage({
               </div>
             </div>
 
-            {/* Navigation Tabs */}
-            <div className="flex items-center gap-8 border-b border-zinc-800 pt-2">
+            {/* Navigation Tabs with Smooth Transitions */}
+            <div className="flex items-center gap-3 border-b border-zinc-900 pb-3 pt-2">
               {CHANNEL_TABS.map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`pb-3 text-sm font-semibold transition-colors border-b-2 -mb-px cursor-pointer ${
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-300 ease-out cursor-pointer border ${
                     activeTab === tab
-                      ? "border-white text-white"
-                      : "border-transparent text-zinc-400 hover:text-zinc-200"
+                      ? "bg-white text-black border-white shadow-md scale-[1.02]"
+                      : "bg-zinc-950 text-zinc-400 border-zinc-800 hover:text-white hover:bg-zinc-900"
                   }`}
                 >
                   {tab}

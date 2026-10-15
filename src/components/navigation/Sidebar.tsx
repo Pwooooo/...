@@ -60,8 +60,10 @@ export default function Sidebar({ collapsed = false }: SidebarProps) {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center w-16 py-3 rounded-xl hover:bg-zinc-900 text-[10px] gap-1.5 transition-colors",
-                isActive ? "text-white font-semibold" : "text-zinc-400"
+                "flex flex-col items-center justify-center w-16 py-3 rounded-2xl text-[10px] gap-1.5 transition-all duration-200 ease-out",
+                isActive
+                  ? "bg-white text-black font-bold shadow-md scale-95"
+                  : "text-zinc-400 hover:text-white hover:bg-zinc-900/80"
               )}
             >
               <Icon className="h-5 w-5" />
@@ -76,7 +78,7 @@ export default function Sidebar({ collapsed = false }: SidebarProps) {
   return (
     <aside className="sticky top-14 hidden md:flex h-[calc(100vh-3.5rem)] w-60 flex-col overflow-y-auto px-3 py-3 bg-black text-zinc-200 border-r border-zinc-900 scrollbar-none">
       {/* Primary Section */}
-      <div className="space-y-1 pb-3 border-b border-zinc-800">
+      <div className="space-y-1 pb-3 border-b border-zinc-900">
         {mainLinks.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
@@ -85,8 +87,10 @@ export default function Sidebar({ collapsed = false }: SidebarProps) {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-zinc-900",
-                isActive ? "bg-zinc-900 text-white font-semibold" : "text-zinc-300"
+                "flex items-center gap-4 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ease-out",
+                isActive
+                  ? "bg-white text-black shadow-sm"
+                  : "text-zinc-400 hover:text-white hover:bg-zinc-900/80"
               )}
             >
               <Icon className="h-5 w-5" />
@@ -97,8 +101,8 @@ export default function Sidebar({ collapsed = false }: SidebarProps) {
       </div>
 
       {/* Library Section */}
-      <div className="space-y-1 py-3 border-b border-zinc-800">
-        <h3 className="px-3 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+      <div className="space-y-1 py-3 border-b border-zinc-900">
+        <h3 className="px-3.5 text-[11px] font-bold uppercase tracking-wider text-zinc-500">
           You
         </h3>
         {libraryLinks.map((item) => {
@@ -109,8 +113,10 @@ export default function Sidebar({ collapsed = false }: SidebarProps) {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-zinc-900",
-                isActive ? "bg-zinc-900 text-white font-semibold" : "text-zinc-300"
+                "flex items-center gap-4 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ease-out",
+                isActive
+                  ? "bg-white text-black shadow-sm"
+                  : "text-zinc-400 hover:text-white hover:bg-zinc-900/80"
               )}
             >
               <Icon className="h-5 w-5" />
@@ -122,7 +128,7 @@ export default function Sidebar({ collapsed = false }: SidebarProps) {
 
       {/* Explore Section */}
       <div className="space-y-1 py-3">
-        <h3 className="px-3 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+        <h3 className="px-3.5 text-[11px] font-bold uppercase tracking-wider text-zinc-500">
           Explore
         </h3>
         {exploreLinks.map((item) => {
@@ -133,8 +139,10 @@ export default function Sidebar({ collapsed = false }: SidebarProps) {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-zinc-900",
-                isActive ? "bg-zinc-900 text-white font-semibold" : "text-zinc-300"
+                "flex items-center gap-4 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ease-out",
+                isActive
+                  ? "bg-white text-black shadow-sm"
+                  : "text-zinc-400 hover:text-white hover:bg-zinc-900/80"
               )}
             >
               <Icon className="h-5 w-5" />
