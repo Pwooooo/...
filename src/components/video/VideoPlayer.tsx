@@ -294,13 +294,23 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
               onMouseMove={handleMouseMoveTimeline}
               onMouseLeave={handleMouseLeaveTimeline}
             >
-              {/* Hover Tooltip */}
+              {/* Hover Tooltip with Chapter Title and Most Watched Indicator */}
               {hoverTime !== null && (
                 <div
-                  className="absolute bottom-6 -translate-x-1/2 bg-zinc-950 border border-white/20 px-2 py-0.5 rounded text-[11px] font-mono text-white pointer-events-none shadow-lg z-30"
+                  className="absolute bottom-6 -translate-x-1/2 bg-black/95 backdrop-blur-md border border-white/20 px-2.5 py-1.5 rounded-xl text-xs text-white pointer-events-none shadow-2xl z-30 flex flex-col items-center gap-0.5"
                   style={{ left: `${hoverPos}%` }}
                 >
-                  {formatDuration(Math.floor(hoverTime))}
+                  {hoverTime >= 480 && hoverTime <= 680 && (
+                    <span className="text-[9px] font-sans font-extrabold uppercase tracking-wider bg-white text-black px-2 py-0.5 rounded-full mb-0.5 shadow-sm">
+                      Most watched
+                    </span>
+                  )}
+                  <span className="font-mono text-xs font-bold">{formatDuration(Math.floor(hoverTime))}</span>
+                  {chapters.length > 0 && (
+                    <span className="text-[10px] text-zinc-400 max-w-[160px] truncate">
+                      {(chapters.slice().reverse().find((c) => hoverTime >= c.seconds) || chapters[0]).title}
+                    </span>
+                  )}
                 </div>
               )}
 
@@ -364,9 +374,16 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
                   />
                 </div>
 
-                <span className="font-mono text-zinc-300">
-                  {formatDuration(Math.floor(currentTime))} / {formatDuration(Math.floor(duration))}
-                </span>
+                <div className="flex items-center gap-1 font-mono text-zinc-300">
+                  <span>{formatDuration(Math.floor(currentTime))}</span>
+                  <span>/</span>
+                  <span>{formatDuration(Math.floor(duration))}</span>
+                  {chapters.length > 0 && (
+                    <span className="hidden md:inline-flex items-center text-xs text-zinc-300 font-sans font-medium ml-1.5 truncate max-w-[220px]">
+                      • {(chapters.slice().reverse().find((c) => currentTime >= c.seconds) || chapters[0]).title}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Right Controls */}
