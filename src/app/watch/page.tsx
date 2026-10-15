@@ -381,26 +381,28 @@ function WatchContent() {
           {/* Action Pills */}
           <div className="flex items-center gap-2">
             {/* Like / Dislike with Visible Dislike Count */}
-            <div className="flex items-center rounded-full bg-[#181818] text-white border border-white/[0.08]">
+            <div className="flex items-center rounded-full bg-[#181818] p-1 text-white border border-white/[0.08]">
               <button
                 onClick={handleLike}
-                className={`flex items-center gap-2 rounded-l-full px-4 py-2 text-xs font-semibold hover:bg-[#222222] border-r border-white/[0.08] transition-colors cursor-pointer ${
-                  hasLiked ? "text-white font-bold bg-[#222222]" : "text-zinc-300"
+                className={`flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
+                  hasLiked ? "text-white font-bold bg-white/[0.12]" : "text-zinc-300 hover:bg-white/[0.08]"
                 }`}
                 title="I like this"
               >
-                <ThumbsUp className={`h-4 w-4 ${hasLiked ? "fill-white" : ""}`} />
+                <ThumbsUp className={`h-4 w-4 ${hasLiked ? "fill-white text-white" : ""}`} />
                 <span>{likes.toLocaleString()}</span>
               </button>
 
+              <div className="w-[1px] h-4 bg-white/[0.1] mx-0.5" />
+
               <button
                 onClick={handleDislike}
-                className={`flex items-center gap-2 rounded-r-full px-4 py-2 text-xs font-semibold hover:bg-[#222222] transition-colors cursor-pointer ${
-                  hasDisliked ? "text-white font-bold bg-[#222222]" : "text-zinc-300"
+                className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
+                  hasDisliked ? "text-white font-bold bg-white/[0.12]" : "text-zinc-300 hover:bg-white/[0.08]"
                 }`}
                 title="I dislike this"
               >
-                <ThumbsDown className={`h-4 w-4 ${hasDisliked ? "fill-white" : ""}`} />
+                <ThumbsDown className={`h-4 w-4 ${hasDisliked ? "fill-white text-white" : ""}`} />
                 <span>{dislikes.toLocaleString()}</span>
               </button>
             </div>
