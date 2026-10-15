@@ -182,18 +182,24 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
               type="button"
               onClick={handleUserClick}
               onMouseDown={(e) => e.stopPropagation()}
-              className="flex h-8 w-8 items-center justify-center rounded-full overflow-hidden hover:opacity-90 transition-opacity cursor-pointer border-none outline-none"
+              className={`flex items-center justify-center p-1 rounded-full transition-all duration-200 cursor-pointer border-none outline-none group ${
+                isUserMenuOpen
+                  ? "bg-white/[0.12] ring-2 ring-white/20"
+                  : "hover:bg-white/[0.08] hover:ring-2 hover:ring-white/10"
+              }`}
               title={user.name}
               aria-label="Account menu"
               aria-expanded={isUserMenuOpen}
             >
-              {user.avatarUrl ? (
-                <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
-              ) : (
-                <div className="h-full w-full bg-white text-black flex items-center justify-center text-xs font-bold">
-                  {user.name.slice(0, 1).toUpperCase()}
-                </div>
-              )}
+              <div className="h-8 w-8 rounded-full overflow-hidden flex items-center justify-center group-hover:scale-105 transition-transform">
+                {user.avatarUrl ? (
+                  <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="h-full w-full bg-white text-black flex items-center justify-center text-xs font-bold">
+                    {user.name.slice(0, 1).toUpperCase()}
+                  </div>
+                )}
+              </div>
             </button>
 
             {isUserMenuOpen && (
@@ -218,7 +224,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
                   <div className="min-w-0">
                     <p className="text-xs font-bold text-white truncate">{user.name}</p>
                     <p className="text-[11px] text-zinc-400 truncate">@{user.handle}</p>
-                    <p className="text-[11px] text-sky-400 font-medium hover:underline mt-0.5">
+                    <p className="text-[11px] text-white font-medium hover:underline mt-0.5">
                       View your channel
                     </p>
                   </div>
