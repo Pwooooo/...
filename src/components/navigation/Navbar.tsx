@@ -181,9 +181,13 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
                 className="absolute right-0 top-full mt-2 w-60 rounded-2xl bg-zinc-950 border border-white/10 p-2 shadow-2xl z-50 animate-in fade-in slide-in-from-top-1 duration-150 select-none text-white"
                 onClick={(e) => e.stopPropagation()}
               >
-                {/* Profile header */}
-                <div className="flex items-center gap-3 p-2.5 pb-3 border-b border-zinc-800">
-                  <div className="h-9 w-9 rounded-full overflow-hidden bg-white text-black flex items-center justify-center text-xs font-bold flex-shrink-0">
+                {/* Profile header link */}
+                <Link
+                  href="/profile"
+                  onClick={() => setIsUserMenuOpen(false)}
+                  className="flex items-center gap-3 p-2.5 pb-3 border-b border-zinc-800 hover:bg-white/[0.04] rounded-xl transition-colors cursor-pointer group"
+                >
+                  <div className="h-9 w-9 rounded-full overflow-hidden bg-white text-black flex items-center justify-center text-xs font-bold flex-shrink-0 group-hover:scale-105 transition-transform">
                     {user.avatarUrl ? (
                       <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
                     ) : (
@@ -191,19 +195,20 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-white truncate">{user.name}</p>
+                    <p className="text-xs font-bold text-white truncate group-hover:text-zinc-200">{user.name}</p>
                     <p className="text-[11px] text-zinc-400 truncate">@{user.handle}</p>
+                    <p className="text-[10px] text-zinc-500 font-semibold mt-0.5">View profile →</p>
                   </div>
-                </div>
+                </Link>
 
                 <div className="py-1">
                   <Link
-                    href={`/@${user.handle}`}
+                    href="/profile"
                     onClick={() => setIsUserMenuOpen(false)}
                     className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-zinc-300 hover:text-white hover:bg-white/[0.08] transition-colors"
                   >
                     <User className="h-4 w-4 text-zinc-400" />
-                    <span>Your channel</span>
+                    <span>Your profile</span>
                   </Link>
 
                   <Link

@@ -41,16 +41,39 @@ export default function StudioUploadPage() {
     setIsUploading(true);
     let progress = 0;
     const interval = setInterval(() => {
-      progress += 15;
+      progress += 20;
       if (progress >= 100) {
         setUploadProgress(100);
         setIsUploading(false);
         setIsCompleted(true);
         clearInterval(interval);
+
+        try {
+          const newVideo = {
+            id: `v-user-${Date.now()}`,
+            title: title.trim() || file?.name || "Untitled Video",
+            description: description.trim() || "Uploaded to Entropy",
+            thumbnailUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80",
+            videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+            duration: 180,
+            viewCount: 0,
+            publishedAt: new Date().toISOString(),
+            channel: {
+              id: user?.id || "u-user",
+              handle: user?.handle || "user",
+              displayName: user?.name || "User",
+              avatarUrl: user?.avatarUrl || user?.avatar || "",
+            },
+          };
+          const existing = JSON.parse(localStorage.getItem("entropy_user_videos") || "[]");
+          localStorage.setItem("entropy_user_videos", JSON.stringify([newVideo, ...existing]));
+        } catch {
+          // ignore
+        }
       } else {
         setUploadProgress(progress);
       }
-    }, 300);
+    }, 250);
   };
 
   return (
