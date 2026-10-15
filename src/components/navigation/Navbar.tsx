@@ -243,7 +243,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
                     className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:text-white hover:bg-[#222222] transition-colors"
                   >
                     <Settings className="h-4 w-4 text-zinc-400" />
-                    <span>Account settings</span>
+                    <span>Settings</span>
                   </Link>
                 </div>
 

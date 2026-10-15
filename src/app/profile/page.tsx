@@ -23,6 +23,7 @@ import {
   X,
   Camera,
   Trash2,
+  Settings,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { VideoItem } from "@/types";
@@ -275,6 +276,14 @@ export default function ProfilePage() {
                         >
                           <Tv className="h-4 w-4 text-zinc-400" />
                           <span>Entropy Studio</span>
+                        </Link>
+                        <Link
+                          href="/settings"
+                          onClick={() => setIsMenuOpen(false)}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:text-white hover:bg-[#222222] transition-colors"
+                        >
+                          <Settings className="h-4 w-4 text-zinc-400" />
+                          <span>Settings</span>
                         </Link>
                       </div>
                     )}
