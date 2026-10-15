@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Navbar from "@/components/navigation/Navbar";
 import Sidebar from "@/components/navigation/Sidebar";
 import { ALL_VIDEOS } from "@/lib/mock-data";
+import { getAllCombinedVideos, fetchServerVideos } from "@/lib/video-storage";
+import { VideoItem } from "@/types";
 import Link from "next/link";
 import { formatDuration, formatViews } from "@/lib/utils";
 import { Flame, Music2, Gamepad2, Film } from "lucide-react";
@@ -17,8 +19,18 @@ const TRENDING_TABS = [
 
 export default function TrendingPage() {
   const [activeTab, setActiveTab] = useState("now");
+  const [videos, setVideos] = useState<VideoItem[]>(() => getAllCombinedVideos());
 
-  const trendingVideos = ALL_VIDEOS.filter((v) => {
+  useEffect(() => {
+    fetchServerVideos().then(() => {
+      setVideos(getAllCombinedVideos());
+    });
+    const update = () => setVideos(getAllCombinedVideos());
+    window.addEventListener("entropy_videos_updated", update);
+    return () => window.removeEventListener("entropy_videos_updated", update);
+  }, []);
+
+  const trendingVideos = videos.filter((v) => {
     if (activeTab === "music") return v.category === "Music";
     if (activeTab === "gaming") return v.category === "Gaming";
     return true;

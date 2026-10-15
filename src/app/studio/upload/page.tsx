@@ -23,6 +23,7 @@ import {
   extractVideoDetails,
   saveVideoBlob,
   saveUserVideoMetadata,
+  uploadVideoToServer,
 } from "@/lib/video-storage";
 import { formatDuration } from "@/lib/utils";
 
@@ -48,6 +49,7 @@ export default function StudioUploadPage() {
   const [tagsInput, setTagsInput] = useState("");
   const [extractedDuration, setExtractedDuration] = useState(0);
   const [thumbnailUrl, setThumbnailUrl] = useState<string>("");
+  const [customThumbFile, setCustomThumbFile] = useState<File | null>(null);
   const [isExtracting, setIsExtracting] = useState(false);
 
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -114,6 +116,8 @@ export default function StudioUploadPage() {
       return;
     }
 
+    setCustomThumbFile(thumbFile);
+
     const reader = new FileReader();
     reader.onload = (event) => {
       setThumbnailUrl(event.target?.result as string);
@@ -127,49 +131,77 @@ export default function StudioUploadPage() {
     if (!file || !user) return;
 
     setIsUploading(true);
-    setUploadProgress(10);
+    setUploadProgress(15);
     setUploadStage("Encoding and preparing media stream...");
 
-    const videoId = `v-user-${Date.now()}`;
-    setCreatedVideoId(videoId);
+    const parsedTags = tagsInput
+      .split(",")
+      .map((t) => t.trim().toLowerCase().replace(/^#/, ""))
+      .filter(Boolean);
 
-    // Save video file to IndexedDB
     try {
       setUploadProgress(35);
-      setUploadStage("Saving video to Entropy storage...");
-      await saveVideoBlob(videoId, file);
-      setUploadProgress(70);
-      setUploadStage("Finalizing metadata and stream indexing...");
+      setUploadStage("Uploading video to Entropy server...");
 
-      const parsedTags = tagsInput
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean);
-
-      const finalThumbnail =
-        thumbnailUrl ||
-        "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80";
-
-      const newVideo: VideoItem = {
-        id: videoId,
-        title: title.trim() || file.name,
-        description: description.trim() || "Uploaded to Entropy",
-        thumbnailUrl: finalThumbnail,
-        rawVideoUrl: videoPreviewUrl || undefined,
-        durationSeconds: extractedDuration || 120,
-        viewCount: 0,
-        publishedAt: new Date().toISOString(),
-        category,
-        tags: parsedTags.length > 0 ? parsedTags : [category],
-        channel: {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("title", title.trim() || file.name);
+      formData.append("description", description.trim() || "Uploaded to Entropy");
+      formData.append("category", category);
+      formData.append("tags", parsedTags.join(","));
+      formData.append("duration", (extractedDuration || 0).toString());
+      formData.append(
+        "channel",
+        JSON.stringify({
           id: user.id || "u-user",
           handle: user.handle,
           displayName: user.name || user.handle,
           avatarUrl: user.avatarUrl || user.avatar || "",
-        },
-      };
+          subscribersCount: 0,
+        })
+      );
+      if (customThumbFile) {
+        formData.append("thumbnailFile", customThumbFile);
+      } else if (thumbnailUrl) {
+        formData.append("thumbnailDataUrl", thumbnailUrl);
+      }
 
-      saveUserVideoMetadata(newVideo);
+      setUploadProgress(70);
+      setUploadStage("Saving media and finalizing stream indexing...");
+
+      const srvResult = await uploadVideoToServer(formData);
+      const videoId = srvResult.video?.id || `v-user-${Date.now()}`;
+      setCreatedVideoId(videoId);
+
+      // Also save locally to IndexedDB as client cache
+      await saveVideoBlob(videoId, file);
+
+      if (!srvResult.success) {
+        const finalThumbnail =
+          thumbnailUrl ||
+          "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80";
+
+        const newVideo: VideoItem = {
+          id: videoId,
+          title: title.trim() || file.name,
+          description: description.trim() || "Uploaded to Entropy",
+          thumbnailUrl: finalThumbnail,
+          rawVideoUrl: videoPreviewUrl || undefined,
+          durationSeconds: extractedDuration || 120,
+          viewCount: 0,
+          publishedAt: new Date().toISOString(),
+          category,
+          tags: parsedTags.length > 0 ? parsedTags : [category],
+          channel: {
+            id: user.id || "u-user",
+            handle: user.handle,
+            displayName: user.name || user.handle,
+            avatarUrl: user.avatarUrl || user.avatar || "",
+            subscribersCount: 0,
+          },
+        };
+        saveUserVideoMetadata(newVideo);
+      }
 
       setUploadProgress(100);
       setUploadStage("Video published successfully!");

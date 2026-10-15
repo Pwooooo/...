@@ -166,6 +166,49 @@ export function extractVideoDetails(file: File): Promise<{
   });
 }
 
+export async function fetchServerVideos(): Promise<VideoItem[]> {
+  if (typeof window === "undefined") return [];
+  try {
+    const res = await fetch("/api/videos");
+    const data = await res.json();
+    if (data.success && Array.isArray(data.videos)) {
+      const serverVideos: VideoItem[] = data.videos;
+      const localVideos = getUserVideos();
+      // Merge unique by ID
+      const map = new Map<string, VideoItem>();
+      serverVideos.forEach((v) => map.set(v.id, v));
+      localVideos.forEach((v) => {
+        if (!map.has(v.id)) map.set(v.id, v);
+      });
+      const merged = Array.from(map.values());
+      localStorage.setItem("entropy_user_videos", JSON.stringify(merged));
+      window.dispatchEvent(new Event("entropy_videos_updated"));
+      return merged;
+    }
+  } catch (err) {
+    console.warn("Could not fetch server videos:", err);
+  }
+  return getUserVideos();
+}
+
+export async function uploadVideoToServer(formData: FormData): Promise<{ success: boolean; video?: VideoItem; error?: string }> {
+  try {
+    const res = await fetch("/api/videos", {
+      method: "POST",
+      body: formData,
+    });
+    const data = await res.json();
+    if (data.success && data.video) {
+      saveUserVideoMetadata(data.video);
+      return { success: true, video: data.video };
+    }
+    return { success: false, error: data.error || "Upload failed" };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Network error during upload";
+    return { success: false, error: msg };
+  }
+}
+
 export function getUserVideos(): VideoItem[] {
   if (typeof window === "undefined") return [];
   try {
@@ -201,6 +244,12 @@ export function updateUserVideo(videoId: string, updates: Partial<VideoItem>): v
       localStorage.setItem("entropy_user_videos", JSON.stringify(current));
       window.dispatchEvent(new Event("entropy_videos_updated"));
     }
+    // Also update on server
+    fetch("/api/videos", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: videoId, ...updates }),
+    }).catch(() => {});
   } catch (e) {
     console.warn("Could not update video metadata:", e);
   }
@@ -214,6 +263,10 @@ export function deleteUserVideo(videoId: string): void {
     localStorage.setItem("entropy_user_videos", JSON.stringify(filtered));
     deleteVideoBlob(videoId);
     window.dispatchEvent(new Event("entropy_videos_updated"));
+    // Also delete on server
+    fetch(`/api/videos?id=${videoId}`, {
+      method: "DELETE",
+    }).catch(() => {});
   } catch {
     // ignore
   }
@@ -223,3 +276,9 @@ export function getAllCombinedVideos(): VideoItem[] {
   const userVideos = getUserVideos();
   return [...userVideos, ...ALL_VIDEOS];
 }
+
+// Auto-sync server videos on client load
+if (typeof window !== "undefined") {
+  fetchServerVideos();
+}
+

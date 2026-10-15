@@ -28,7 +28,7 @@ import { formatDuration, formatViews, formatTimeAgo, formatSubscribers } from "@
 import { ALL_VIDEOS, SAMPLE_CHAPTERS, SAMPLE_HIGHLIGHTS } from "@/lib/mock-data";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { getUserVideos, getVideoBlob, getAllCombinedVideos } from "@/lib/video-storage";
+import { getUserVideos, getVideoBlob, getAllCombinedVideos, fetchServerVideos } from "@/lib/video-storage";
 import { VideoItem } from "@/types";
 
 function WatchContent() {
@@ -42,30 +42,68 @@ function WatchContent() {
     return userVideos.find((v) => v.id === videoId) || ALL_VIDEOS.find((v) => v.id === videoId) || ALL_VIDEOS[0];
   });
   const [resolvedVideoUrl, setResolvedVideoUrl] = useState<string | null>(null);
+  const [allRecommendedVideos, setAllRecommendedVideos] = useState<VideoItem[]>(() => {
+    return getAllCombinedVideos().filter((v) => v.id !== videoId);
+  });
 
   useEffect(() => {
-    const userVideos = getUserVideos();
-    const found = userVideos.find((v) => v.id === videoId) || ALL_VIDEOS.find((v) => v.id === videoId) || ALL_VIDEOS[0];
-    setCurrentVideo(found);
-
+    let isCancelled = false;
     let activeBlobUrl: string | null = null;
-    if (found.id.startsWith("v-user-")) {
-      getVideoBlob(found.id).then((blob) => {
+
+    const applyVideo = async (video: VideoItem) => {
+      if (isCancelled) return;
+      setCurrentVideo(video);
+      if (video.id.startsWith("v-user-") || video.id.startsWith("v-srv-") || video.rawVideoUrl) {
+        const blob = await getVideoBlob(video.id);
+        if (isCancelled) return;
         if (blob) {
           const url = URL.createObjectURL(blob);
           activeBlobUrl = url;
           setResolvedVideoUrl(url);
-        } else if (found.rawVideoUrl) {
-          setResolvedVideoUrl(found.rawVideoUrl);
+        } else if (video.rawVideoUrl) {
+          setResolvedVideoUrl(video.rawVideoUrl);
         } else {
           setResolvedVideoUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4");
         }
-      });
+      } else {
+        setResolvedVideoUrl(
+          video.masterPlaylistUrl || video.rawVideoUrl || "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
+        );
+      }
+    };
+
+    const userVideos = getUserVideos();
+    const found = userVideos.find((v) => v.id === videoId) || ALL_VIDEOS.find((v) => v.id === videoId);
+
+    if (found) {
+      applyVideo(found);
     } else {
-      setResolvedVideoUrl(found.masterPlaylistUrl || found.rawVideoUrl || "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8");
+      fetchServerVideos().then((serverVideos) => {
+        if (isCancelled) return;
+        const srvFound =
+          serverVideos.find((v) => v.id === videoId) ||
+          ALL_VIDEOS.find((v) => v.id === videoId) ||
+          ALL_VIDEOS[0];
+        applyVideo(srvFound);
+        setAllRecommendedVideos(getAllCombinedVideos().filter((v) => v.id !== srvFound.id));
+      });
     }
 
+    const handleVideosUpdated = () => {
+      if (isCancelled) return;
+      const combined = getAllCombinedVideos();
+      const match = combined.find((v) => v.id === videoId);
+      if (match) {
+        applyVideo(match);
+      }
+      setAllRecommendedVideos(combined.filter((v) => v.id !== (match ? match.id : videoId)));
+    };
+
+    window.addEventListener("entropy_videos_updated", handleVideosUpdated);
+
     return () => {
+      isCancelled = true;
+      window.removeEventListener("entropy_videos_updated", handleVideosUpdated);
       if (activeBlobUrl) {
         URL.revokeObjectURL(activeBlobUrl);
       }
@@ -74,14 +112,13 @@ function WatchContent() {
 
   const chapters = currentVideo.chapters || SAMPLE_CHAPTERS;
   const highlights = currentVideo.highlights || SAMPLE_HIGHLIGHTS;
-  const allRecommendedVideos = getAllCombinedVideos().filter((v) => v.id !== currentVideo.id);
 
   const { user, openAuthModal } = useAuth();
   const isOwnVideo = Boolean(
     user &&
-      (currentVideo.id.startsWith("v-user-") ||
-        currentVideo.channel?.handle?.toLowerCase() === user.handle.toLowerCase() ||
-        currentVideo.channel?.id === user.id)
+      ((currentVideo.channel?.handle &&
+        currentVideo.channel.handle.replace(/^@/, "").toLowerCase() === user.handle.replace(/^@/, "").toLowerCase()) ||
+        (currentVideo.channel?.id && currentVideo.channel.id === user.id))
   );
   const [currentPlaybackTime, setCurrentPlaybackTime] = useState(0);
   const [isChaptersPanelOpen, setIsChaptersPanelOpen] = useState(false);

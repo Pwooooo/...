@@ -29,6 +29,7 @@ import { useAuth } from "@/context/AuthContext";
 import { VideoItem } from "@/types";
 import Link from "next/link";
 import CommunityTab from "@/components/channel/CommunityTab";
+import { getAllCombinedVideos, getUserVideos, fetchServerVideos } from "@/lib/video-storage";
 
 const USER_TABS = ["Videos", "Playlists", "Community", "About"];
 
@@ -140,28 +141,27 @@ export default function UserProfilePage({
   useEffect(() => {
     const loadVideos = () => {
       try {
-        if (isOwnProfile && user) {
-          const stored = JSON.parse(localStorage.getItem("entropy_user_videos") || "[]");
-          const filtered = stored.filter(
-            (v: VideoItem) =>
-              v.channel?.handle?.toLowerCase() === user.handle.toLowerCase() ||
-              v.channel?.id === user.id
-          );
-          setUserVideos(filtered);
-        }
+        const allAvailable = getAllCombinedVideos();
+        const filtered = allAvailable.filter(
+          (v: VideoItem) =>
+            v.channel?.handle?.replace(/^@/, "").toLowerCase() === cleanHandle.toLowerCase() ||
+            v.channel?.id?.toLowerCase() === cleanHandle.toLowerCase()
+        );
+        setUserVideos(filtered);
       } catch {
         setUserVideos([]);
       }
     };
 
     loadVideos();
+    fetchServerVideos().then(() => loadVideos());
     window.addEventListener("entropy_videos_updated", loadVideos);
     window.addEventListener("storage", loadVideos);
     return () => {
       window.removeEventListener("entropy_videos_updated", loadVideos);
       window.removeEventListener("storage", loadVideos);
     };
-  }, [isOwnProfile, user]);
+  }, [cleanHandle]);
 
   // Determine user data
   const isZeroUser = cleanHandle === "0";
@@ -191,24 +191,18 @@ export default function UserProfilePage({
         joinedAt: "Joined Oct 1, 2025",
       }
     : MOCK_CHANNELS[cleanHandle] || {
-        id: `user-${cleanHandle}`,
+        id: userVideos[0]?.channel?.id || `user-${cleanHandle}`,
         handle: cleanHandle,
-        displayName: cleanHandle.charAt(0).toUpperCase() + cleanHandle.slice(1),
-        avatarUrl: "",
+        displayName: userVideos[0]?.channel?.displayName || (cleanHandle.charAt(0).toUpperCase() + cleanHandle.slice(1)),
+        avatarUrl: userVideos[0]?.channel?.avatarUrl || "",
         bannerUrl: "",
-        subscribersCount: 0,
+        subscribersCount: userVideos[0]?.channel?.subscribersCount || 0,
         description: `Official Entropy profile for @${cleanHandle}.`,
         country: "",
         joinedAt: "Joined recently",
       };
 
-  const channelVideos = isOwnProfile
-    ? userVideos
-    : isZeroUser
-    ? ALL_VIDEOS.slice(0, 5) // Show 5 showcase videos for User #0
-    : ALL_VIDEOS.filter(
-        (v) => v.channel.handle.toLowerCase() === cleanHandle.toLowerCase()
-      );
+  const channelVideos = userVideos.length > 0 ? userVideos : (isZeroUser ? ALL_VIDEOS : []);
 
   const totalViews = channelVideos.reduce((acc, v) => acc + (v.viewCount || 0), 0);
 

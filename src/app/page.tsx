@@ -5,7 +5,7 @@ import Navbar from "@/components/navigation/Navbar";
 import Sidebar from "@/components/navigation/Sidebar";
 import VideoCard from "@/components/video/VideoCard";
 import { ALL_VIDEOS } from "@/lib/mock-data";
-import { getAllCombinedVideos } from "@/lib/video-storage";
+import { getAllCombinedVideos, fetchServerVideos } from "@/lib/video-storage";
 import { VideoItem } from "@/types";
 
 const CATEGORIES = [
@@ -21,9 +21,12 @@ const CATEGORIES = [
 export default function HomePage() {
   const [collapsedSidebar, setCollapsedSidebar] = useState(false);
   const [activeCategory, setActiveCategory] = useState("All");
-  const [allVideos, setAllVideos] = useState<VideoItem[]>(() => ALL_VIDEOS);
+  const [allVideos, setAllVideos] = useState<VideoItem[]>(() => getAllCombinedVideos());
 
   useEffect(() => {
+    fetchServerVideos().then(() => {
+      setAllVideos(getAllCombinedVideos());
+    });
     const loadVideos = () => {
       setAllVideos(getAllCombinedVideos());
     };

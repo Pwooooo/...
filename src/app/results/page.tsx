@@ -1,10 +1,12 @@
 "use client";
 
-import React, { Suspense, useMemo } from "react";
+import React, { Suspense, useMemo, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/navigation/Navbar";
 import Sidebar from "@/components/navigation/Sidebar";
 import { ALL_VIDEOS } from "@/lib/mock-data";
+import { getAllCombinedVideos, fetchServerVideos } from "@/lib/video-storage";
+import { VideoItem } from "@/types";
 import Link from "next/link";
 import { formatDuration, formatViews } from "@/lib/utils";
 import { CheckCircle2, SlidersHorizontal } from "lucide-react";
@@ -12,18 +14,32 @@ import { CheckCircle2, SlidersHorizontal } from "lucide-react";
 function SearchResultsContent() {
   const searchParams = useSearchParams();
   const query = searchParams.get("search_query") || "";
+  const [allVideos, setAllVideos] = useState<VideoItem[]>(() => getAllCombinedVideos());
+
+  useEffect(() => {
+    fetchServerVideos().then((srv) => {
+      setAllVideos(getAllCombinedVideos());
+    });
+
+    const handleUpdate = () => {
+      setAllVideos(getAllCombinedVideos());
+    };
+
+    window.addEventListener("entropy_videos_updated", handleUpdate);
+    return () => window.removeEventListener("entropy_videos_updated", handleUpdate);
+  }, []);
 
   const results = useMemo(() => {
-    if (!query) return ALL_VIDEOS;
+    if (!query) return allVideos;
     const lower = query.toLowerCase();
-    return ALL_VIDEOS.filter(
+    return allVideos.filter(
       (v) =>
         v.title.toLowerCase().includes(lower) ||
         (v.description && v.description.toLowerCase().includes(lower)) ||
-        v.channel.displayName.toLowerCase().includes(lower) ||
-        v.tags.some((t) => t.toLowerCase().includes(lower))
+        (v.channel?.displayName && v.channel.displayName.toLowerCase().includes(lower)) ||
+        (Array.isArray(v.tags) && v.tags.some((t) => t.toLowerCase().includes(lower)))
     );
-  }, [query]);
+  }, [query, allVideos]);
 
   return (
     <div className="max-w-5xl mx-auto px-4 md:px-8 py-6 w-full">
