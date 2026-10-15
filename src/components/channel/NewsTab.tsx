@@ -18,18 +18,19 @@ import { NewsPost } from "@/types";
 import { SAMPLE_NEWS_POSTS } from "@/lib/mock-data";
 
 interface NewsTabProps {
-  channel: {
+  channel?: {
     id?: string;
-    handle: string;
-    displayName: string;
+    handle?: string;
+    displayName?: string;
     avatarUrl?: string;
   };
-  isOwnProfile: boolean;
+  isOwnProfile?: boolean;
 }
 
 const TAG_OPTIONS = ["Update", "Announcement", "Release", "Behind the Scenes", "General"];
 
-export default function NewsTab({ channel, isOwnProfile }: NewsTabProps) {
+export default function NewsTab({ channel, isOwnProfile = false }: NewsTabProps) {
+  const [mounted, setMounted] = useState(false);
   const [posts, setPosts] = useState<NewsPost[]>([]);
   const [postText, setPostText] = useState("");
   const [selectedTag, setSelectedTag] = useState("Update");
@@ -37,6 +38,10 @@ export default function NewsTab({ channel, isOwnProfile }: NewsTabProps) {
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const cleanHandle = (channel?.handle || "").replace(/^@/, "");
+  const displayName = channel?.displayName || cleanHandle || "Creator";
+  const avatarUrl = channel?.avatarUrl || "";
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -50,21 +55,30 @@ export default function NewsTab({ channel, isOwnProfile }: NewsTabProps) {
       let allPosts: NewsPost[] = [];
       if (stored) {
         allPosts = JSON.parse(stored);
+        if (!Array.isArray(allPosts) || allPosts.length === 0) {
+          allPosts = [...SAMPLE_NEWS_POSTS];
+          localStorage.setItem("entropy_news_posts", JSON.stringify(allPosts));
+        }
       } else {
         allPosts = [...SAMPLE_NEWS_POSTS];
         localStorage.setItem("entropy_news_posts", JSON.stringify(allPosts));
       }
 
-      // Filter for this channel
-      const filtered = allPosts.filter(
-        (p) => p.channelHandle.toLowerCase() === channel.handle.toLowerCase()
-      );
+      // Filter for this channel with normalized handle comparison
+      const targetHandle = cleanHandle.toLowerCase();
+      const filtered = allPosts.filter((p) => {
+        const postHandle = (p.channelHandle || "").replace(/^@/, "").toLowerCase();
+        return postHandle === targetHandle;
+      });
 
       // Sort pinned to top, then newest first
       filtered.sort((a, b) => {
         if (a.isPinned && !b.isPinned) return -1;
         if (!a.isPinned && b.isPinned) return 1;
-        return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+        const timeA = new Date(a.publishedAt).getTime();
+        const timeB = new Date(b.publishedAt).getTime();
+        if (isNaN(timeA) || isNaN(timeB)) return 0;
+        return timeB - timeA;
       });
 
       setPosts(filtered);
@@ -74,6 +88,7 @@ export default function NewsTab({ channel, isOwnProfile }: NewsTabProps) {
   };
 
   useEffect(() => {
+    setMounted(true);
     loadPosts();
 
     if (typeof window !== "undefined") {
@@ -84,7 +99,7 @@ export default function NewsTab({ channel, isOwnProfile }: NewsTabProps) {
         window.removeEventListener("storage", loadPosts);
       };
     }
-  }, [channel.handle]);
+  }, [cleanHandle]);
 
   // Handle image attachment
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -135,9 +150,9 @@ export default function NewsTab({ channel, isOwnProfile }: NewsTabProps) {
 
     const newPost: NewsPost = {
       id: `post-${Date.now()}`,
-      channelHandle: channel.handle,
-      channelName: channel.displayName,
-      channelAvatar: channel.avatarUrl || "",
+      channelHandle: cleanHandle,
+      channelName: displayName,
+      channelAvatar: avatarUrl,
       content: postText.trim(),
       imageUrl: attachedImage || undefined,
       publishedAt: new Date().toISOString(),
@@ -215,7 +230,7 @@ export default function NewsTab({ channel, isOwnProfile }: NewsTabProps) {
   // Share post
   const handleSharePost = (post: NewsPost) => {
     if (typeof window !== "undefined") {
-      const shareUrl = `${window.location.origin}/@${channel.handle}?tab=News#${post.id}`;
+      const shareUrl = `${window.location.origin}/@${cleanHandle}?tab=News#${post.id}`;
       navigator.clipboard?.writeText(shareUrl);
       showToast("Post link copied to clipboard!");
     }
@@ -265,10 +280,10 @@ export default function NewsTab({ channel, isOwnProfile }: NewsTabProps) {
           <div className="flex gap-3">
             {/* Avatar */}
             <div className="h-10 w-10 rounded-full bg-[#181818] border border-white/[0.08] flex-shrink-0 overflow-hidden flex items-center justify-center font-bold text-sm text-white">
-              {channel.avatarUrl ? (
-                <img src={channel.avatarUrl} alt={channel.displayName} className="h-full w-full object-cover" />
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
               ) : (
-                <span>{channel.displayName.slice(0, 1).toUpperCase()}</span>
+                <span>{(displayName || "C").slice(0, 1).toUpperCase()}</span>
               )}
             </div>
 
@@ -392,9 +407,9 @@ export default function NewsTab({ channel, isOwnProfile }: NewsTabProps) {
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-[#181818] border border-white/[0.08] flex-shrink-0 overflow-hidden flex items-center justify-center font-bold text-sm text-white">
                     {post.channelAvatar ? (
-                      <img src={post.channelAvatar} alt={post.channelName} className="h-full w-full object-cover" />
+                      <img src={post.channelAvatar} alt={post.channelName || "Channel"} className="h-full w-full object-cover" />
                     ) : (
-                      <span>{post.channelName.slice(0, 1).toUpperCase()}</span>
+                      <span>{(post.channelName || post.channelHandle || "C").slice(0, 1).toUpperCase()}</span>
                     )}
                   </div>
                   <div>
