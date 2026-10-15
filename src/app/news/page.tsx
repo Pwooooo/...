@@ -950,7 +950,7 @@ export default function GlobalNewsPage() {
                                   </span>
                                 )}
                                 {post.tag && (
-                                  <span className="text-[10px] font-semibold text-zinc-300 bg-white/[0.06] border border-white/[0.08] px-2.5 py-0.5 rounded-full">
+                                  <span className="text-[10px] font-semibold text-zinc-300 bg-white/[0.06] px-2.5 py-0.5 rounded-full">
                                     {post.tag}
                                   </span>
                                 )}
