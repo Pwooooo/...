@@ -203,24 +203,6 @@ export default function ProfilePage() {
                       <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white leading-tight">
                         {user.name}
                       </h1>
-                      {/* Cat-eared shield badge */}
-                      <span title="Verified" className="inline-flex items-center text-zinc-300">
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="h-4 w-4"
-                        >
-                          <path d="M4 8 L6 3 L9.5 5.2 C11 4.8 13 4.8 14.5 5.2 L18 3 L20 8 C20 14.5 12 21 12 21 C12 21 4 14.5 4 8 Z" />
-                        </svg>
-                      </span>
-                      {/* Rocket badge */}
-                      <span title="Booster" className="inline-flex items-center text-sm select-none">
-                        🚀
-                      </span>
                     </div>
                     <p className="text-xs sm:text-sm text-zinc-400 font-normal mt-0.5 flex flex-wrap items-center gap-1.5">
                       <span>@{user.handle}</span>
