@@ -39,21 +39,21 @@ export const FORUM_CATEGORIES: DiscourseCategory[] = [
     id: "updates",
     name: "Updates",
     color: "#F1592A",
-    description: "Product announcements, release notes, community events, and official news from the Luduvo team.",
+    description: "Product announcements, release notes, community events, and official news from the Entropy team.",
     subcategories: ["Announcements", "Release Notes", "Community & Events"],
   },
   {
     id: "community",
     name: "Community",
     color: "#12A89D",
-    description: "Show off your creations, hang out with other creators, and discuss all things Luduvo.",
+    description: "Show off your creations, hang out with other creators, and discuss all things Entropy.",
     subcategories: ["Showcase", "General Discussion", "Off-Topic", "Trading"],
   },
   {
     id: "help-feedback",
     name: "Help & Feedback",
     color: "#0E76BD",
-    description: "Get help with Luduvo, ask questions, share feedback, and learn from other creators.",
+    description: "Get help with Entropy, ask questions, share feedback, and learn from other creators.",
     subcategories: ["Development Support", "Engine API", "Scripting Support", "Building Support", "Art & Design Support"],
   },
   {
@@ -67,7 +67,7 @@ export const FORUM_CATEGORIES: DiscourseCategory[] = [
     id: "feature-requests",
     name: "Feature Requests",
     color: "#3AB54A",
-    description: "Have an idea to make Luduvo better? Share it here.",
+    description: "Have an idea to make Entropy better? Share it here.",
     subcategories: ["Studio Features", "Engine Features", "Website Features"],
   },
 ];
@@ -478,7 +478,7 @@ export default function GlobalNewsPage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-zinc-100 flex flex-col">
+    <div className="min-h-screen bg-black text-zinc-100 flex flex-col">
       <Navbar onToggleSidebar={() => setCollapsedSidebar(!collapsedSidebar)} />
 
       <div className="flex flex-1">
@@ -504,7 +504,7 @@ export default function GlobalNewsPage() {
                       setActiveSubcategory(null);
                       setActiveTab("categories");
                     }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-zinc-300 hover:text-white bg-[#141414] hover:bg-[#1a1a1a] border border-white/[0.08] transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-zinc-300 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] transition-colors cursor-pointer"
                   >
                     <ChevronLeft className="h-4 w-4" />
                     <span>All Categories</span>
@@ -518,10 +518,10 @@ export default function GlobalNewsPage() {
                         setActiveCategory(null);
                         setActiveSubcategory(null);
                       }}
-                      className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer outline-none ${
                         activeTab === "categories"
-                          ? "bg-white text-black font-bold shadow-sm"
-                          : "text-zinc-400 hover:text-white hover:bg-white/[0.06]"
+                          ? "bg-white/[0.08] text-white shadow-sm"
+                          : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
                       }`}
                     >
                       Categories
@@ -533,10 +533,10 @@ export default function GlobalNewsPage() {
                         setActiveCategory(null);
                         setActiveSubcategory(null);
                       }}
-                      className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer outline-none ${
                         activeTab === "latest"
-                          ? "bg-white text-black font-bold shadow-sm"
-                          : "text-zinc-400 hover:text-white hover:bg-white/[0.06]"
+                          ? "bg-white/[0.08] text-white shadow-sm"
+                          : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
                       }`}
                     >
                       Latest
@@ -548,10 +548,10 @@ export default function GlobalNewsPage() {
                         setActiveCategory(null);
                         setActiveSubcategory(null);
                       }}
-                      className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer outline-none ${
                         activeTab === "top"
-                          ? "bg-white text-black font-bold shadow-sm"
-                          : "text-zinc-400 hover:text-white hover:bg-white/[0.06]"
+                          ? "bg-white/[0.08] text-white shadow-sm"
+                          : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
                       }`}
                     >
                       Top
@@ -864,10 +864,10 @@ export default function GlobalNewsPage() {
                       <button
                         type="button"
                         onClick={() => setActiveSubcategory(null)}
-                        className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                           !activeSubcategory
-                            ? "bg-white text-black font-bold shadow-sm"
-                            : "bg-[#0a0a0a] text-zinc-400 hover:text-white border border-white/[0.08]"
+                            ? "bg-white/[0.08] text-white border border-white/20 shadow-sm"
+                            : "bg-transparent text-zinc-400 hover:text-white hover:bg-white/[0.04] border border-white/[0.08]"
                         }`}
                       >
                         All
@@ -877,10 +877,10 @@ export default function GlobalNewsPage() {
                           key={sub}
                           type="button"
                           onClick={() => setActiveSubcategory(sub)}
-                          className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                          className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                             activeSubcategory === sub
-                              ? "bg-white text-black font-bold shadow-sm"
-                              : "bg-[#0a0a0a] text-zinc-400 hover:text-white border border-white/[0.08]"
+                              ? "bg-white/[0.08] text-white border border-white/20 shadow-sm"
+                              : "bg-transparent text-zinc-400 hover:text-white hover:bg-white/[0.04] border border-white/[0.08]"
                           }`}
                         >
                           {sub}
