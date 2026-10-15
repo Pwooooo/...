@@ -202,7 +202,7 @@ export default function StudioVideosPage() {
                           <button
                             type="button"
                             onClick={() => deleteVideo(v.id)}
-                            className="p-1.5 hover:bg-zinc-800 rounded-full text-zinc-400 hover:text-red-400 cursor-pointer"
+                            className="p-1.5 hover:bg-zinc-800 rounded-full text-zinc-400 hover:text-white cursor-pointer"
                             title="Delete video"
                           >
                             <Trash2 className="h-4 w-4" />

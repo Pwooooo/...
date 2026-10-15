@@ -684,7 +684,7 @@ export default function ChannelProfilePage({
                         <button
                           type="button"
                           onClick={() => setEditAvatarUrl("")}
-                          className="flex items-center gap-1.5 rounded-xl bg-[#181818] hover:bg-[#222222] text-zinc-300 hover:text-red-400 border border-white/[0.08] px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer"
+                          className="flex items-center gap-1.5 rounded-xl bg-[#181818] hover:bg-[#222222] text-zinc-300 hover:text-white border border-white/[0.08] px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                           <span>Remove</span>

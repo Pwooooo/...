@@ -692,7 +692,7 @@ export default function GlobalNewsPage() {
                             <button
                               type="button"
                               onClick={() => handleRemovePollOption(idx)}
-                              className="p-1 text-zinc-500 hover:text-red-400"
+                              className="p-1 text-zinc-500 hover:text-white"
                             >
                               <X className="h-3.5 w-3.5" />
                             </button>
@@ -967,7 +967,7 @@ export default function GlobalNewsPage() {
                             <button
                               type="button"
                               onClick={() => handleDeletePost(post.id)}
-                              className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-white/[0.06] transition-colors cursor-pointer"
+                              className="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
                               title="Delete topic"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
