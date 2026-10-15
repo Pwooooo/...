@@ -23,14 +23,14 @@ export default function SubscriptionsPage() {
 
         <main className="flex-1 overflow-x-hidden px-4 md:px-8 py-5">
           {/* Subscribed Channels Avatar Bar */}
-          <div className="flex items-center gap-6 overflow-x-auto pb-4 border-b border-zinc-800 scrollbar-none mb-6">
+          <div className="flex items-center gap-6 overflow-x-auto pt-3 pb-4 border-b border-zinc-800 scrollbar-none mb-6">
             {channelsList.map((channel) => (
               <Link
                 key={channel.id}
                 href={`/@${channel.handle}`}
-                className="flex flex-col items-center gap-1.5 flex-shrink-0 group"
+                className="flex flex-col items-center gap-1.5 flex-shrink-0 group pt-1"
               >
-                <div className="relative h-14 w-14 rounded-full overflow-hidden bg-zinc-900 ring-2 ring-white ring-offset-2 ring-offset-black group-hover:scale-105 transition-transform">
+                <div className="relative h-14 w-14 rounded-full overflow-hidden bg-zinc-900 border-2 border-white group-hover:border-zinc-300 transition-colors">
                   <img
                     src={channel.avatarUrl || ""}
                     alt={channel.displayName}
