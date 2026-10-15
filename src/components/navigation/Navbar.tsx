@@ -34,7 +34,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
   const createMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    const handleClickOutside = (e: Event) => {
       const target = e.target as Node;
       if (userMenuRef.current && !userMenuRef.current.contains(target)) {
         setIsUserMenuOpen(false);
@@ -45,7 +45,11 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
     };
 
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
   }, []);
 
   const handleCreateClick = (e: React.MouseEvent) => {
@@ -177,7 +181,8 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
             <button
               type="button"
               onClick={handleUserClick}
-              className="flex h-8 w-8 items-center justify-center rounded-full overflow-hidden hover:opacity-90 transition-opacity cursor-pointer ring-1 ring-white/10"
+              onMouseDown={(e) => e.stopPropagation()}
+              className="flex h-8 w-8 items-center justify-center rounded-full overflow-hidden hover:opacity-90 transition-opacity cursor-pointer border-none outline-none"
               title={user.name}
               aria-label="Account menu"
               aria-expanded={isUserMenuOpen}
@@ -193,7 +198,8 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
 
             {isUserMenuOpen && (
               <div
-                className="absolute right-0 top-full mt-2 w-60 rounded-2xl bg-[#121212] p-2 shadow-2xl z-50 animate-in fade-in slide-in-from-top-1 duration-150 select-none text-white"
+                className="absolute right-0 top-full mt-2 w-60 rounded-2xl bg-[#121212] p-2 shadow-2xl z-50 select-none text-white border border-white/5"
+                onMouseDown={(e) => e.stopPropagation()}
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Profile header link (matches user screenshot) */}
