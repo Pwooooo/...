@@ -158,8 +158,18 @@ export default function ChannelProfilePage({
                         🚀
                       </span>
                     </div>
-                    <p className="text-xs sm:text-sm text-zinc-400 font-normal mt-0.5">
-                      @{channel.handle}
+                    <p className="text-xs sm:text-sm text-zinc-400 font-normal mt-0.5 flex flex-wrap items-center gap-1.5">
+                      <span>@{channel.handle}</span>
+                      <span className="text-zinc-600">•</span>
+                      <span>
+                        {isOwnProfile
+                          ? "0 subscribers"
+                          : channel.subscribersCount != null
+                          ? `${channel.subscribersCount >= 1000 ? `${(channel.subscribersCount / 1000).toFixed(1)}K` : channel.subscribersCount} subscribers`
+                          : "0 subscribers"}
+                      </span>
+                      <span className="text-zinc-600">•</span>
+                      <span>{channelVideos.length} {channelVideos.length === 1 ? "video" : "videos"}</span>
                     </p>
                   </div>
                 </div>
@@ -240,30 +250,6 @@ export default function ChannelProfilePage({
                   <span>Channel link copied to clipboard!</span>
                 </div>
               )}
-
-              {/* Stats Bar */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-5 mt-5 border-t border-zinc-800/80">
-                <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-3 text-center">
-                  <p className="text-[11px] uppercase tracking-wider font-bold text-zinc-500 mb-0.5">Videos</p>
-                  <p className="text-base sm:text-lg font-extrabold text-white">{channelVideos.length}</p>
-                </div>
-                <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-3 text-center">
-                  <p className="text-[11px] uppercase tracking-wider font-bold text-zinc-500 mb-0.5">Subscribers</p>
-                  <p className="text-base sm:text-lg font-extrabold text-white">
-                    {isOwnProfile ? 0 : `${((channel.subscribersCount ?? 0) / 1000).toFixed(1)}K`}
-                  </p>
-                </div>
-                <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-3 text-center">
-                  <p className="text-[11px] uppercase tracking-wider font-bold text-zinc-500 mb-0.5">Total Views</p>
-                  <p className="text-base sm:text-lg font-extrabold text-white">
-                    {channelVideos.reduce((acc, v) => acc + (v.viewCount || 0), 0).toLocaleString()}
-                  </p>
-                </div>
-                <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-3 text-center">
-                  <p className="text-[11px] uppercase tracking-wider font-bold text-zinc-500 mb-0.5">Platform</p>
-                  <p className="text-base sm:text-lg font-extrabold text-white">Entropy</p>
-                </div>
-              </div>
 
               {/* Navigation Tabs (Luduvo Style) */}
               <div className="flex items-center gap-4 mt-6 border-b border-zinc-800/80 overflow-x-auto scrollbar-none">

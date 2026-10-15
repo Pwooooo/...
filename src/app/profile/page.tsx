@@ -173,8 +173,12 @@ export default function ProfilePage() {
                         🚀
                       </span>
                     </div>
-                    <p className="text-xs sm:text-sm text-zinc-400 font-normal mt-0.5">
-                      @{user.handle}
+                    <p className="text-xs sm:text-sm text-zinc-400 font-normal mt-0.5 flex flex-wrap items-center gap-1.5">
+                      <span>@{user.handle}</span>
+                      <span className="text-zinc-600">•</span>
+                      <span>0 subscribers</span>
+                      <span className="text-zinc-600">•</span>
+                      <span>{userVideos.length} {userVideos.length === 1 ? "video" : "videos"}</span>
                     </p>
                   </div>
                 </div>
@@ -248,26 +252,6 @@ export default function ProfilePage() {
                   <span>Profile link copied to clipboard!</span>
                 </div>
               )}
-
-              {/* Stats Bar */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-5 mt-3 border-t border-zinc-900">
-                <div className="rounded-2xl bg-zinc-950/80 border border-white/[0.06] p-3 text-center">
-                  <p className="text-[11px] uppercase tracking-wider font-bold text-zinc-500 mb-0.5">Videos</p>
-                  <p className="text-base sm:text-lg font-extrabold text-white">{userVideos.length}</p>
-                </div>
-                <div className="rounded-2xl bg-zinc-950/80 border border-white/[0.06] p-3 text-center">
-                  <p className="text-[11px] uppercase tracking-wider font-bold text-zinc-500 mb-0.5">Subscribers</p>
-                  <p className="text-base sm:text-lg font-extrabold text-white">0</p>
-                </div>
-                <div className="rounded-2xl bg-zinc-950/80 border border-white/[0.06] p-3 text-center">
-                  <p className="text-[11px] uppercase tracking-wider font-bold text-zinc-500 mb-0.5">Total Views</p>
-                  <p className="text-base sm:text-lg font-extrabold text-white">{totalViews.toLocaleString()}</p>
-                </div>
-                <div className="rounded-2xl bg-zinc-950/80 border border-white/[0.06] p-3 text-center">
-                  <p className="text-[11px] uppercase tracking-wider font-bold text-zinc-500 mb-0.5">Platform</p>
-                  <p className="text-base sm:text-lg font-extrabold text-white">Entropy</p>
-                </div>
-              </div>
 
               {/* Navigation Tabs (Luduvo Style) */}
               <div className="flex items-center gap-4 mt-6 border-b border-zinc-800/80 overflow-x-auto scrollbar-none">
