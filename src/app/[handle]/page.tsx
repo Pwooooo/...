@@ -251,17 +251,17 @@ export default function ChannelProfilePage({
                 </div>
               )}
 
-              {/* Navigation Tabs (Luduvo Style) */}
-              <div className="flex items-center gap-4 mt-6 border-b border-zinc-800/80 overflow-x-auto scrollbar-none">
+              {/* Navigation Tabs (Sidebar Pill Style) */}
+              <div className="flex items-center gap-2 mt-6 overflow-x-auto scrollbar-none pb-1">
                 {CHANNEL_TABS.map((tab) => (
                   <button
                     key={tab}
                     type="button"
                     onClick={() => setActiveTab(tab)}
-                    className={`pb-3 text-xs sm:text-sm font-bold transition-all relative cursor-pointer ${
+                    className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer ${
                       activeTab === tab
-                        ? "text-white after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-white"
-                        : "text-zinc-400 hover:text-white"
+                        ? "bg-white/[0.08] text-white shadow-sm"
+                        : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
                     }`}
                   >
                     {tab}
