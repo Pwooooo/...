@@ -13,7 +13,11 @@ export const metadata: Metadata = {
   title: "Entropy",
   description: "Next-generation video streaming platform",
   icons: {
-    icon: "/entropy-icon.png",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/entropy-icon.png", type: "image/png", sizes: "512x512" },
+    ],
+    shortcut: "/entropy-icon.png",
     apple: "/entropy-icon.png",
   },
 };
@@ -25,6 +29,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`dark h-full antialiased ${titilliumWeb.variable}`}>
+      <head>
+        <link rel="icon" href="/entropy-icon.png" type="image/png" sizes="any" />
+        <link rel="shortcut icon" href="/entropy-icon.png" />
+        <link rel="apple-touch-icon" href="/entropy-icon.png" />
+      </head>
       <body className={`min-h-full flex flex-col bg-black text-white ${titilliumWeb.className} selection:bg-white selection:text-black`}>
         {children}
       </body>
