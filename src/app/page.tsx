@@ -4,6 +4,8 @@ import React, { useState, useMemo, useEffect } from "react";
 import Navbar from "@/components/navigation/Navbar";
 import Sidebar from "@/components/navigation/Sidebar";
 import VideoCard from "@/components/video/VideoCard";
+import Link from "next/link";
+import { Play } from "lucide-react";
 import { ALL_VIDEOS } from "@/lib/mock-data";
 import { getAllCombinedVideos, getBaseVideos, fetchServerVideos } from "@/lib/video-storage";
 import { VideoItem } from "@/types";
@@ -100,6 +102,22 @@ export default function HomePage() {
               {filteredVideos.map((video) => (
                 <VideoCard key={video.id} video={video} />
               ))}
+            </div>
+          ) : allVideos.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-28 text-center max-w-md mx-auto animate-in fade-in duration-300">
+              <div className="h-16 w-16 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-400 mb-4 shadow-inner">
+                <Play className="h-7 w-7 text-zinc-300 ml-1" />
+              </div>
+              <h3 className="text-lg font-bold text-white mb-1.5">No videos uploaded yet</h3>
+              <p className="text-xs text-zinc-400 mb-6 max-w-xs">
+                Your feed is currently clean. Start by uploading your first video to share with viewers.
+              </p>
+              <Link
+                href="/studio/upload"
+                className="rounded-full bg-white hover:bg-zinc-200 text-black px-6 py-2.5 text-xs font-bold transition-all cursor-pointer shadow-lg"
+              >
+                Upload Video
+              </Link>
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-20 text-zinc-400">

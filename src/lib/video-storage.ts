@@ -88,23 +88,32 @@ export function extractVideoDetails(file: File): Promise<{
   });
 }
 
-// ----------------- Filter Next.js Filler Video -----------------
-export function isNextJsFillerVideo(video?: { id?: string; title?: string } | null): boolean {
+// ----------------- Filter Filler Videos -----------------
+export function isFillerVideo(video?: { id?: string; title?: string } | null): boolean {
   if (!video || typeof video !== "object") return false;
   const id = typeof video.id === "string" ? video.id : "";
   const title = typeof video.title === "string" ? video.title.toLowerCase() : "";
   return (
+    id.startsWith("sample-") ||
     id === "v-srv-1792152077838" ||
     id === "v-user-1792152077838" ||
-    id === "sample-2" ||
-    (title.includes("next.js") && title.includes("deep dive")) ||
-    title.includes("next.js 16")
+    id === "v-srv-1792158340022" ||
+    title.includes("next.js") ||
+    title.includes("distributed video transcoder") ||
+    title.includes("operating systems are so complex") ||
+    title.includes("shaders & webgl") ||
+    title.includes("synthwave coding session") ||
+    title.includes("pro league championship")
   );
 }
 
-// ----------------- Base Static Videos -----------------
+export function isNextJsFillerVideo(video?: { id?: string; title?: string } | null): boolean {
+  return isFillerVideo(video);
+}
+
+// ----------------- Base Static Videos (All filler removed) -----------------
 export function getBaseVideos(): VideoItem[] {
-  return ALL_VIDEOS.filter((v) => v && typeof v.id === "string" && !isNextJsFillerVideo(v));
+  return [];
 }
 
 // ----------------- Central Client Video Cache -----------------
@@ -165,34 +174,24 @@ export function getAllCombinedVideos(): VideoItem[] {
         } catch {}
       }
 
-      // Merge: newly uploaded and server-cloud videos appear first before sample videos
+      // Merge: only keep real non-filler videos
       const nonSampleMap = new Map<string, VideoItem>();
-      const sampleMap = new Map<string, VideoItem>();
 
-      userUploads.forEach((v) => nonSampleMap.set(v.id, v));
+      userUploads.forEach((v) => {
+        if (!isFillerVideo(v)) nonSampleMap.set(v.id, v);
+      });
       serverCached.forEach((v) => {
-        if (!v.id.startsWith("sample-")) {
-          nonSampleMap.set(v.id, v);
-        } else {
-          sampleMap.set(v.id, v);
-        }
-      });
-      getBaseVideos().forEach((v) => {
-        if (!sampleMap.has(v.id)) sampleMap.set(v.id, v);
+        if (!isFillerVideo(v)) nonSampleMap.set(v.id, v);
       });
 
-      const merged = [...Array.from(nonSampleMap.values()), ...Array.from(sampleMap.values())];
-      const clean = merged.filter((v) => !isNextJsFillerVideo(v));
-      if (clean.length > 0) return clean;
+      return Array.from(nonSampleMap.values());
     } catch {}
   }
-  return getBaseVideos();
+  return [];
 }
 
 export function getUserVideos(): VideoItem[] {
-  const all = getAllCombinedVideos();
-  // Return all non-sample videos, or videos with user/srv prefixes
-  return all.filter((v) => v && (!v.id.startsWith("sample-") || v.id.startsWith("v-srv-") || v.id.startsWith("v-user-")));
+  return getAllCombinedVideos();
 }
 
 export function saveUserVideoMetadata(video: VideoItem): void {

@@ -24,11 +24,16 @@ function isNextJsFillerVideo(video?: { id?: string; title?: string } | null): bo
   const id = typeof video.id === "string" ? video.id : "";
   const title = typeof video.title === "string" ? video.title.toLowerCase() : "";
   return (
+    id.startsWith("sample-") ||
     id === "v-srv-1792152077838" ||
     id === "v-user-1792152077838" ||
-    id === "sample-2" ||
-    (title.includes("next.js") && title.includes("deep dive")) ||
-    title.includes("next.js 16")
+    id === "v-srv-1792158340022" ||
+    title.includes("next.js") ||
+    title.includes("distributed video transcoder") ||
+    title.includes("operating systems are so complex") ||
+    title.includes("shaders & webgl") ||
+    title.includes("synthwave coding session") ||
+    title.includes("pro league championship")
   );
 }
 
@@ -38,8 +43,7 @@ function safeEnsureDirs() {
     if (!fs.existsSync(VIDEOS_DIR)) fs.mkdirSync(VIDEOS_DIR, { recursive: true });
     if (!fs.existsSync(THUMBNAILS_DIR)) fs.mkdirSync(THUMBNAILS_DIR, { recursive: true });
     if (!fs.existsSync(VIDEOS_FILE)) {
-      const seed = ALL_VIDEOS.filter((v) => !isNextJsFillerVideo(v));
-      fs.writeFileSync(VIDEOS_FILE, JSON.stringify(seed, null, 2), "utf-8");
+      fs.writeFileSync(VIDEOS_FILE, JSON.stringify([], null, 2), "utf-8");
     }
     if (!fs.existsSync(BACKUP_VIDEOS_FILE)) {
       fs.writeFileSync(BACKUP_VIDEOS_FILE, JSON.stringify([], null, 2), "utf-8");
@@ -52,7 +56,17 @@ function safeEnsureDirs() {
   }
 }
 
-const DEFAULT_SERVER_DELETED = ["v-srv-1792152077838", "v-user-1792152077838", "sample-2"];
+const DEFAULT_SERVER_DELETED = [
+  "sample-1",
+  "sample-2",
+  "sample-3",
+  "sample-4",
+  "sample-5",
+  "sample-6",
+  "v-srv-1792152077838",
+  "v-user-1792152077838",
+  "v-srv-1792158340022",
+];
 
 function readDeletedVideoIds(): Set<string> {
   safeEnsureDirs();
@@ -607,13 +621,8 @@ export async function POST(req: NextRequest) {
     const requestedId = (formData.get("id") as string) || "";
     const videoId = requestedId || `v-srv-${Date.now()}`;
 
-    // Block the Next.js filler video from ever being accepted or revived
-    if (
-      videoId === "v-srv-1792152077838" ||
-      videoId === "v-user-1792152077838" ||
-      videoId === "sample-2" ||
-      (title.toLowerCase().includes("next.js") && (title.toLowerCase().includes("deep dive") || title.toLowerCase().includes("16")))
-    ) {
+    // Block all filler videos from ever being accepted or revived
+    if (isNextJsFillerVideo({ id: videoId, title })) {
       recordDeletedVideoId(videoId);
       return NextResponse.json({ success: false, error: "Filler video is permanently removed" }, { status: 400 });
     }

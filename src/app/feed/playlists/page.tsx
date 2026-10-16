@@ -27,12 +27,16 @@ export default function PlaylistsPage() {
                 href={`/playlist?list=${playlist.id}`}
                 className="group flex flex-col gap-2"
               >
-                <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800">
-                  <img
-                    src={playlist.thumbnailUrl}
-                    alt={playlist.title}
-                    className="h-full w-full object-cover group-hover:scale-105 transition-transform"
-                  />
+                <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800 flex items-center justify-center">
+                  {playlist.thumbnailUrl ? (
+                    <img
+                      src={playlist.thumbnailUrl}
+                      alt={playlist.title}
+                      className="h-full w-full object-cover group-hover:scale-105 transition-transform"
+                    />
+                  ) : (
+                    <ListVideo className="h-8 w-8 text-zinc-600" />
+                  )}
                   <div className="absolute right-0 top-0 bottom-0 w-24 bg-black/70 backdrop-blur-xs flex flex-col items-center justify-center gap-1 text-white text-xs font-semibold">
                     <ListVideo className="h-5 w-5" />
                     <span>{playlist.videoCount}</span>

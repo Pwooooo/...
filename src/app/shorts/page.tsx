@@ -13,6 +13,7 @@ import {
   Music,
   ChevronUp,
   ChevronDown,
+  Flame,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -25,7 +26,7 @@ export default function ShortsPage() {
   const [subscribedMap, setSubscribedMap] = useState<Record<string, boolean>>({});
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const currentShort = SHORTS_FEED[currentIndex] || SHORTS_FEED[0];
+  const currentShort = SHORTS_FEED[currentIndex] || null;
 
   const handleNext = () => {
     if (currentIndex < SHORTS_FEED.length - 1) {
@@ -70,7 +71,22 @@ export default function ShortsPage() {
         <Sidebar collapsed={true} />
 
         <main className="flex-1 flex items-center justify-center py-6 px-4 relative">
-          <div className="flex items-end gap-4 max-w-[480px] w-full">
+          {!currentShort ? (
+            <div className="text-center max-w-sm py-20 animate-in fade-in">
+              <div className="h-16 w-16 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-400 mb-4 mx-auto shadow-inner">
+                <Flame className="h-8 w-8 text-zinc-300" />
+              </div>
+              <h2 className="text-xl font-bold text-white mb-1.5">No shorts yet</h2>
+              <p className="text-xs text-zinc-400 mb-6">Short vertical videos will appear here.</p>
+              <Link
+                href="/studio/upload"
+                className="rounded-full bg-white text-black px-6 py-2.5 text-xs font-bold hover:bg-zinc-200 transition-colors shadow-lg"
+              >
+                Upload Video
+              </Link>
+            </div>
+          ) : (
+            <div className="flex items-end gap-4 max-w-[480px] w-full">
             {/* Vertical Video Container */}
             <div className="relative aspect-[9/16] w-full rounded-2xl overflow-hidden bg-black shadow-2xl border border-zinc-800 flex items-center justify-center">
               <video
@@ -210,6 +226,7 @@ export default function ShortsPage() {
               </button>
             </div>
           </div>
+          )}
         </main>
       </div>
     </div>

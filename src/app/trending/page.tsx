@@ -77,51 +77,69 @@ export default function TrendingPage() {
           </div>
 
           {/* Ranked Video List */}
-          <div className="space-y-4">
-            {trendingVideos.map((video, idx) => (
-              <div
-                key={video.id}
-                className="flex items-start gap-4 p-2 rounded-xl hover:bg-zinc-900/80 group transition-colors"
+          {trendingVideos.length === 0 ? (
+            <div className="py-24 text-center max-w-sm mx-auto flex flex-col items-center animate-in fade-in">
+              <div className="h-16 w-16 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-500 mb-4 shadow-inner">
+                <Flame className="h-8 w-8 text-zinc-400" />
+              </div>
+              <h3 className="text-base font-bold text-white mb-1">No trending videos yet</h3>
+              <p className="text-xs text-zinc-400 mb-6">
+                Trending content will appear here as videos gain views.
+              </p>
+              <Link
+                href="/studio/upload"
+                className="rounded-full bg-white text-black px-6 py-2.5 text-xs font-bold hover:bg-zinc-200 transition-colors shadow-lg"
               >
-                <span className="w-6 text-center text-base font-bold text-zinc-400 self-center">
-                  #{idx + 1}
-                </span>
-
-                <Link
-                  href={`/watch?v=${video.id}`}
-                  className="relative aspect-video w-56 flex-shrink-0 rounded-xl overflow-hidden bg-zinc-800"
+                Upload Video
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {trendingVideos.map((video, idx) => (
+                <div
+                  key={video.id}
+                  className="flex items-start gap-4 p-2 rounded-xl hover:bg-zinc-900/80 group transition-colors"
                 >
-                  <img
-                    src={video.thumbnailUrl || ""}
-                    alt={video.title}
-                    className="h-full w-full object-cover group-hover:scale-105 transition-transform"
-                  />
-                  <span className="absolute bottom-1 right-1 rounded bg-black/80 px-1 text-[10px] font-semibold text-white">
-                    {formatDuration(video.durationSeconds)}
+                  <span className="w-6 text-center text-base font-bold text-zinc-400 self-center">
+                    #{idx + 1}
                   </span>
-                </Link>
 
-                <div className="flex-1 min-w-0 py-1">
                   <Link
                     href={`/watch?v=${video.id}`}
-                    className="font-bold text-sm text-zinc-100 group-hover:text-blue-400 line-clamp-2"
+                    className="relative aspect-video w-56 flex-shrink-0 rounded-xl overflow-hidden bg-zinc-800"
                   >
-                    {video.title}
+                    <img
+                      src={video.thumbnailUrl || ""}
+                      alt={video.title}
+                      className="h-full w-full object-cover group-hover:scale-105 transition-transform"
+                    />
+                    <span className="absolute bottom-1 right-1 rounded bg-black/80 px-1 text-[10px] font-semibold text-white">
+                      {formatDuration(video.durationSeconds)}
+                    </span>
                   </Link>
 
-                  <div className="flex items-center gap-2 text-xs text-zinc-400 mt-1">
-                    <Link href={`/@${(video.channel?.handle || "creator").replace(/^@/, "")}`} className="hover:text-zinc-200">
-                      {video.channel?.displayName || video.channel?.handle || "Creator"}
+                  <div className="flex-1 min-w-0 py-1">
+                    <Link
+                      href={`/watch?v=${video.id}`}
+                      className="font-bold text-sm text-zinc-100 group-hover:text-blue-400 line-clamp-2"
+                    >
+                      {video.title}
                     </Link>
-                    <span>•</span>
-                    <span>{formatViews(video.viewCount)}</span>
-                  </div>
 
-                  <p className="text-xs text-zinc-500 line-clamp-2 mt-2">{video.description}</p>
+                    <div className="flex items-center gap-2 text-xs text-zinc-400 mt-1">
+                      <Link href={`/@${(video.channel?.handle || "creator").replace(/^@/, "")}`} className="hover:text-zinc-200">
+                        {video.channel?.displayName || video.channel?.handle || "Creator"}
+                      </Link>
+                      <span>•</span>
+                      <span>{formatViews(video.viewCount)}</span>
+                    </div>
+
+                    <p className="text-xs text-zinc-500 line-clamp-2 mt-2">{video.description}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </main>
       </div>
     </div>

@@ -8,7 +8,7 @@ import { MOCK_CHANNELS } from "@/lib/mock-data";
 import { getAllCombinedVideos, getBaseVideos, fetchServerVideos } from "@/lib/video-storage";
 import { VideoItem } from "@/types";
 import Link from "next/link";
-import { LayoutGrid, List } from "lucide-react";
+import { LayoutGrid, List, PlaySquare } from "lucide-react";
 
 export default function SubscriptionsPage() {
   const [collapsedSidebar, setCollapsedSidebar] = useState(false);
@@ -40,63 +40,85 @@ export default function SubscriptionsPage() {
 
         <main className="flex-1 overflow-x-hidden px-4 md:px-8 py-5">
           {/* Subscribed Channels Avatar Bar */}
-          <div className="flex items-center gap-6 overflow-x-auto pt-3 pb-4 border-b border-zinc-800 scrollbar-none mb-6">
-            {channelsList.map((channel) => (
-              <Link
-                key={channel.id}
-                href={`/@${channel.handle}`}
-                className="flex flex-col items-center gap-1.5 flex-shrink-0 group pt-1"
-              >
-                <div className="relative h-14 w-14 rounded-full overflow-hidden bg-zinc-900 border-2 border-white group-hover:border-zinc-300 transition-colors">
-                  <img
-                    src={channel.avatarUrl || "/default-avatar.png"}
-                    alt={channel.displayName}
-                    className="h-full w-full object-cover"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
-                    }}
-                  />
-                </div>
-                <span className="text-xs text-zinc-300 max-w-[70px] truncate group-hover:text-white">
-                  {channel.displayName}
-                </span>
-              </Link>
-            ))}
-          </div>
+          {channelsList.length > 0 && (
+            <div className="flex items-center gap-6 overflow-x-auto pt-3 pb-4 border-b border-zinc-800 scrollbar-none mb-6">
+              {channelsList.map((channel) => (
+                <Link
+                  key={channel.id}
+                  href={`/@${channel.handle}`}
+                  className="flex flex-col items-center gap-1.5 flex-shrink-0 group pt-1"
+                >
+                  <div className="relative h-14 w-14 rounded-full overflow-hidden bg-zinc-900 border-2 border-white group-hover:border-zinc-300 transition-colors">
+                    <img
+                      src={channel.avatarUrl || "/default-avatar.png"}
+                      alt={channel.displayName}
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
+                      }}
+                    />
+                  </div>
+                  <span className="text-xs text-zinc-300 max-w-[70px] truncate group-hover:text-white">
+                    {channel.displayName}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
 
           {/* Header Controls */}
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-lg font-bold text-zinc-100">Latest from your subscriptions</h1>
-            <div className="flex items-center gap-1 bg-zinc-900 rounded-lg p-1 border border-zinc-800">
-              <button
-                onClick={() => setViewMode("grid")}
-                className={`p-1.5 rounded ${viewMode === "grid" ? "bg-zinc-800 text-white" : "text-zinc-400"}`}
-                title="Grid view"
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={`p-1.5 rounded ${viewMode === "list" ? "bg-zinc-800 text-white" : "text-zinc-400"}`}
-                title="List view"
-              >
-                <List className="h-4 w-4" />
-              </button>
-            </div>
+            {videos.length > 0 && (
+              <div className="flex items-center gap-1 bg-zinc-900 rounded-lg p-1 border border-zinc-800">
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={`p-1.5 rounded ${viewMode === "grid" ? "bg-zinc-800 text-white" : "text-zinc-400"}`}
+                  title="Grid view"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={`p-1.5 rounded ${viewMode === "list" ? "bg-zinc-800 text-white" : "text-zinc-400"}`}
+                  title="List view"
+                >
+                  <List className="h-4 w-4" />
+                </button>
+              </div>
+            )}
           </div>
 
-          {/* Videos Grid */}
-          <div
-            className={
-              viewMode === "grid"
-                ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-7"
-                : "flex flex-col gap-4 max-w-4xl"
-            }
-          >
-            {videos.map((video) => (
-              <VideoCard key={video.id} video={video} />
-            ))}
-          </div>
+          {/* Videos Grid / Empty State */}
+          {videos.length === 0 ? (
+            <div className="py-24 text-center max-w-sm mx-auto flex flex-col items-center animate-in fade-in">
+              <div className="h-16 w-16 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-500 mb-4 shadow-inner">
+                <PlaySquare className="h-8 w-8 text-zinc-400" />
+              </div>
+              <h3 className="text-base font-bold text-white mb-1">No subscriptions yet</h3>
+              <p className="text-xs text-zinc-400 mb-6">
+                Subscribe to your favorite channels to get their latest videos here.
+              </p>
+              <Link
+                href="/"
+                className="rounded-full bg-white text-black px-6 py-2.5 text-xs font-bold hover:bg-zinc-200 transition-colors shadow-lg"
+              >
+                Browse Videos
+              </Link>
+            </div>
+          ) : (
+            <div
+              className={
+                viewMode === "grid"
+                  ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-7"
+                  : "flex flex-col gap-4 max-w-4xl"
+              }
+            >
+              {videos.map((video) => (
+                <VideoCard key={video.id} video={video} />
+              ))}
+            </div>
+          )}
         </main>
       </div>
     </div>

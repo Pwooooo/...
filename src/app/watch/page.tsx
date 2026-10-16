@@ -33,16 +33,16 @@ import { VideoItem } from "@/types";
 
 function WatchContent() {
   const searchParams = useSearchParams();
-  const videoId = searchParams.get("v") || "sample-1";
+  const videoId = searchParams.get("v") || "";
   const playerRef = useRef<VideoPlayerHandle>(null);
   const chaptersPanelRef = useRef<HTMLDivElement>(null);
 
-  const [currentVideo, setCurrentVideo] = useState<VideoItem>(() => {
+  const [currentVideo, setCurrentVideo] = useState<VideoItem | null>(() => {
     const combined = getAllCombinedVideos();
     const found = combined.find((v) => v.id === videoId);
     if (found) return found;
     const base = getBaseVideos();
-    return base.find((v) => v.id === videoId) || base[0] || ALL_VIDEOS[0];
+    return base.find((v) => v.id === videoId) || combined[0] || null;
   });
   const [resolvedVideoUrl, setResolvedVideoUrl] = useState<string | null>(null);
   const [allRecommendedVideos, setAllRecommendedVideos] = useState<VideoItem[]>(() => {
@@ -118,8 +118,8 @@ function WatchContent() {
     };
   }, [videoId]);
 
-  const chapters = currentVideo.chapters || SAMPLE_CHAPTERS;
-  const highlights = currentVideo.highlights || SAMPLE_HIGHLIGHTS;
+  const chapters = currentVideo?.chapters || [];
+  const highlights = currentVideo?.highlights || [];
 
   const { user, openAuthModal } = useAuth();
   const uHandle = (user?.handle || user?.name || "").replace(/^@/, "").toLowerCase();
@@ -155,6 +155,15 @@ function WatchContent() {
   const [comments, setComments] = useState<CommentItem[]>([]);
 
   useEffect(() => {
+    if (!currentVideo) {
+      setLikes(0);
+      setDislikes(0);
+      setHasLiked(false);
+      setHasDisliked(false);
+      setComments([]);
+      return;
+    }
+
     try {
       const storedLikes = localStorage.getItem(`entropy_video_likes_${currentVideo.id}`);
       const storedDislikes = localStorage.getItem(`entropy_video_dislikes_${currentVideo.id}`);
@@ -177,7 +186,7 @@ function WatchContent() {
       setHasDisliked(false);
       setComments([]);
     }
-  }, [currentVideo.id]);
+  }, [currentVideo?.id]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -185,6 +194,7 @@ function WatchContent() {
   };
 
   const handleLike = () => {
+    if (!currentVideo) return;
     let newLikes = likes;
     let newDislikes = dislikes;
     let newVote: "like" | null = null;
@@ -218,6 +228,7 @@ function WatchContent() {
   };
 
   const handleDislike = () => {
+    if (!currentVideo) return;
     let newLikes = likes;
     let newDislikes = dislikes;
     let newVote: "dislike" | null = null;
@@ -251,6 +262,8 @@ function WatchContent() {
   };
 
   const handleCommentLike = (commentId: string) => {
+    if (!currentVideo) return;
+    const vidId = currentVideo.id;
     setCommentVotes((prev) => {
       const current = prev[commentId];
       const newVotes = { ...prev };
@@ -275,13 +288,15 @@ function WatchContent() {
       }
       setComments(updatedComments);
       try {
-        localStorage.setItem(`entropy_comments_${currentVideo.id}`, JSON.stringify(updatedComments));
+        localStorage.setItem(`entropy_comments_${vidId}`, JSON.stringify(updatedComments));
       } catch {}
       return newVotes;
     });
   };
 
   const handleCommentDislike = (commentId: string) => {
+    if (!currentVideo) return;
+    const vidId = currentVideo.id;
     setCommentVotes((prev) => {
       const current = prev[commentId];
       const newVotes = { ...prev };
@@ -306,7 +321,7 @@ function WatchContent() {
       }
       setComments(updatedComments);
       try {
-        localStorage.setItem(`entropy_comments_${currentVideo.id}`, JSON.stringify(updatedComments));
+        localStorage.setItem(`entropy_comments_${vidId}`, JSON.stringify(updatedComments));
       } catch {}
       return newVotes;
     });
@@ -320,6 +335,7 @@ function WatchContent() {
   };
 
   const handleToggleSubscribe = () => {
+    if (!currentVideo) return;
     setIsSubscribed(!isSubscribed);
     showToast(!isSubscribed ? `Subscribed to @${currentVideo.channel.handle}` : "Subscription removed");
   };
@@ -344,6 +360,7 @@ function WatchContent() {
 
   const handleAddComment = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currentVideo) return;
     if (!commentText.trim()) return;
 
     const newComment: CommentItem = {
@@ -364,6 +381,26 @@ function WatchContent() {
     setCommentText("");
     showToast("Comment published");
   };
+
+  if (!currentVideo) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center text-center px-4">
+        <div className="h-16 w-16 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-500 mb-4 shadow-inner">
+          <Play className="h-7 w-7 text-zinc-400 ml-0.5" />
+        </div>
+        <h2 className="text-xl font-bold text-white mb-2">Video not found</h2>
+        <p className="text-xs text-zinc-400 mb-6 max-w-sm">
+          This video does not exist or is no longer available.
+        </p>
+        <Link
+          href="/"
+          className="rounded-full bg-white text-black px-6 py-2.5 text-xs font-bold hover:bg-zinc-200 transition-colors shadow-lg"
+        >
+          Explore Videos
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 max-w-[1720px] mx-auto px-4 lg:px-6 py-4 relative">

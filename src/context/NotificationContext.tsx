@@ -27,67 +27,9 @@ interface NotificationContextType {
   addNotification: (item: Omit<NotificationItem, "id" | "createdAt" | "read">) => void;
 }
 
-const STORAGE_KEY = "entropy_notifications_v2";
+const STORAGE_KEY = "entropy_notifications_v3";
 
-const SEED_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: "notif-seed-1",
-    type: "upload",
-    title: "New Video Upload",
-    message: "SystemCraft Tech uploaded: Building a Distributed Video Transcoder with Go, FFmpeg & S3",
-    actorName: "SystemCraft Tech",
-    actorAvatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80",
-    thumbnailUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=300&q=80",
-    linkUrl: "/watch?v=sample-1",
-    createdAt: Date.now() - 1000 * 60 * 18, // 18m ago
-    read: false,
-  },
-  {
-    id: "notif-seed-2",
-    type: "system",
-    title: "Storage Engine Online",
-    message: "Entropy multi-bitrate HLS streaming and proxy ingestion are now connected and active.",
-    actorName: "Entropy Cloud",
-    actorAvatar: "/default-avatar.png",
-    linkUrl: "/studio/upload",
-    createdAt: Date.now() - 1000 * 60 * 75, // 1h 15m ago
-    read: false,
-  },
-  {
-    id: "notif-seed-3",
-    type: "upload",
-    title: "New Video Upload",
-    message: "CS Insights uploaded: Why Modern Operating Systems Are So Complex",
-    actorName: "CS Insights",
-    actorAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80",
-    thumbnailUrl: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=300&q=80",
-    linkUrl: "/watch?v=sample-3",
-    createdAt: Date.now() - 1000 * 60 * 180, // 3h ago
-    read: false,
-  },
-  {
-    id: "notif-seed-4",
-    type: "comment",
-    title: "New Comment",
-    message: "Devon Vance replied: 'The adaptive bitrate playback and latency test runs smoothly!'",
-    actorName: "Devon Vance",
-    actorAvatar: "/default-avatar.png",
-    linkUrl: "/watch?v=sample-1",
-    createdAt: Date.now() - 1000 * 60 * 60 * 24, // 1d ago
-    read: true,
-  },
-  {
-    id: "notif-seed-5",
-    type: "system",
-    title: "Welcome to Entropy",
-    message: "Welcome! Explore high-fidelity video streams or publish your first broadcast.",
-    actorName: "Entropy Team",
-    actorAvatar: "/default-avatar.png",
-    linkUrl: "/",
-    createdAt: Date.now() - 1000 * 60 * 60 * 48, // 2d ago
-    read: true,
-  },
-];
+const SEED_NOTIFICATIONS: NotificationItem[] = [];
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 

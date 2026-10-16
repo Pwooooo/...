@@ -3,13 +3,21 @@
 import React, { useState } from "react";
 import Navbar from "@/components/navigation/Navbar";
 import Sidebar from "@/components/navigation/Sidebar";
-import { ALL_VIDEOS } from "@/lib/mock-data";
-import { Trash2, PauseCircle, Search, X } from "lucide-react";
+import { VideoItem } from "@/types";
+import { Trash2, PauseCircle, Search, X, Play } from "lucide-react";
 import Link from "next/link";
 import { formatDuration } from "@/lib/utils";
 
 export default function HistoryPage() {
-  const [historyList, setHistoryList] = useState(ALL_VIDEOS);
+  const [historyList, setHistoryList] = useState<VideoItem[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("entropy_watch_history");
+        if (stored) return JSON.parse(stored);
+      } catch {}
+    }
+    return [];
+  });
   const [searchHistory, setSearchHistory] = useState("");
 
   const filteredHistory = historyList.filter((video) =>
