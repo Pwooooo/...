@@ -3,6 +3,7 @@ import Link from "next/link";
 import { formatDuration, formatViews } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { VideoItem } from "@/types";
+import { isShortVideo } from "@/lib/video-storage";
 import { MoreVertical } from "lucide-react";
 
 interface VideoCardProps {
@@ -47,12 +48,14 @@ export default function VideoCard({ video }: VideoCardProps) {
   const initial = (displayName.charAt(0) || "C").toUpperCase();
   const duration = Number(video.durationSeconds) || 0;
   const views = Number(video.viewCount) || 0;
+  const isShort = isShortVideo(video);
+  const targetUrl = isShort ? `/shorts?id=${video.id}` : `/watch?v=${video.id}`;
 
   return (
     <div className="group flex flex-col gap-3">
       {/* Thumbnail Container */}
       <Link
-        href={`/watch?v=${video.id}`}
+        href={targetUrl}
         className="relative aspect-video w-full overflow-hidden rounded-xl bg-[#111111] transition-all"
       >
         <img
@@ -93,7 +96,7 @@ export default function VideoCard({ video }: VideoCardProps) {
         {/* Title, Channel, Stats */}
         <div className="flex flex-1 flex-col">
           <Link
-            href={`/watch?v=${video.id}`}
+            href={targetUrl}
             className="line-clamp-2 text-sm font-semibold text-zinc-100 group-hover:text-white transition-colors"
           >
             {video.title || "Untitled Video"}

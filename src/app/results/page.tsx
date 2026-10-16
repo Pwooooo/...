@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/navigation/Navbar";
 import Sidebar from "@/components/navigation/Sidebar";
 import { ALL_VIDEOS } from "@/lib/mock-data";
-import { getAllCombinedVideos, getBaseVideos, fetchServerVideos } from "@/lib/video-storage";
+import { getAllCombinedVideos, getBaseVideos, fetchServerVideos, isShortVideo } from "@/lib/video-storage";
 import { VideoItem } from "@/types";
 import Link from "next/link";
 import { formatDuration, formatViews } from "@/lib/utils";
@@ -58,32 +58,41 @@ function SearchResultsContent() {
 
       {results.length > 0 ? (
         <div className="space-y-4">
-          {results.map((video) => (
-            <div
-              key={video.id}
-              className="flex flex-col sm:flex-row gap-4 p-2 rounded-xl hover:bg-zinc-900/80 group transition-colors"
-            >
-              <Link
-                href={`/watch?v=${video.id}`}
-                className="relative aspect-video w-full sm:w-80 flex-shrink-0 rounded-xl overflow-hidden bg-zinc-800"
-              >
-                <img
-                  src={video.thumbnailUrl || ""}
-                  alt={video.title}
-                  className="h-full w-full object-cover group-hover:scale-105 transition-transform"
-                />
-                <span className="absolute bottom-1 right-1 rounded bg-black/80 px-1.5 py-0.5 text-xs font-semibold text-white">
-                  {formatDuration(video.durationSeconds)}
-                </span>
-              </Link>
+          {results.map((video) => {
+            const isShort = isShortVideo(video);
+            const targetUrl = isShort ? `/shorts?id=${video.id}` : `/watch?v=${video.id}`;
 
-              <div className="flex-1 flex flex-col justify-start py-1">
+            return (
+              <div
+                key={video.id}
+                className="flex flex-col sm:flex-row gap-4 p-2 rounded-xl hover:bg-zinc-900/80 group transition-colors"
+              >
                 <Link
-                  href={`/watch?v=${video.id}`}
-                  className="font-semibold text-base text-zinc-100 group-hover:text-blue-400 line-clamp-2"
+                  href={targetUrl}
+                  className="relative aspect-video w-full sm:w-80 flex-shrink-0 rounded-xl overflow-hidden bg-zinc-800"
                 >
-                  {video.title}
+                  <img
+                    src={video.thumbnailUrl || ""}
+                    alt={video.title}
+                    className="h-full w-full object-cover group-hover:scale-105 transition-transform"
+                  />
+                  <span className="absolute bottom-1 right-1 rounded bg-black/80 px-1.5 py-0.5 text-xs font-semibold text-white">
+                    {formatDuration(video.durationSeconds)}
+                  </span>
+                  {isShort && (
+                    <span className="absolute top-2 left-2 rounded bg-white text-black px-1.5 py-0.5 text-[10px] font-bold">
+                      Short
+                    </span>
+                  )}
                 </Link>
+
+                <div className="flex-1 flex flex-col justify-start py-1">
+                  <Link
+                    href={targetUrl}
+                    className="font-semibold text-base text-zinc-100 group-hover:text-blue-400 line-clamp-2"
+                  >
+                    {video.title}
+                  </Link>
 
                 <div className="flex items-center gap-2 text-xs text-zinc-400 mt-1">
                   <span>{formatViews(video.viewCount)}</span>
@@ -113,8 +122,9 @@ function SearchResultsContent() {
                 </p>
               </div>
             </div>
-          ))}
-        </div>
+          );
+        })}
+      </div>
       ) : (
         <div className="py-20 text-center text-zinc-400">
           <p className="text-base font-semibold">No results found for &quot;{query}&quot;</p>

@@ -28,7 +28,7 @@ import { formatDuration, formatViews, formatTimeAgo, formatSubscribers } from "@
 import { ALL_VIDEOS, SAMPLE_CHAPTERS, SAMPLE_HIGHLIGHTS } from "@/lib/mock-data";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { getUserVideos, getVideoBlob, getAllCombinedVideos, getBaseVideos, fetchServerVideos } from "@/lib/video-storage";
+import { getUserVideos, getVideoBlob, getAllCombinedVideos, getBaseVideos, fetchServerVideos, isShortVideo } from "@/lib/video-storage";
 import { VideoItem } from "@/types";
 
 function WatchContent() {
@@ -42,12 +42,12 @@ function WatchContent() {
     const found = combined.find((v) => v.id === videoId);
     if (found) return found;
     const base = getBaseVideos();
-    return base.find((v) => v.id === videoId) || combined[0] || null;
+    return base.find((v) => v.id === videoId) || combined.find((v) => !isShortVideo(v)) || combined[0] || null;
   });
   const [resolvedVideoUrl, setResolvedVideoUrl] = useState<string | null>(null);
   const [allRecommendedVideos, setAllRecommendedVideos] = useState<VideoItem[]>(() => {
     const combined = getAllCombinedVideos();
-    return combined.filter((v) => v.id !== videoId);
+    return combined.filter((v) => v.id !== videoId && !isShortVideo(v));
   });
 
   useEffect(() => {
@@ -84,6 +84,10 @@ function WatchContent() {
     const found = combined.find((v) => v.id === videoId);
 
     if (found) {
+      if (isShortVideo(found)) {
+        window.location.replace(`/shorts?id=${found.id}`);
+        return;
+      }
       applyVideo(found);
     }
 
@@ -92,9 +96,13 @@ function WatchContent() {
       const allCurrent = getAllCombinedVideos();
       const srvFound = allCurrent.find((v) => v.id === videoId);
       if (srvFound) {
+        if (isShortVideo(srvFound)) {
+          window.location.replace(`/shorts?id=${srvFound.id}`);
+          return;
+        }
         applyVideo(srvFound);
       }
-      setAllRecommendedVideos(allCurrent.filter((v) => v.id !== videoId));
+      setAllRecommendedVideos(allCurrent.filter((v) => v.id !== videoId && !isShortVideo(v)));
     });
 
     const handleVideosUpdated = () => {
@@ -102,9 +110,13 @@ function WatchContent() {
       const combined = getAllCombinedVideos();
       const match = combined.find((v) => v.id === videoId);
       if (match) {
+        if (isShortVideo(match)) {
+          window.location.replace(`/shorts?id=${match.id}`);
+          return;
+        }
         applyVideo(match);
       }
-      setAllRecommendedVideos(combined.filter((v) => v.id !== (match ? match.id : videoId)));
+      setAllRecommendedVideos(combined.filter((v) => v.id !== (match ? match.id : videoId) && !isShortVideo(v)));
     };
 
     window.addEventListener("entropy_videos_updated", handleVideosUpdated);

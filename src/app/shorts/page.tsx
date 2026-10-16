@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Navbar from "@/components/navigation/Navbar";
 import Sidebar from "@/components/navigation/Sidebar";
 import { ShortItem } from "@/lib/mock-data";
-import { getAllCombinedVideos, fetchServerVideos } from "@/lib/video-storage";
+import { getAllCombinedVideos, fetchServerVideos, isShortVideo } from "@/lib/video-storage";
 import { VideoItem } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -78,15 +78,7 @@ export default function ShortsPage() {
 
   useEffect(() => {
     const syncShorts = (videos: VideoItem[]) => {
-      const shortsOnly = videos.filter((v) => {
-        if (!v || !v.id) return false;
-        return (
-          v.isShort === true ||
-          v.category === "Shorts" ||
-          v.tags?.includes("shorts") ||
-          (v.durationSeconds > 0 && v.durationSeconds <= 60)
-        );
-      });
+      const shortsOnly = videos.filter((v) => isShortVideo(v));
 
       const mapped: ShortItem[] = shortsOnly.map((v) => ({
         id: v.id,
@@ -106,7 +98,7 @@ export default function ShortsPage() {
 
       if (typeof window !== "undefined") {
         const urlParams = new URLSearchParams(window.location.search);
-        const targetId = urlParams.get("id");
+        const targetId = urlParams.get("id") || urlParams.get("v");
         if (targetId) {
           const idx = mapped.findIndex((s) => s.id === targetId);
           if (idx !== -1) {

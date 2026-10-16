@@ -168,6 +168,15 @@ export function saveUserUploadedVideo(video: VideoItem): void {
   }
 }
 
+export function isShortVideo(v: VideoItem | null | undefined): boolean {
+  if (!v || !v.id) return false;
+  return Boolean(
+    v.isShort === true ||
+    v.category === "Shorts" ||
+    (Array.isArray(v.tags) && v.tags.some((t) => typeof t === "string" && t.toLowerCase() === "shorts"))
+  );
+}
+
 export function getAllCombinedVideos(): VideoItem[] {
   if (typeof window !== "undefined") {
     try {

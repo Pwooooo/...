@@ -7,7 +7,7 @@ import VideoCard from "@/components/video/VideoCard";
 import Link from "next/link";
 import { Play, Flame } from "lucide-react";
 import { ALL_VIDEOS } from "@/lib/mock-data";
-import { getAllCombinedVideos, getBaseVideos, fetchServerVideos } from "@/lib/video-storage";
+import { getAllCombinedVideos, getBaseVideos, fetchServerVideos, isShortVideo } from "@/lib/video-storage";
 import { VideoItem } from "@/types";
 
 const CATEGORIES = [
@@ -19,15 +19,6 @@ const CATEGORIES = [
   "Design",
   "Computer Science",
 ];
-
-function isShortVideo(v: VideoItem): boolean {
-  if (!v) return false;
-  return Boolean(
-    v.isShort === true ||
-    v.category === "Shorts" ||
-    (Array.isArray(v.tags) && v.tags.some((t) => typeof t === "string" && t.toLowerCase() === "shorts"))
-  );
-}
 
 export default function HomePage() {
   const [collapsedSidebar, setCollapsedSidebar] = useState(false);

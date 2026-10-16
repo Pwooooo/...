@@ -5,7 +5,7 @@ import Navbar from "@/components/navigation/Navbar";
 import Sidebar from "@/components/navigation/Sidebar";
 import VideoCard from "@/components/video/VideoCard";
 import { MOCK_CHANNELS } from "@/lib/mock-data";
-import { getAllCombinedVideos, getBaseVideos, fetchServerVideos } from "@/lib/video-storage";
+import { getAllCombinedVideos, getBaseVideos, fetchServerVideos, isShortVideo } from "@/lib/video-storage";
 import { VideoItem } from "@/types";
 import Link from "next/link";
 import { LayoutGrid, List, PlaySquare } from "lucide-react";
@@ -13,14 +13,14 @@ import { LayoutGrid, List, PlaySquare } from "lucide-react";
 export default function SubscriptionsPage() {
   const [collapsedSidebar, setCollapsedSidebar] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [videos, setVideos] = useState<VideoItem[]>(() => getBaseVideos());
+  const [videos, setVideos] = useState<VideoItem[]>(() => getBaseVideos().filter((v) => !isShortVideo(v)));
 
   useEffect(() => {
-    setVideos(getAllCombinedVideos());
+    setVideos(getAllCombinedVideos().filter((v) => !isShortVideo(v)));
     fetchServerVideos().then(() => {
-      setVideos(getAllCombinedVideos());
+      setVideos(getAllCombinedVideos().filter((v) => !isShortVideo(v)));
     });
-    const update = () => setVideos(getAllCombinedVideos());
+    const update = () => setVideos(getAllCombinedVideos().filter((v) => !isShortVideo(v)));
     window.addEventListener("entropy_videos_updated", update);
     window.addEventListener("storage", update);
     return () => {
