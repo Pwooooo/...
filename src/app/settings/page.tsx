@@ -299,11 +299,14 @@ export default function SettingsPage() {
                   </label>
                   <div className="flex items-center gap-5 p-4 rounded-2xl bg-[#0a0a0a] border border-white/[0.08]">
                     <div className="relative h-20 w-20 rounded-full overflow-hidden bg-[#181818] flex-shrink-0 flex items-center justify-center text-white font-bold text-2xl shadow-inner">
-                      {avatarUrl ? (
-                        <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
-                      ) : (
-                        <span>{name.slice(0, 1).toUpperCase() || "U"}</span>
-                      )}
+                      <img
+                        src={avatarUrl || "/default-avatar.png"}
+                        alt="Avatar"
+                        className="h-full w-full object-cover"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
+                        }}
+                      />
                     </div>
 
                     <div className="flex-1 space-y-2">

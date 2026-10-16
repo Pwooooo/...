@@ -96,17 +96,14 @@ function SearchResultsContent() {
                   className="flex items-center gap-2 my-2.5 text-xs text-zinc-400 hover:text-zinc-200"
                 >
                   <div className="h-6 w-6 rounded-full overflow-hidden bg-zinc-800">
-                    {video.channel?.avatarUrl ? (
-                      <img
-                        src={video.channel.avatarUrl}
-                        alt={video.channel?.displayName || "Channel"}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="h-full w-full flex items-center justify-center font-bold text-[10px] text-zinc-300 bg-zinc-700">
-                        {((video.channel?.displayName || "C").charAt(0)).toUpperCase()}
-                      </div>
-                    )}
+                    <img
+                      src={video.channel?.avatarUrl || "/default-avatar.png"}
+                      alt={video.channel?.displayName || "Channel"}
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
+                      }}
+                    />
                   </div>
                   <span>{video.channel?.displayName || video.channel?.handle || "Creator"}</span>
                 </Link>

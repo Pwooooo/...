@@ -191,14 +191,15 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
               aria-label="Account menu"
               aria-expanded={isUserMenuOpen}
             >
-              <div className="h-8 w-8 rounded-full overflow-hidden flex items-center justify-center group-hover:scale-105 transition-transform">
-                {user.avatarUrl ? (
-                  <img src={user.avatarUrl} alt={user.name || "User"} className="h-full w-full object-cover" />
-                ) : (
-                  <div className="h-full w-full bg-white text-black flex items-center justify-center text-xs font-bold">
-                    {(user.name ? String(user.name).charAt(0) : "U").toUpperCase()}
-                  </div>
-                )}
+              <div className="h-8 w-8 rounded-full overflow-hidden flex items-center justify-center group-hover:scale-105 transition-transform bg-[#181818]">
+                <img
+                  src={user.avatarUrl || "/default-avatar.png"}
+                  alt={user.name || "User"}
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
+                  }}
+                />
               </div>
             </button>
 
@@ -215,11 +216,14 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
                   className="flex items-center gap-3 p-2.5 pb-3 border-b border-white/[0.08] hover:bg-[#222222] rounded-xl transition-colors cursor-pointer group"
                 >
                   <div className="h-10 w-10 rounded-full overflow-hidden bg-[#181818] text-white flex items-center justify-center text-sm font-bold flex-shrink-0 group-hover:scale-105 transition-transform">
-                    {user.avatarUrl ? (
-                      <img src={user.avatarUrl} alt={user.name || "User"} className="h-full w-full object-cover" />
-                    ) : (
-                      <span>{(user.name ? String(user.name).charAt(0) : "U").toUpperCase()}</span>
-                    )}
+                    <img
+                      src={user.avatarUrl || "/default-avatar.png"}
+                      alt={user.name || "User"}
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
+                      }}
+                    />
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs font-bold text-white truncate">{user.name || "User"}</p>

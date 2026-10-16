@@ -63,6 +63,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               }
               parsed.joinedAt = jAt || formatJoinedDate();
             }
+            if (!parsed.avatarUrl && !parsed.avatar) {
+              parsed.avatarUrl = "/default-avatar.png";
+              parsed.avatar = "/default-avatar.png";
+            }
             setUser(parsed as User);
           }
         }
@@ -110,8 +114,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       name: username,
       email: userData?.email || "user@entropy.stream",
       handle: userData?.handle || username.toLowerCase().replace(/[^a-z0-9]/g, "") || "user",
-      avatarUrl: userData?.avatarUrl || "",
-      avatar: userData?.avatar || "",
+      avatarUrl: userData?.avatarUrl || "/default-avatar.png",
+      avatar: userData?.avatar || userData?.avatarUrl || "/default-avatar.png",
       bio: userData?.bio || "",
       country: userData?.country || "",
       joinedAt: userJoinedAt,

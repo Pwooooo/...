@@ -349,7 +349,7 @@ function WatchContent() {
     const newComment: CommentItem = {
       id: `c-${Date.now()}`,
       user: user ? user.name : "Guest User",
-      avatar: user?.avatarUrl || user?.avatar || "",
+      avatar: user?.avatarUrl || user?.avatar || "/default-avatar.png",
       content: commentText.trim(),
       timeAgo: "Just now",
       likes: 0,
@@ -401,9 +401,12 @@ function WatchContent() {
             <Link href={`/@${currentVideo.channel.handle}`}>
               <div className="h-10 w-10 overflow-hidden rounded-full bg-[#181818] border border-white/[0.08]">
                 <img
-                  src={currentVideo.channel.avatarUrl || ""}
+                  src={currentVideo.channel.avatarUrl || "/default-avatar.png"}
                   alt={currentVideo.channel.displayName}
                   className="h-full w-full object-cover"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
+                  }}
                 />
               </div>
             </Link>
@@ -596,11 +599,14 @@ function WatchContent() {
           {/* Add Comment Input */}
           <form onSubmit={handleAddComment} className="flex gap-3 mb-6">
             <div className="h-9 w-9 rounded-full bg-[#181818] border border-white/[0.08] flex items-center justify-center font-bold text-xs text-white flex-shrink-0 overflow-hidden">
-              {user?.avatarUrl || user?.avatar ? (
-                <img src={user.avatarUrl || user.avatar} alt={user.name} className="h-full w-full object-cover" />
-              ) : (
-                <span>{user ? user.name.slice(0, 1).toUpperCase() : "U"}</span>
-              )}
+              <img
+                src={user?.avatarUrl || user?.avatar || "/default-avatar.png"}
+                alt={user?.name || "User"}
+                className="h-full w-full object-cover"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
+                }}
+              />
             </div>
             <div className="flex-1 flex flex-col gap-2">
               <input
@@ -640,13 +646,14 @@ function WatchContent() {
               {comments.map((comment) => (
                 <div key={comment.id} className="flex gap-3">
                   <div className="h-9 w-9 overflow-hidden rounded-full bg-[#181818] border border-white/[0.08] flex-shrink-0">
-                    {comment.avatar ? (
-                      <img src={comment.avatar} alt={comment.user} className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="h-full w-full bg-[#222222] flex items-center justify-center text-xs font-bold text-white">
-                        {comment.user.slice(0, 1)}
-                      </div>
-                    )}
+                    <img
+                      src={comment.avatar || "/default-avatar.png"}
+                      alt={comment.user}
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
+                      }}
+                    />
                   </div>
                   <div className="flex-1 text-xs">
                     <div className="flex items-center gap-2 mb-1">

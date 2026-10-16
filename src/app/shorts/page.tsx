@@ -95,9 +95,12 @@ export default function ShortsPage() {
                       className="h-9 w-9 rounded-full overflow-hidden bg-zinc-800 flex-shrink-0"
                     >
                       <img
-                        src={currentShort.channel.avatarUrl || ""}
+                        src={currentShort.channel.avatarUrl || "/default-avatar.png"}
                         alt={currentShort.channel.displayName}
                         className="h-full w-full object-cover"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
+                        }}
                       />
                     </Link>
                     <Link

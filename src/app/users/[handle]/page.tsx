@@ -241,11 +241,14 @@ export default function UserProfilePage({
                       title="Click to edit profile"
                     >
                       <div className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-full border-4 border-black bg-[#181818] text-white shadow-2xl overflow-hidden flex items-center justify-center font-bold text-3xl sm:text-4xl transition-transform duration-200 group-hover:scale-105">
-                        {channel.avatarUrl ? (
-                          <img src={channel.avatarUrl} alt={channel.displayName} className="h-full w-full object-cover" />
-                        ) : (
-                          <span>{channelInitial}</span>
-                        )}
+                        <img
+                          src={channel.avatarUrl || "/default-avatar.png"}
+                          alt={channel.displayName}
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
+                          }}
+                        />
                         <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-opacity text-white">
                           <Camera className="h-6 w-6 mb-1" />
                           <span className="text-[10px] font-semibold">Change</span>
@@ -259,11 +262,14 @@ export default function UserProfilePage({
                   ) : (
                     <div className="relative flex-shrink-0 z-10">
                       <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-full border-4 border-black bg-[#181818] text-white shadow-2xl overflow-hidden flex items-center justify-center font-bold text-3xl sm:text-4xl">
-                        {channel.avatarUrl ? (
-                          <img src={channel.avatarUrl} alt={channel.displayName} className="h-full w-full object-cover" />
-                        ) : (
-                          <span>{channelInitial}</span>
-                        )}
+                        <img
+                          src={channel.avatarUrl || "/default-avatar.png"}
+                          alt={channel.displayName}
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
+                          }}
+                        />
                       </div>
                       <span
                         className="absolute bottom-1 right-1.5 h-4 w-4 rounded-full bg-[#00a8ff] border-2 border-black shadow-md ring-2 ring-[#00a8ff]/20"

@@ -79,17 +79,14 @@ export default function VideoCard({ video }: VideoCardProps) {
           title={displayName}
         >
           <div className="h-9 w-9 overflow-hidden rounded-full bg-[#181818]">
-            {channel.avatarUrl ? (
-              <img
-                src={channel.avatarUrl}
-                alt={displayName}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center font-bold text-xs text-zinc-300 bg-zinc-700">
-                {initial}
-              </div>
-            )}
+            <img
+              src={channel.avatarUrl || "/default-avatar.png"}
+              alt={displayName}
+              className="h-full w-full object-cover"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
+              }}
+            />
           </div>
         </Link>
 

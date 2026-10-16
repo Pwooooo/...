@@ -419,11 +419,14 @@ export default function CommunityTab({ channel, isOwnProfile }: CommunityTabProp
         >
           <div className="flex gap-3">
             <div className="h-10 w-10 rounded-full bg-[#181818] border border-white/[0.08] flex-shrink-0 overflow-hidden flex items-center justify-center font-bold text-sm text-white">
-              {avatarUrl ? (
-                <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
-              ) : (
-                <span>{(displayName || "C").slice(0, 1).toUpperCase()}</span>
-              )}
+              <img
+                src={avatarUrl || "/default-avatar.png"}
+                alt={displayName}
+                className="h-full w-full object-cover"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
+                }}
+              />
             </div>
 
             <div className="flex-1 space-y-3">
@@ -720,11 +723,14 @@ export default function CommunityTab({ channel, isOwnProfile }: CommunityTabProp
                   <div className="mt-4 pt-4 border-t border-white/[0.08] space-y-4 animate-in fade-in duration-200">
                     <div className="flex gap-2.5">
                       <div className="h-8 w-8 rounded-full bg-[#181818] border border-white/[0.08] flex-shrink-0 overflow-hidden flex items-center justify-center font-bold text-xs text-white">
-                        {user?.avatarUrl ? (
-                          <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
-                        ) : (
-                          <span>{(user?.name || "U").slice(0, 1).toUpperCase()}</span>
-                        )}
+                        <img
+                          src={user?.avatarUrl || "/default-avatar.png"}
+                          alt={user?.name || "User"}
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
+                          }}
+                        />
                       </div>
 
                       <div className="flex-1 flex gap-2">

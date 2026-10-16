@@ -265,11 +265,14 @@ export default function NewsTab({ channel, isOwnProfile = false }: NewsTabProps)
 
           <div className="flex gap-3">
             <div className="h-10 w-10 rounded-full bg-[#181818] border border-white/[0.08] flex-shrink-0 overflow-hidden flex items-center justify-center font-bold text-sm text-white">
-              {avatarUrl ? (
-                <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
-              ) : (
-                <span>{(displayName || "C").slice(0, 1).toUpperCase()}</span>
-              )}
+              <img
+                src={avatarUrl || "/default-avatar.png"}
+                alt={displayName}
+                className="h-full w-full object-cover"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
+                }}
+              />
             </div>
 
             <div className="flex-1 space-y-3">

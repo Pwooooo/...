@@ -330,7 +330,7 @@ async function fetchBlobVideosIndex(): Promise<VideoItem[]> {
           id: "creator",
           handle: "creator",
           displayName: "Creator",
-          avatarUrl: "",
+          avatarUrl: "/default-avatar.png",
           subscribersCount: 0,
         },
       };
@@ -775,12 +775,17 @@ export async function POST(req: NextRequest) {
       id: "unknown",
       handle: "anonymous",
       displayName: "Creator",
-      avatarUrl: "",
+      avatarUrl: "/default-avatar.png",
       subscribersCount: 0,
     };
 
     try {
-      channel = { ...channel, ...JSON.parse(channelRaw) };
+      const parsedChannel = JSON.parse(channelRaw);
+      channel = {
+        ...channel,
+        ...parsedChannel,
+        avatarUrl: parsedChannel.avatarUrl || "/default-avatar.png",
+      };
     } catch {}
 
     const tags = tagsRaw

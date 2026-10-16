@@ -236,11 +236,14 @@ export default function ProfilePage() {
                     aria-label="Edit profile and avatar"
                   >
                     <div className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-full border-4 border-black bg-zinc-900 text-white shadow-2xl overflow-hidden flex items-center justify-center font-bold text-3xl sm:text-4xl transition-transform duration-200 group-hover:scale-105">
-                      {user.avatarUrl ? (
-                        <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
-                      ) : (
-                        <span>{userInitial}</span>
-                      )}
+                      <img
+                        src={user.avatarUrl || "/default-avatar.png"}
+                        alt={user.name}
+                        className="h-full w-full object-cover"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
+                        }}
+                      />
                       {/* Hover Overlay */}
                       <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-opacity text-white">
                         <Camera className="h-6 w-6 mb-1" />

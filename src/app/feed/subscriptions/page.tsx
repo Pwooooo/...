@@ -49,9 +49,12 @@ export default function SubscriptionsPage() {
               >
                 <div className="relative h-14 w-14 rounded-full overflow-hidden bg-zinc-900 border-2 border-white group-hover:border-zinc-300 transition-colors">
                   <img
-                    src={channel.avatarUrl || ""}
+                    src={channel.avatarUrl || "/default-avatar.png"}
                     alt={channel.displayName}
                     className="h-full w-full object-cover"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
+                    }}
                   />
                 </div>
                 <span className="text-xs text-zinc-300 max-w-[70px] truncate group-hover:text-white">
