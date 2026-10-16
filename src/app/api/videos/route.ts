@@ -92,41 +92,32 @@ function getR2Config() {
 
   const accessKeyId =
     process.env.CLOUDFLARE_R2_ACCESS_KEY_ID ||
-    process.env.R2_ACCESS_KEY_ID ||
-    process.env.S3_ACCESS_KEY ||
-    process.env.AWS_ACCESS_KEY_ID;
+    process.env.R2_ACCESS_KEY_ID;
 
   const secretAccessKey =
     process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY ||
-    process.env.R2_SECRET_ACCESS_KEY ||
-    process.env.S3_SECRET_KEY ||
-    process.env.AWS_SECRET_ACCESS_KEY;
+    process.env.R2_SECRET_ACCESS_KEY;
+
+  // Only initialize R2 if account ID and credentials are explicitly provided
+  if (!accountId || !accessKeyId || !secretAccessKey) {
+    return null;
+  }
 
   const bucket =
     process.env.CLOUDFLARE_R2_BUCKET_NAME ||
     process.env.R2_BUCKET_NAME ||
-    process.env.S3_BUCKET_NAME ||
     "entropy-videos";
 
-  let endpoint =
+  const endpoint =
     process.env.CLOUDFLARE_R2_ENDPOINT ||
     process.env.R2_ENDPOINT ||
-    process.env.S3_ENDPOINT;
-
-  if (accountId && !endpoint) {
-    endpoint = `https://${accountId}.r2.cloudflarestorage.com`;
-  }
+    `https://${accountId}.r2.cloudflarestorage.com`;
 
   const publicUrl = (
     process.env.CLOUDFLARE_R2_PUBLIC_URL ||
     process.env.R2_PUBLIC_URL ||
-    process.env.S3_PUBLIC_DOMAIN ||
     ""
   ).replace(/\/$/, "");
-
-  if (!accessKeyId || !secretAccessKey || !endpoint) {
-    return null;
-  }
 
   return { accountId, accessKeyId, secretAccessKey, bucket, endpoint, publicUrl };
 }
@@ -142,6 +133,7 @@ function getR2Client() {
       const client = new S3Client({
         region: "auto",
         endpoint: config.endpoint,
+        forcePathStyle: true,
         credentials: {
           accessKeyId: config.accessKeyId,
           secretAccessKey: config.secretAccessKey,
@@ -149,7 +141,7 @@ function getR2Client() {
       });
       cachedR2Client = { client, bucket: config.bucket, publicUrl: config.publicUrl, endpoint: config.endpoint };
     } catch (err) {
-      console.warn("Could not create Cloudflare R2 / S3 client:", err);
+      console.warn("Could not create Cloudflare R2 client:", err);
       return null;
     }
   }
