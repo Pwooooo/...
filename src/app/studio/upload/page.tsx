@@ -25,6 +25,7 @@ import {
   saveUserVideoMetadata,
   saveUserUploadedVideo,
   uploadVideoToServer,
+  fetchServerVideos,
 } from "@/lib/video-storage";
 import { formatDuration } from "@/lib/utils";
 
@@ -174,38 +175,21 @@ export default function StudioUploadPage() {
         setUploadStage(stage);
         setUploadProgress(pct);
       });
-      const videoId = srvResult.video?.id || `v-user-${Date.now()}`;
-      setCreatedVideoId(videoId);
 
-      const finalThumbnail =
-        srvResult.video?.thumbnailUrl ||
-        thumbnailUrl ||
-        "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80";
+      if (!srvResult.success || !srvResult.video) {
+        setIsUploading(false);
+        const errMsg = srvResult.error || "Upload to cloud failed. Please check your Vercel Blob settings.";
+        showToast(errMsg);
+        return;
+      }
 
-      const finalVideo: VideoItem = srvResult.video || {
-        id: videoId,
-        title: title.trim() || file.name,
-        description: description.trim() || "Uploaded to Entropy",
-        thumbnailUrl: finalThumbnail,
-        rawVideoUrl: `/api/videos/${videoId}/stream`,
-        durationSeconds: extractedDuration || 120,
-        viewCount: 0,
-        publishedAt: new Date().toISOString(),
-        category,
-        tags: parsedTags.length > 0 ? parsedTags : [category],
-        channel: {
-          id: user.id || "u-user",
-          handle: user.handle,
-          displayName: user.name || user.handle,
-          avatarUrl: user.avatarUrl || user.avatar || "",
-          subscribersCount: 0,
-        },
-      };
-
+      const finalVideo: VideoItem = srvResult.video;
+      setCreatedVideoId(finalVideo.id);
       saveUserUploadedVideo(finalVideo);
+      await fetchServerVideos();
 
       setUploadProgress(100);
-      setUploadStage("Video published successfully!");
+      setUploadStage("Video published successfully to everyone!");
       setIsUploading(false);
       setIsCompleted(true);
       showToast("Video uploaded and published!");

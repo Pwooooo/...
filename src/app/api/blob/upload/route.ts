@@ -1,11 +1,13 @@
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
+import { ensureBlobToken } from "@/lib/blob-env";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request): Promise<NextResponse> {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  const token = ensureBlobToken();
+  if (!token) {
     return NextResponse.json({ error: "BLOB_NOT_CONFIGURED" }, { status: 400 });
   }
 

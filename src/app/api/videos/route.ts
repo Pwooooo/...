@@ -147,9 +147,11 @@ function writeLocalVideos(videos: VideoItem[]): void {
   } catch {}
 }
 
+import { ensureBlobToken } from "@/lib/blob-env";
+
 // ----------------- Vercel Blob Operations -----------------
 function hasVercelBlob(): boolean {
-  return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+  return Boolean(ensureBlobToken());
 }
 
 async function putSafeBlob(pathname: string, body: Buffer | string, contentType?: string) {
@@ -517,32 +519,47 @@ async function saveR2VideosIndex(videos: VideoItem[]): Promise<void> {
 
 export async function GET() {
   try {
+    ensureBlobToken();
     const deleted = readDeletedVideoIds();
     const blobVideos = await fetchBlobVideosIndex();
     const r2Videos = await fetchR2VideosIndex();
     const localVideos = readLocalVideos();
 
-    // Priority merge: local disk -> R2 cloud -> Vercel Blob cloud
+    // Priority merge: blob/R2 uploads take highest priority, then local user uploads, then base samples
     const map = new Map<string, VideoItem>();
-    localVideos.forEach((v) => {
-      if (!deleted.has(v.id)) map.set(v.id, v);
-    });
-    r2Videos.forEach((v) => {
-      if (!deleted.has(v.id)) map.set(v.id, v);
-    });
     blobVideos.forEach((v) => {
       if (!deleted.has(v.id)) map.set(v.id, v);
     });
+    r2Videos.forEach((v) => {
+      if (!deleted.has(v.id) && !map.has(v.id)) map.set(v.id, v);
+    });
+    localVideos.forEach((v) => {
+      if (!deleted.has(v.id) && !map.has(v.id)) map.set(v.id, v);
+    });
 
-    const all = Array.from(map.values()).filter((v) => !deleted.has(v.id));
+    const allItems = Array.from(map.values()).filter((v) => !deleted.has(v.id));
+    // Sort so user/cloud uploaded videos appear first before sample videos
+    const userCloudVideos = allItems.filter((v) => !v.id.startsWith("sample-"));
+    const sampleVideos = allItems.filter((v) => v.id.startsWith("sample-"));
+    const all = [...userCloudVideos, ...sampleVideos];
 
     // Keep local store warm if running locally and cloud had new items
     if (r2Videos.length > 0 || blobVideos.length > 0) {
       writeLocalVideos(all);
     }
 
+    const storageStatus = {
+      blobConfigured: hasVercelBlob(),
+      r2Configured: Boolean(getR2Config()),
+      totalVideos: all.length,
+      userVideosCount: userCloudVideos.length,
+      blobVideosCount: blobVideos.length,
+      r2VideosCount: r2Videos.length,
+      localVideosCount: localVideos.length,
+    };
+
     return NextResponse.json(
-      { success: true, videos: all },
+      { success: true, storageStatus, videos: all },
       {
         headers: {
           "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",

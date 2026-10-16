@@ -1,5 +1,6 @@
 import { get, list } from "@vercel/blob";
 import { type NextRequest, NextResponse } from "next/server";
+import { ensureBlobToken } from "@/lib/blob-env";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,6 +28,7 @@ function getCandidates(raw: string): string[] {
 }
 
 async function resolveBlob(raw: string, rangeHeader?: string | null) {
+  ensureBlobToken();
   const candidates = getCandidates(raw);
   const extraHeaders: Record<string, string> = {};
   if (rangeHeader) {

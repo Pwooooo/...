@@ -165,13 +165,24 @@ export function getAllCombinedVideos(): VideoItem[] {
         } catch {}
       }
 
-      // Merge: base videos, server cached videos, user uploads (user uploads take priority)
-      const map = new Map<string, VideoItem>();
-      getBaseVideos().forEach((v) => map.set(v.id, v));
-      serverCached.forEach((v) => map.set(v.id, v));
-      userUploads.forEach((v) => map.set(v.id, v));
+      // Merge: newly uploaded and server-cloud videos appear first before sample videos
+      const nonSampleMap = new Map<string, VideoItem>();
+      const sampleMap = new Map<string, VideoItem>();
 
-      const clean = Array.from(map.values()).filter((v) => !isNextJsFillerVideo(v));
+      userUploads.forEach((v) => nonSampleMap.set(v.id, v));
+      serverCached.forEach((v) => {
+        if (!v.id.startsWith("sample-")) {
+          nonSampleMap.set(v.id, v);
+        } else {
+          sampleMap.set(v.id, v);
+        }
+      });
+      getBaseVideos().forEach((v) => {
+        if (!sampleMap.has(v.id)) sampleMap.set(v.id, v);
+      });
+
+      const merged = [...Array.from(nonSampleMap.values()), ...Array.from(sampleMap.values())];
+      const clean = merged.filter((v) => !isNextJsFillerVideo(v));
       if (clean.length > 0) return clean;
     } catch {}
   }
