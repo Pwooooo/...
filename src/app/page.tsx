@@ -21,7 +21,12 @@ const CATEGORIES = [
 export default function HomePage() {
   const [collapsedSidebar, setCollapsedSidebar] = useState(false);
   const [activeCategory, setActiveCategory] = useState("All");
-  const [allVideos, setAllVideos] = useState<VideoItem[]>(() => getBaseVideos());
+  const [allVideos, setAllVideos] = useState<VideoItem[]>(() => {
+    if (typeof window !== "undefined") {
+      return getAllCombinedVideos();
+    }
+    return getBaseVideos();
+  });
 
   useEffect(() => {
     // Immediately after mount, sync with client-side localStorage

@@ -144,7 +144,9 @@ export default function UserProfilePage({
         const allAvailable = getAllCombinedVideos();
         const filtered = allAvailable.filter(
           (v: VideoItem) => {
-            if (!v || !v.channel) return false;
+            if (!v) return false;
+            if (isOwnProfile && (v.id.startsWith("v-srv-") || v.id.startsWith("v-user-") || !v.id.startsWith("sample-"))) return true;
+            if (!v.channel) return false;
             const h = typeof v.channel.handle === "string" ? v.channel.handle.replace(/^@/, "").toLowerCase() : "";
             const id = typeof v.channel.id === "string" ? v.channel.id.toLowerCase() : "";
             const d = typeof v.channel.displayName === "string" ? v.channel.displayName.toLowerCase() : "";

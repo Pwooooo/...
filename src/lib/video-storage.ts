@@ -108,39 +108,84 @@ export function getBaseVideos(): VideoItem[] {
 }
 
 // ----------------- Central Client Video Cache -----------------
-const CACHE_KEY = "entropy_server_videos_cache";
+const SERVER_CACHE_KEY = "entropy_server_videos_cache";
+const USER_UPLOADS_KEY = "entropy_user_uploaded_videos";
+
+export function getUserUploadedVideos(): VideoItem[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(USER_UPLOADS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.filter((v: VideoItem) => v && typeof v.id === "string" && !isNextJsFillerVideo(v));
+      }
+    }
+  } catch {}
+  return [];
+}
+
+export function saveUserUploadedVideo(video: VideoItem): void {
+  if (!video || !video.id || isNextJsFillerVideo(video)) return;
+  if (typeof window !== "undefined") {
+    try {
+      const current = getUserUploadedVideos();
+      const filtered = current.filter((v) => v.id !== video.id);
+      const updated = [video, ...filtered];
+      localStorage.setItem(USER_UPLOADS_KEY, JSON.stringify(updated));
+
+      // Also ensure it is in the combined cache
+      const cachedRaw = localStorage.getItem(SERVER_CACHE_KEY);
+      let cached: VideoItem[] = [];
+      if (cachedRaw) {
+        try {
+          const parsed = JSON.parse(cachedRaw);
+          if (Array.isArray(parsed)) cached = parsed;
+        } catch {}
+      }
+      const newCached = [video, ...cached.filter((v) => v.id !== video.id)];
+      localStorage.setItem(SERVER_CACHE_KEY, JSON.stringify(newCached));
+    } catch {}
+    window.dispatchEvent(new Event("entropy_videos_updated"));
+  }
+}
 
 export function getAllCombinedVideos(): VideoItem[] {
   if (typeof window !== "undefined") {
     try {
-      const stored = localStorage.getItem(CACHE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const clean = parsed.filter((v: VideoItem) => v && typeof v.id === "string" && !isNextJsFillerVideo(v));
-          if (clean.length > 0) return clean;
-        }
+      const userUploads = getUserUploadedVideos();
+      const cachedRaw = localStorage.getItem(SERVER_CACHE_KEY);
+      let serverCached: VideoItem[] = [];
+      if (cachedRaw) {
+        try {
+          const parsed = JSON.parse(cachedRaw);
+          if (Array.isArray(parsed)) {
+            serverCached = parsed.filter((v: VideoItem) => v && typeof v.id === "string" && !isNextJsFillerVideo(v));
+          }
+        } catch {}
       }
+
+      // Merge: base videos, server cached videos, user uploads (user uploads take priority)
+      const map = new Map<string, VideoItem>();
+      getBaseVideos().forEach((v) => map.set(v.id, v));
+      serverCached.forEach((v) => map.set(v.id, v));
+      userUploads.forEach((v) => map.set(v.id, v));
+
+      const clean = Array.from(map.values()).filter((v) => !isNextJsFillerVideo(v));
+      if (clean.length > 0) return clean;
     } catch {}
   }
   return getBaseVideos();
 }
 
 export function getUserVideos(): VideoItem[] {
-  return getAllCombinedVideos();
+  const all = getAllCombinedVideos();
+  // Return all non-sample videos, or videos with user/srv prefixes
+  return all.filter((v) => v && (!v.id.startsWith("sample-") || v.id.startsWith("v-srv-") || v.id.startsWith("v-user-")));
 }
 
 export function saveUserVideoMetadata(video: VideoItem): void {
-  if (!video || !video.id || isNextJsFillerVideo(video)) return;
-  const current = getAllCombinedVideos();
-  const filtered = current.filter((v) => v.id !== video.id);
-  const updated = [video, ...filtered];
-  if (typeof window !== "undefined") {
-    try {
-      localStorage.setItem(CACHE_KEY, JSON.stringify(updated));
-    } catch {}
-    window.dispatchEvent(new Event("entropy_videos_updated"));
-  }
+  saveUserUploadedVideo(video);
 }
 
 // ----------------- Server-Driven Video Operations -----------------
@@ -158,10 +203,10 @@ export async function fetchServerVideos(): Promise<VideoItem[]> {
       );
       if (cleanVideos.length > 0) {
         try {
-          localStorage.setItem(CACHE_KEY, JSON.stringify(cleanVideos));
+          localStorage.setItem(SERVER_CACHE_KEY, JSON.stringify(cleanVideos));
         } catch {}
         window.dispatchEvent(new Event("entropy_videos_updated"));
-        return cleanVideos;
+        return getAllCombinedVideos();
       }
     }
   } catch (err) {
@@ -178,7 +223,7 @@ export async function uploadVideoToServer(formData: FormData): Promise<{ success
     });
     const data = await res.json();
     if (data.success && data.video) {
-      saveUserVideoMetadata(data.video);
+      saveUserUploadedVideo(data.video);
       await fetchServerVideos();
       return { success: true, video: data.video };
     }
@@ -191,15 +236,16 @@ export async function uploadVideoToServer(formData: FormData): Promise<{ success
 
 export async function deleteUserVideo(videoId: string): Promise<void> {
   if (!videoId) return;
-  try {
-    const current = getAllCombinedVideos();
-    const updated = current.filter((v) => v.id !== videoId);
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify(updated));
-      } catch {}
+  if (typeof window !== "undefined") {
+    try {
+      const uploads = getUserUploadedVideos().filter((v) => v.id !== videoId);
+      localStorage.setItem(USER_UPLOADS_KEY, JSON.stringify(uploads));
+      const cached = getAllCombinedVideos().filter((v) => v.id !== videoId);
+      localStorage.setItem(SERVER_CACHE_KEY, JSON.stringify(cached));
       window.dispatchEvent(new Event("entropy_videos_updated"));
-    }
+    } catch {}
+  }
+  try {
     await fetch(`/api/videos?id=${videoId}`, { method: "DELETE" });
     await fetchServerVideos();
   } catch (e) {
@@ -215,7 +261,13 @@ export function updateUserVideo(videoId: string, updates: Partial<VideoItem>): v
     current[idx] = { ...current[idx], ...updates };
     if (typeof window !== "undefined") {
       try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify(current));
+        localStorage.setItem(SERVER_CACHE_KEY, JSON.stringify(current));
+        const uploads = getUserUploadedVideos();
+        const uIdx = uploads.findIndex((v) => v.id === videoId);
+        if (uIdx !== -1) {
+          uploads[uIdx] = { ...uploads[uIdx], ...updates };
+          localStorage.setItem(USER_UPLOADS_KEY, JSON.stringify(uploads));
+        }
       } catch {}
       window.dispatchEvent(new Event("entropy_videos_updated"));
     }

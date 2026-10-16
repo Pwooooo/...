@@ -12,6 +12,7 @@ export const maxDuration = 60;
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const VIDEOS_FILE = path.join(DATA_DIR, "videos.json");
+const BACKUP_VIDEOS_FILE = path.join(DATA_DIR, "videos_backup.json");
 const DELETED_VIDEOS_FILE = path.join(DATA_DIR, "deleted_videos.json");
 const UPLOADS_DIR = path.join(process.cwd(), "public", "uploads");
 const VIDEOS_DIR = path.join(UPLOADS_DIR, "videos");
@@ -39,7 +40,12 @@ function safeEnsureDirs() {
       const seed = ALL_VIDEOS.filter((v) => !isNextJsFillerVideo(v));
       fs.writeFileSync(VIDEOS_FILE, JSON.stringify(seed, null, 2), "utf-8");
     }
-    if (!fs.existsSync(DELETED_VIDEOS_FILE)) fs.writeFileSync(DELETED_VIDEOS_FILE, JSON.stringify([], null, 2), "utf-8");
+    if (!fs.existsSync(BACKUP_VIDEOS_FILE)) {
+      fs.writeFileSync(BACKUP_VIDEOS_FILE, JSON.stringify([], null, 2), "utf-8");
+    }
+    if (!fs.existsSync(DELETED_VIDEOS_FILE)) {
+      fs.writeFileSync(DELETED_VIDEOS_FILE, JSON.stringify(DEFAULT_SERVER_DELETED, null, 2), "utf-8");
+    }
   } catch {
     // Read-only serverless environment
   }
@@ -84,29 +90,59 @@ function unmarkDeletedVideoId(id: string): void {
 function readLocalVideos(): VideoItem[] {
   safeEnsureDirs();
   const deleted = readDeletedVideoIds();
+  const map = new Map<string, VideoItem>();
+
+  // 1. Base static videos
+  ALL_VIDEOS.forEach((v) => {
+    if (v && v.id && !deleted.has(v.id) && !isNextJsFillerVideo(v)) {
+      map.set(v.id, v);
+    }
+  });
+
+  // 2. Backup videos file (persistent user uploads backup)
   try {
-    if (fs.existsSync(VIDEOS_FILE)) {
-      const raw = fs.readFileSync(VIDEOS_FILE, "utf-8");
+    if (fs.existsSync(BACKUP_VIDEOS_FILE)) {
+      const raw = fs.readFileSync(BACKUP_VIDEOS_FILE, "utf-8");
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed.filter((v: VideoItem) => v && typeof v.id === "string" && !deleted.has(v.id) && !isNextJsFillerVideo(v));
+      if (Array.isArray(parsed)) {
+        parsed.forEach((v: VideoItem) => {
+          if (v && v.id && !deleted.has(v.id) && !isNextJsFillerVideo(v)) {
+            map.set(v.id, v);
+          }
+        });
       }
     }
   } catch {}
 
-  const seed = ALL_VIDEOS.filter((v) => !deleted.has(v.id) && !isNextJsFillerVideo(v));
+  // 3. Primary videos file
   try {
-    fs.writeFileSync(VIDEOS_FILE, JSON.stringify(seed, null, 2), "utf-8");
+    if (fs.existsSync(VIDEOS_FILE)) {
+      const raw = fs.readFileSync(VIDEOS_FILE, "utf-8");
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        parsed.forEach((v: VideoItem) => {
+          if (v && v.id && !deleted.has(v.id) && !isNextJsFillerVideo(v)) {
+            map.set(v.id, v);
+          }
+        });
+      }
+    }
   } catch {}
-  return seed;
+
+  const result = Array.from(map.values());
+  return result;
 }
 
 function writeLocalVideos(videos: VideoItem[]): void {
   safeEnsureDirs();
   try {
     const deleted = readDeletedVideoIds();
-    const filtered = videos.filter((v) => !deleted.has(v.id));
+    const filtered = videos.filter((v) => v && v.id && !deleted.has(v.id) && !isNextJsFillerVideo(v));
     fs.writeFileSync(VIDEOS_FILE, JSON.stringify(filtered, null, 2), "utf-8");
+
+    // Also persist user uploads to backup file so they are never lost
+    const userOnly = filtered.filter((v) => !v.id.startsWith("sample-"));
+    fs.writeFileSync(BACKUP_VIDEOS_FILE, JSON.stringify(userOnly, null, 2), "utf-8");
   } catch {}
 }
 

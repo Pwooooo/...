@@ -38,12 +38,16 @@ function WatchContent() {
   const chaptersPanelRef = useRef<HTMLDivElement>(null);
 
   const [currentVideo, setCurrentVideo] = useState<VideoItem>(() => {
+    const combined = getAllCombinedVideos();
+    const found = combined.find((v) => v.id === videoId);
+    if (found) return found;
     const base = getBaseVideos();
     return base.find((v) => v.id === videoId) || base[0] || ALL_VIDEOS[0];
   });
   const [resolvedVideoUrl, setResolvedVideoUrl] = useState<string | null>(null);
   const [allRecommendedVideos, setAllRecommendedVideos] = useState<VideoItem[]>(() => {
-    return getBaseVideos().filter((v) => v.id !== videoId);
+    const combined = getAllCombinedVideos();
+    return combined.filter((v) => v.id !== videoId);
   });
 
   useEffect(() => {
@@ -83,14 +87,14 @@ function WatchContent() {
       applyVideo(found);
     }
 
-    fetchServerVideos().then(() => {
+    fetchServerVideos().then((serverVideos) => {
       if (isCancelled) return;
       const allCurrent = getAllCombinedVideos();
-      const srvFound = allCurrent.find((v) => v.id === videoId) || allCurrent[0];
+      const srvFound = allCurrent.find((v) => v.id === videoId);
       if (srvFound) {
         applyVideo(srvFound);
       }
-      setAllRecommendedVideos(allCurrent.filter((v) => v.id !== (srvFound ? srvFound.id : videoId)));
+      setAllRecommendedVideos(allCurrent.filter((v) => v.id !== videoId));
     });
 
     const handleVideosUpdated = () => {

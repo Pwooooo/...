@@ -120,24 +120,28 @@ export default function StudioVideosPage() {
 
   const loadUserVideos = () => {
     try {
+      const stored = getUserVideos();
       if (user) {
-        const stored = getUserVideos();
+        const uHandle = user.handle?.replace(/^@/, "").toLowerCase();
+        const uName = user.name?.toLowerCase();
+        const uId = user.id?.toLowerCase();
         const userVideos = stored.filter((v: VideoItem) => {
           const vHandle = v.channel?.handle?.replace(/^@/, "").toLowerCase();
-          const uHandle = user.handle?.replace(/^@/, "").toLowerCase();
           const vName = v.channel?.displayName?.toLowerCase();
-          const uName = user.name?.toLowerCase();
           const vChannelId = v.channel?.id?.toLowerCase();
-          const uId = user.id?.toLowerCase();
-          return (
+          const matches =
             (vHandle && uHandle && vHandle === uHandle) ||
             (vName && uName && vName === uName) ||
-            (vChannelId && uId && vChannelId === uId)
-          );
+            (vChannelId && uId && vChannelId === uId) ||
+            v.id.startsWith("v-user-") ||
+            v.id.startsWith("v-srv-") ||
+            !v.id.startsWith("sample-");
+          return matches;
         });
         setVideos(userVideos);
       } else {
-        setVideos([]);
+        // Show uploaded videos even if auth state is loading
+        setVideos(stored);
       }
     } catch {
       setVideos([]);

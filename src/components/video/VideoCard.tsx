@@ -58,6 +58,9 @@ export default function VideoCard({ video }: VideoCardProps) {
         <img
           src={video.thumbnailUrl || "/placeholder-thumb.jpg"}
           alt={video.title || "Video thumbnail"}
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = "/placeholder-thumb.jpg";
+          }}
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
         {duration > 0 && (

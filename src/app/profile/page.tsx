@@ -31,7 +31,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { VideoItem } from "@/types";
 import CommunityTab from "@/components/channel/CommunityTab";
-import { fetchServerVideos, getAllCombinedVideos } from "@/lib/video-storage";
+import { fetchServerVideos, getAllCombinedVideos, getUserVideos } from "@/lib/video-storage";
 
 const PROFILE_TABS = ["Videos", "Playlists", "Community", "About"];
 
@@ -58,7 +58,9 @@ export default function ProfilePage() {
           const uName = typeof user.name === "string" ? user.name.toLowerCase() : "";
           const filtered = all.filter(
             (v: VideoItem) => {
-              if (!v || !v.channel) return false;
+              if (!v) return false;
+              if (v.id.startsWith("v-srv-") || v.id.startsWith("v-user-") || !v.id.startsWith("sample-")) return true;
+              if (!v.channel) return false;
               const vHandle = typeof v.channel.handle === "string" ? v.channel.handle.replace(/^@/, "").toLowerCase() : "";
               const vName = typeof v.channel.displayName === "string" ? v.channel.displayName.toLowerCase() : "";
               return (
@@ -69,6 +71,8 @@ export default function ProfilePage() {
             }
           );
           setUserVideos(filtered);
+        } else {
+          setUserVideos(getUserVideos());
         }
       } catch {
         setUserVideos([]);

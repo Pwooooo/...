@@ -23,6 +23,7 @@ import {
   extractVideoDetails,
   saveVideoBlob,
   saveUserVideoMetadata,
+  saveUserUploadedVideo,
   uploadVideoToServer,
 } from "@/lib/video-storage";
 import { formatDuration } from "@/lib/utils";
@@ -173,35 +174,32 @@ export default function StudioUploadPage() {
       const videoId = srvResult.video?.id || `v-user-${Date.now()}`;
       setCreatedVideoId(videoId);
 
-      // Also save locally to IndexedDB as client cache
-      await saveVideoBlob(videoId, file);
+      const finalThumbnail =
+        srvResult.video?.thumbnailUrl ||
+        thumbnailUrl ||
+        "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80";
 
-      if (!srvResult.success) {
-        const finalThumbnail =
-          thumbnailUrl ||
-          "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80";
+      const finalVideo: VideoItem = srvResult.video || {
+        id: videoId,
+        title: title.trim() || file.name,
+        description: description.trim() || "Uploaded to Entropy",
+        thumbnailUrl: finalThumbnail,
+        rawVideoUrl: `/api/videos/${videoId}/stream`,
+        durationSeconds: extractedDuration || 120,
+        viewCount: 0,
+        publishedAt: new Date().toISOString(),
+        category,
+        tags: parsedTags.length > 0 ? parsedTags : [category],
+        channel: {
+          id: user.id || "u-user",
+          handle: user.handle,
+          displayName: user.name || user.handle,
+          avatarUrl: user.avatarUrl || user.avatar || "",
+          subscribersCount: 0,
+        },
+      };
 
-        const newVideo: VideoItem = {
-          id: videoId,
-          title: title.trim() || file.name,
-          description: description.trim() || "Uploaded to Entropy",
-          thumbnailUrl: finalThumbnail,
-          rawVideoUrl: videoPreviewUrl || undefined,
-          durationSeconds: extractedDuration || 120,
-          viewCount: 0,
-          publishedAt: new Date().toISOString(),
-          category,
-          tags: parsedTags.length > 0 ? parsedTags : [category],
-          channel: {
-            id: user.id || "u-user",
-            handle: user.handle,
-            displayName: user.name || user.handle,
-            avatarUrl: user.avatarUrl || user.avatar || "",
-            subscribersCount: 0,
-          },
-        };
-        saveUserVideoMetadata(newVideo);
-      }
+      saveUserUploadedVideo(finalVideo);
 
       setUploadProgress(100);
       setUploadStage("Video published successfully!");
