@@ -54,16 +54,20 @@ function WatchContent() {
       if (isCancelled) return;
       setCurrentVideo(video);
       if (video.id.startsWith("v-user-") || video.id.startsWith("v-srv-") || video.rawVideoUrl) {
-        const blob = await getVideoBlob(video.id);
-        if (isCancelled) return;
-        if (blob) {
-          const url = URL.createObjectURL(blob);
-          activeBlobUrl = url;
-          setResolvedVideoUrl(url);
-        } else if (video.rawVideoUrl) {
+        if (video.rawVideoUrl) {
           setResolvedVideoUrl(video.rawVideoUrl);
+        } else if (video.id.startsWith("v-srv-") || video.id.startsWith("v-user-")) {
+          setResolvedVideoUrl(`/api/videos/${video.id}/stream`);
         } else {
-          setResolvedVideoUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4");
+          const blob = await getVideoBlob(video.id);
+          if (isCancelled) return;
+          if (blob) {
+            const url = URL.createObjectURL(blob);
+            activeBlobUrl = url;
+            setResolvedVideoUrl(url);
+          } else {
+            setResolvedVideoUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4");
+          }
         }
       } else {
         setResolvedVideoUrl(

@@ -325,20 +325,20 @@ export async function POST(req: NextRequest) {
         file.type || "video/mp4"
       );
 
-      if (r2VideoUrl) {
-        rawVideoUrl = r2VideoUrl;
-      }
-
-      // Also save locally to public/uploads/videos
+      // Always save locally to public/uploads/videos for reliable high-speed chunked streaming
       try {
         const videoFileName = `${videoId}.${ext}`;
         const videoFilePath = path.join(VIDEOS_DIR, videoFileName);
         await fs.promises.writeFile(videoFilePath, videoBuffer);
-        if (!rawVideoUrl) {
-          rawVideoUrl = `/uploads/videos/${videoFileName}`;
-        }
       } catch (err) {
         console.warn("Could not write video file locally:", err);
+      }
+
+      const r2Config = getR2Config();
+      if (r2Config?.publicUrl && r2VideoUrl) {
+        rawVideoUrl = r2VideoUrl;
+      } else {
+        rawVideoUrl = `/api/videos/${videoId}/stream`;
       }
     }
 
@@ -480,14 +480,22 @@ export async function DELETE(req: NextRequest) {
       }
 
       // Delete from local filesystem
-      if (target.rawVideoUrl && target.rawVideoUrl.startsWith("/uploads/videos/")) {
-        const videoPath = path.join(process.cwd(), "public", target.rawVideoUrl);
+      const exts = [".mp4", ".webm", ".mov", ".mkv", ".m4v"];
+      for (const ext of exts) {
+        const videoPath = path.join(VIDEOS_DIR, `${id}${ext}`);
         try {
           if (fs.existsSync(videoPath)) fs.unlinkSync(videoPath);
         } catch {}
       }
       if (target.thumbnailUrl && target.thumbnailUrl.startsWith("/uploads/thumbnails/")) {
         const thumbPath = path.join(process.cwd(), "public", target.thumbnailUrl);
+        try {
+          if (fs.existsSync(thumbPath)) fs.unlinkSync(thumbPath);
+        } catch {}
+      }
+      const thumbExts = [".jpg", ".png", ".webp"];
+      for (const ext of thumbExts) {
+        const thumbPath = path.join(THUMBNAILS_DIR, `${id}${ext}`);
         try {
           if (fs.existsSync(thumbPath)) fs.unlinkSync(thumbPath);
         } catch {}
