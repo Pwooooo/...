@@ -89,15 +89,24 @@ export function extractVideoDetails(file: File): Promise<{
 }
 
 // ----------------- Filter Filler Videos -----------------
-export function isFillerVideo(video?: { id?: string; title?: string } | null): boolean {
+export function isFillerVideo(video?: { id?: string; title?: string; channel?: { id?: string; handle?: string; displayName?: string } } | null): boolean {
   if (!video || typeof video !== "object") return false;
   const id = typeof video.id === "string" ? video.id : "";
   const title = typeof video.title === "string" ? video.title.toLowerCase() : "";
+  const channelHandle = typeof video.channel?.handle === "string" ? video.channel.handle.toLowerCase().replace(/^@/, "").trim() : "";
+  const channelId = typeof video.channel?.id === "string" ? video.channel.id.toLowerCase().trim() : "";
+  const channelName = typeof video.channel?.displayName === "string" ? video.channel.displayName.toLowerCase().trim() : "";
+
   return (
     id.startsWith("sample-") ||
+    id.startsWith("v-blob-") ||
     id === "v-srv-1792152077838" ||
     id === "v-user-1792152077838" ||
     id === "v-srv-1792158340022" ||
+    id.includes("CW scenario 1-1C6ka5PylZ6KeUnoSaJu9s82hRLYaK") ||
+    channelHandle === "creator" ||
+    channelId === "creator" ||
+    channelName === "creator" ||
     title.includes("next.js") ||
     title.includes("distributed video transcoder") ||
     title.includes("operating systems are so complex") ||
@@ -107,7 +116,7 @@ export function isFillerVideo(video?: { id?: string; title?: string } | null): b
   );
 }
 
-export function isNextJsFillerVideo(video?: { id?: string; title?: string } | null): boolean {
+export function isNextJsFillerVideo(video?: { id?: string; title?: string; channel?: { id?: string; handle?: string; displayName?: string } } | null): boolean {
   return isFillerVideo(video);
 }
 

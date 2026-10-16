@@ -19,15 +19,24 @@ const UPLOADS_DIR = path.join(process.cwd(), "public", "uploads");
 const VIDEOS_DIR = path.join(UPLOADS_DIR, "videos");
 const THUMBNAILS_DIR = path.join(UPLOADS_DIR, "thumbnails");
 
-function isNextJsFillerVideo(video?: { id?: string; title?: string } | null): boolean {
+function isNextJsFillerVideo(video?: { id?: string; title?: string; channel?: { id?: string; handle?: string; displayName?: string } } | null): boolean {
   if (!video || typeof video !== "object") return false;
   const id = typeof video.id === "string" ? video.id : "";
   const title = typeof video.title === "string" ? video.title.toLowerCase() : "";
+  const channelHandle = typeof video.channel?.handle === "string" ? video.channel.handle.toLowerCase().replace(/^@/, "").trim() : "";
+  const channelId = typeof video.channel?.id === "string" ? video.channel.id.toLowerCase().trim() : "";
+  const channelName = typeof video.channel?.displayName === "string" ? video.channel.displayName.toLowerCase().trim() : "";
+
   return (
     id.startsWith("sample-") ||
+    id.startsWith("v-blob-") ||
     id === "v-srv-1792152077838" ||
     id === "v-user-1792152077838" ||
     id === "v-srv-1792158340022" ||
+    id.includes("CW scenario 1-1C6ka5PylZ6KeUnoSaJu9s82hRLYaK") ||
+    channelHandle === "creator" ||
+    channelId === "creator" ||
+    channelName === "creator" ||
     title.includes("next.js") ||
     title.includes("distributed video transcoder") ||
     title.includes("operating systems are so complex") ||
@@ -66,6 +75,7 @@ const DEFAULT_SERVER_DELETED = [
   "v-srv-1792152077838",
   "v-user-1792152077838",
   "v-srv-1792158340022",
+  "v-blob-CW scenario 1-1C6ka5PylZ6KeUnoSaJu9s82hRLYaK",
 ];
 
 function readDeletedVideoIds(): Set<string> {
@@ -260,7 +270,7 @@ async function fetchBlobVideosIndex(): Promise<VideoItem[]> {
       const parsed = await readBlobJson(cand);
       if (Array.isArray(parsed)) {
         parsed.forEach((v: VideoItem) => {
-          if (v && v.id) map.set(v.id, v);
+          if (v && v.id && !deleted.has(v.id) && !isNextJsFillerVideo(v)) map.set(v.id, v);
         });
       }
     } catch {}
@@ -273,86 +283,12 @@ async function fetchBlobVideosIndex(): Promise<VideoItem[]> {
       const parsed = await readBlobJson(b.url || b.pathname);
       if (Array.isArray(parsed)) {
         parsed.forEach((v: VideoItem) => {
-          if (v && v.id) map.set(v.id, v);
+          if (v && v.id && !deleted.has(v.id) && !isNextJsFillerVideo(v)) map.set(v.id, v);
         });
-      } else if (parsed && parsed.id) {
+      } else if (parsed && parsed.id && !deleted.has(parsed.id) && !isNextJsFillerVideo(parsed)) {
         map.set(parsed.id, parsed);
       }
     } catch {}
-  }
-
-  // 3. Auto-Discovery: Detect any video media files in Blob store that aren't yet indexed!
-  const videoBlobs = allBlobs.filter((b) => {
-    const p = b.pathname.toLowerCase();
-    return (
-      p.endsWith(".mp4") ||
-      p.endsWith(".webm") ||
-      p.endsWith(".mov") ||
-      p.endsWith(".m4v") ||
-      p.endsWith(".mkv")
-    );
-  });
-
-  for (const vb of videoBlobs) {
-    // Check if this video blob is already represented in our map
-    const alreadyIndexed = Array.from(map.values()).some((v) => {
-      if (!v) return false;
-      const raw = (v.rawVideoUrl || "").toLowerCase();
-      return (
-        raw.includes(vb.pathname.toLowerCase()) ||
-        (vb.url && raw.includes(vb.url.toLowerCase()))
-      );
-    });
-
-    if (!alreadyIndexed) {
-      const baseName = vb.pathname.split("/").pop() || vb.pathname;
-      const cleanBase = baseName.replace(/\.[^.]+$/, "");
-      const titleCandidate = cleanBase
-        .replace(/-[a-zA-Z0-9]{6,}$/, "")
-        .replace(/[-_]+/g, " ")
-        .trim();
-      const title =
-        (titleCandidate.charAt(0).toUpperCase() + titleCandidate.slice(1)) || "Uploaded Video";
-      const vidId = cleanBase.startsWith("v-") ? cleanBase : `v-blob-${cleanBase}`;
-
-      // Check if there is an image in blobs that matches
-      const matchingThumb = allBlobs.find((tb) => {
-        const tp = tb.pathname.toLowerCase();
-        return (
-          (tp.endsWith(".jpg") || tp.endsWith(".png") || tp.endsWith(".webp")) &&
-          (tp.includes(cleanBase.toLowerCase()) || tp.includes(vidId.toLowerCase()))
-        );
-      });
-
-      const thumbnailUrl = matchingThumb
-        ? `/api/blob/serve?pathname=${encodeURIComponent(matchingThumb.pathname)}`
-        : "/placeholder-thumb.jpg";
-
-      const discovered: VideoItem = {
-        id: vidId,
-        title,
-        description: "Shared via Entropy Cloud Storage",
-        thumbnailUrl,
-        masterPlaylistUrl: null,
-        rawVideoUrl: `/api/blob/serve?pathname=${encodeURIComponent(vb.pathname)}`,
-        durationSeconds: 120,
-        viewCount: 1,
-        publishedAt: vb.uploadedAt ? new Date(vb.uploadedAt).toISOString() : new Date().toISOString(),
-        category: "Technology",
-        tags: ["Video"],
-        channel: {
-          id: "creator",
-          handle: "creator",
-          displayName: "Creator",
-          avatarUrl: "/default-avatar.png",
-          subscribersCount: 0,
-        },
-      };
-
-      if (!deleted.has(discovered.id) && !isNextJsFillerVideo(discovered)) {
-        map.set(discovered.id, discovered);
-      }
-    }
   }
 
   return Array.from(map.values()).filter(
@@ -573,6 +509,11 @@ export async function GET() {
     // Keep local store warm if running locally and cloud had new items
     if (r2Videos.length > 0 || blobVideos.length > 0) {
       writeLocalVideos(all);
+    }
+
+    // Automatically sync sanitized index back to cloud storage
+    if (hasVercelBlob()) {
+      saveBlobVideosIndex(all).catch(() => {});
     }
 
     const storageStatus = {
