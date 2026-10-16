@@ -319,7 +319,7 @@ export default function StudioUploadPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 mb-1">
                     {uploadType === "short" && (
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 text-[10px] font-bold">
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/10 text-zinc-300 text-[10px] font-bold">
                         <Flame className="h-3 w-3" /> Short
                       </span>
                     )}
@@ -338,9 +338,9 @@ export default function StudioUploadPage() {
                 {uploadType === "short" ? (
                   <Link
                     href="/shorts"
-                    className="inline-flex items-center gap-2 rounded-xl bg-red-600 hover:bg-red-500 text-white px-6 py-2.5 text-xs font-bold transition-all shadow-md"
+                    className="inline-flex items-center gap-2 rounded-xl bg-white hover:bg-zinc-200 text-black px-6 py-2.5 text-xs font-bold transition-all shadow-md"
                   >
-                    <Flame className="h-4 w-4" />
+                    <Flame className="h-4 w-4 fill-black" />
                     <span>Watch in Shorts</span>
                   </Link>
                 ) : (
@@ -413,7 +413,7 @@ export default function StudioUploadPage() {
                         : "text-zinc-400 hover:text-white"
                     }`}
                   >
-                    <Flame className="h-3.5 w-3.5 text-red-500" />
+                    <Flame className="h-3.5 w-3.5" />
                     <span>Short (9:16)</span>
                   </button>
                 </div>
@@ -436,7 +436,7 @@ export default function StudioUploadPage() {
                   />
                   <div className="h-20 w-20 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-white mb-5 shadow-xl group-hover:scale-105 transition-transform">
                     {uploadType === "short" ? (
-                      <Flame className="h-10 w-10 text-red-500" />
+                      <Flame className="h-10 w-10 text-zinc-300" />
                     ) : (
                       <UploadCloud className="h-10 w-10 text-zinc-300" />
                     )}
@@ -473,7 +473,7 @@ export default function StudioUploadPage() {
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="h-10 w-10 rounded-xl bg-white/[0.06] flex items-center justify-center text-zinc-300 flex-shrink-0">
                         {uploadType === "short" ? (
-                          <Flame className="h-5 w-5 text-red-400" />
+                          <Flame className="h-5 w-5 text-zinc-300" />
                         ) : (
                           <FileVideo className="h-5 w-5" />
                         )}
@@ -482,7 +482,7 @@ export default function StudioUploadPage() {
                         <div className="flex items-center gap-2">
                           <p className="text-xs font-bold text-white truncate">{file.name}</p>
                           {uploadType === "short" && (
-                            <span className="bg-red-500/20 text-red-400 text-[10px] font-bold px-1.5 py-0.5 rounded">
+                            <span className="bg-white/10 text-zinc-300 text-[10px] font-bold px-1.5 py-0.5 rounded">
                               Short
                             </span>
                           )}

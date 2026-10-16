@@ -231,11 +231,7 @@ export default function ShortsPage() {
 
               {/* Overlay Content */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 flex flex-col justify-between p-4 pointer-events-none">
-                <div className="flex justify-between items-center pointer-events-auto">
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/50 backdrop-blur-md text-[11px] font-bold text-white border border-white/10">
-                    <Flame className="h-3.5 w-3.5 text-orange-400 fill-orange-400" />
-                    <span>Shorts</span>
-                  </div>
+                <div className="flex justify-end items-center pointer-events-auto">
                   <button
                     onClick={() => setIsMuted((prev) => !prev)}
                     className="p-2.5 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md text-white border border-white/10 transition-colors cursor-pointer"
@@ -352,7 +348,7 @@ export default function ShortsPage() {
               {/* Upload Short Quick CTA */}
               <Link
                 href="/studio/upload?type=short"
-                className="rounded-full p-3 bg-zinc-900/90 hover:bg-zinc-800 text-orange-400 hover:text-orange-300 transition-colors border border-white/10"
+                className="rounded-full p-3 bg-zinc-900/90 hover:bg-zinc-800 text-white hover:text-zinc-300 transition-colors border border-white/10"
                 title="Upload Short"
               >
                 <Upload className="h-5 w-5" />
