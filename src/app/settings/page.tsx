@@ -116,6 +116,14 @@ export default function SettingsPage() {
     } catch {
       // ignore
     }
+
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get("tab") || params.get("section");
+      if (tab && ["profile", "playback", "privacy", "notifications"].includes(tab)) {
+        setActiveSection(tab);
+      }
+    }
   }, []);
 
   const showToast = (msg: string) => {

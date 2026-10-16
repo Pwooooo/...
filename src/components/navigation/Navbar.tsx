@@ -18,6 +18,8 @@ import {
   Settings,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useNotifications } from "@/context/NotificationContext";
+import NotificationDropdown from "./NotificationDropdown";
 
 interface NavbarProps {
   onToggleSidebar?: () => void;
@@ -27,11 +29,14 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const { user, openAuthModal, logout } = useAuth();
+  const { unreadCount } = useNotifications();
   const router = useRouter();
 
   const userMenuRef = useRef<HTMLDivElement>(null);
   const createMenuRef = useRef<HTMLDivElement>(null);
+  const notificationsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: Event) => {
@@ -42,18 +47,33 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
       if (createMenuRef.current && !createMenuRef.current.contains(target)) {
         setIsCreateMenuOpen(false);
       }
+      if (notificationsRef.current && !notificationsRef.current.contains(target)) {
+        setIsNotificationsOpen(false);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsUserMenuOpen(false);
+        setIsCreateMenuOpen(false);
+        setIsNotificationsOpen(false);
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("touchstart", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("touchstart", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
 
   const handleCreateClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    setIsNotificationsOpen(false);
+    setIsUserMenuOpen(false);
     if (!user) {
       openAuthModal();
     } else {
@@ -61,8 +81,17 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
     }
   };
 
+  const handleNotificationsClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsCreateMenuOpen(false);
+    setIsUserMenuOpen(false);
+    setIsNotificationsOpen((prev) => !prev);
+  };
+
   const handleUserClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    setIsCreateMenuOpen(false);
+    setIsNotificationsOpen(false);
     setIsUserMenuOpen((prev) => !prev);
   };
 
@@ -164,16 +193,34 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
           )}
         </div>
 
-        <button
-          type="button"
-          className="relative rounded-full p-2 hover:bg-white/[0.08] text-zinc-300 transition-colors cursor-pointer"
-          title="Notifications"
-        >
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-white text-[10px] font-bold text-black">
-            3
-          </span>
-        </button>
+        {/* Notifications Tab / Dropdown */}
+        <div className="relative" ref={notificationsRef}>
+          <button
+            type="button"
+            onClick={handleNotificationsClick}
+            onMouseDown={(e) => e.stopPropagation()}
+            className={`relative rounded-full p-2 transition-colors cursor-pointer ${
+              isNotificationsOpen
+                ? "bg-white/[0.15] text-white"
+                : "hover:bg-white/[0.08] text-zinc-300"
+            }`}
+            title="Notifications"
+            aria-label="Notifications"
+            aria-expanded={isNotificationsOpen}
+          >
+            <Bell className="h-5 w-5" />
+            {unreadCount > 0 && (
+              <span className="absolute top-1 right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-white text-[10px] font-bold text-black shadow-sm animate-in zoom-in-75 duration-200">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </button>
+
+          <NotificationDropdown
+            isOpen={isNotificationsOpen}
+            onClose={() => setIsNotificationsOpen(false)}
+          />
+        </div>
 
         {user ? (
           /* Logged In Account Button & Dropdown */
@@ -251,6 +298,22 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
                   >
                     <Tv className="h-4 w-4 text-zinc-400" />
                     <span>Entropy Studio</span>
+                  </Link>
+
+                  <Link
+                    href="/notifications"
+                    onClick={() => setIsUserMenuOpen(false)}
+                    className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:text-white hover:bg-[#222222] transition-colors"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Bell className="h-4 w-4 text-zinc-400" />
+                      <span>Notifications</span>
+                    </div>
+                    {unreadCount > 0 && (
+                      <span className="rounded-full bg-white text-black px-1.5 py-0.2 text-[10px] font-bold">
+                        {unreadCount}
+                      </span>
+                    )}
                   </Link>
 
                   <Link

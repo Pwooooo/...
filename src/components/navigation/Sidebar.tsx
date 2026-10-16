@@ -17,6 +17,7 @@ import {
   Menu,
   Play,
   User,
+  Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +44,7 @@ export default function Sidebar({
 
   const libraryLinks = [
     { label: "Your profile", href: "/profile", icon: User },
+    { label: "Notifications", href: "/notifications", icon: Bell },
     { label: "History", href: "/feed/history", icon: History },
     { label: "Playlists", href: "/feed/playlists", icon: ListVideo },
     { label: "Your videos", href: "/studio/videos", icon: Video },

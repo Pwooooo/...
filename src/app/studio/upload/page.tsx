@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { useNotifications } from "@/context/NotificationContext";
 import { VideoItem } from "@/types";
 import {
   extractVideoDetails,
@@ -42,6 +43,7 @@ const VIDEO_CATEGORIES = [
 
 export default function StudioUploadPage() {
   const { user, openAuthModal } = useAuth();
+  const { addNotification } = useNotifications();
 
   const [file, setFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
@@ -187,6 +189,17 @@ export default function StudioUploadPage() {
       setCreatedVideoId(finalVideo.id);
       saveUserUploadedVideo(finalVideo);
       await fetchServerVideos();
+
+      // Dispatch real-time notification
+      addNotification({
+        type: "upload",
+        title: "Video Published",
+        message: `${finalVideo.channel?.displayName || "You"} uploaded: ${finalVideo.title}`,
+        actorName: finalVideo.channel?.displayName || "Your Channel",
+        actorAvatar: finalVideo.channel?.avatarUrl || user?.avatarUrl || "/default-avatar.png",
+        thumbnailUrl: finalVideo.thumbnailUrl,
+        linkUrl: `/watch?v=${finalVideo.id}`,
+      });
 
       setUploadProgress(100);
       setUploadStage("Video published successfully to everyone!");
