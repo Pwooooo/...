@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { VideoItem } from "@/types";
+import { ALL_VIDEOS } from "@/lib/mock-data";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -14,19 +15,35 @@ const UPLOADS_DIR = path.join(process.cwd(), "public", "uploads");
 const VIDEOS_DIR = path.join(UPLOADS_DIR, "videos");
 const THUMBNAILS_DIR = path.join(UPLOADS_DIR, "thumbnails");
 
+function isNextJsFillerVideo(video?: { id?: string; title?: string } | null): boolean {
+  if (!video || typeof video !== "object") return false;
+  const id = typeof video.id === "string" ? video.id : "";
+  const title = typeof video.title === "string" ? video.title.toLowerCase() : "";
+  return (
+    id === "v-srv-1792152077838" ||
+    id === "v-user-1792152077838" ||
+    id === "sample-2" ||
+    (title.includes("next.js") && title.includes("deep dive")) ||
+    title.includes("next.js 16")
+  );
+}
+
 function safeEnsureDirs() {
   try {
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
     if (!fs.existsSync(VIDEOS_DIR)) fs.mkdirSync(VIDEOS_DIR, { recursive: true });
     if (!fs.existsSync(THUMBNAILS_DIR)) fs.mkdirSync(THUMBNAILS_DIR, { recursive: true });
-    if (!fs.existsSync(VIDEOS_FILE)) fs.writeFileSync(VIDEOS_FILE, JSON.stringify([], null, 2), "utf-8");
+    if (!fs.existsSync(VIDEOS_FILE)) {
+      const seed = ALL_VIDEOS.filter((v) => !isNextJsFillerVideo(v));
+      fs.writeFileSync(VIDEOS_FILE, JSON.stringify(seed, null, 2), "utf-8");
+    }
     if (!fs.existsSync(DELETED_VIDEOS_FILE)) fs.writeFileSync(DELETED_VIDEOS_FILE, JSON.stringify([], null, 2), "utf-8");
   } catch {
     // Read-only serverless environment
   }
 }
 
-const DEFAULT_SERVER_DELETED = ["v-srv-1792152077838"];
+const DEFAULT_SERVER_DELETED = ["v-srv-1792152077838", "v-user-1792152077838", "sample-2"];
 
 function readDeletedVideoIds(): Set<string> {
   safeEnsureDirs();
@@ -64,15 +81,22 @@ function unmarkDeletedVideoId(id: string): void {
 
 function readLocalVideos(): VideoItem[] {
   safeEnsureDirs();
+  const deleted = readDeletedVideoIds();
   try {
     if (fs.existsSync(VIDEOS_FILE)) {
       const raw = fs.readFileSync(VIDEOS_FILE, "utf-8");
       const parsed = JSON.parse(raw);
-      const deleted = readDeletedVideoIds();
-      return Array.isArray(parsed) ? parsed.filter((v: VideoItem) => !deleted.has(v.id)) : [];
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.filter((v: VideoItem) => v && typeof v.id === "string" && !deleted.has(v.id) && !isNextJsFillerVideo(v));
+      }
     }
   } catch {}
-  return [];
+
+  const seed = ALL_VIDEOS.filter((v) => !deleted.has(v.id) && !isNextJsFillerVideo(v));
+  try {
+    fs.writeFileSync(VIDEOS_FILE, JSON.stringify(seed, null, 2), "utf-8");
+  } catch {}
+  return seed;
 }
 
 function writeLocalVideos(videos: VideoItem[]): void {

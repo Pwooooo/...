@@ -3,72 +3,7 @@
 import { VideoItem } from "@/types";
 import { ALL_VIDEOS } from "@/lib/mock-data";
 
-const DB_NAME = "entropy_media_db";
-const STORE_NAME = "videos";
-
-function getDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    if (typeof window === "undefined" || !window.indexedDB) {
-      reject(new Error("IndexedDB not available in this environment"));
-      return;
-    }
-    const request = window.indexedDB.open(DB_NAME, 1);
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME);
-      }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
-
-export async function saveVideoBlob(videoId: string, blob: Blob): Promise<void> {
-  try {
-    const db = await getDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, "readwrite");
-      const store = tx.objectStore(STORE_NAME);
-      const req = store.put(blob, videoId);
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
-    });
-  } catch (err) {
-    console.warn("Could not save video blob to IndexedDB:", err);
-  }
-}
-
-export async function getVideoBlob(videoId: string): Promise<Blob | null> {
-  try {
-    const db = await getDB();
-    return new Promise((resolve) => {
-      const tx = db.transaction(STORE_NAME, "readonly");
-      const store = tx.objectStore(STORE_NAME);
-      const req = store.get(videoId);
-      req.onsuccess = () => resolve(req.result || null);
-      req.onerror = () => resolve(null);
-    });
-  } catch {
-    return null;
-  }
-}
-
-export async function deleteVideoBlob(videoId: string): Promise<void> {
-  try {
-    const db = await getDB();
-    return new Promise((resolve) => {
-      const tx = db.transaction(STORE_NAME, "readwrite");
-      const store = tx.objectStore(STORE_NAME);
-      const req = store.delete(videoId);
-      req.onsuccess = () => resolve();
-      req.onerror = () => resolve();
-    });
-  } catch {
-    // ignore
-  }
-}
-
+// ----------------- Video Frame Extraction (for upload preview) -----------------
 export function extractVideoDetails(file: File): Promise<{
   duration: number;
   thumbnailUrl: string;
@@ -125,9 +60,7 @@ export function extractVideoDetails(file: File): Promise<{
           });
           return;
         }
-      } catch {
-        // canvas export error fallback
-      }
+      } catch {}
 
       cleanup();
       resolve({
@@ -142,33 +75,20 @@ export function extractVideoDetails(file: File): Promise<{
       if (hasResolved) return;
       hasResolved = true;
       cleanup();
-      resolve({
-        duration: 0,
-        thumbnailUrl: "",
-        width: 1280,
-        height: 720,
-      });
+      resolve({ duration: 0, thumbnailUrl: "", width: 1280, height: 720 });
     };
 
-    // Timeout fallback after 6 seconds
     setTimeout(() => {
       if (!hasResolved) {
         hasResolved = true;
         cleanup();
-        resolve({
-          duration: Math.round(video.duration) || 0,
-          thumbnailUrl: "",
-          width: 1280,
-          height: 720,
-        });
+        resolve({ duration: Math.round(video.duration) || 0, thumbnailUrl: "", width: 1280, height: 720 });
       }
     }, 6000);
   });
 }
 
-// ----------------- Deleted Videos Tracker -----------------
-const DEFAULT_DELETED_IDS = ["v-srv-1792152077838", "v-user-1792152077838", "sample-2"];
-
+// ----------------- Filter Next.js Filler Video -----------------
 export function isNextJsFillerVideo(video?: { id?: string; title?: string } | null): boolean {
   if (!video || typeof video !== "object") return false;
   const id = typeof video.id === "string" ? video.id : "";
@@ -182,65 +102,55 @@ export function isNextJsFillerVideo(video?: { id?: string; title?: string } | nu
   );
 }
 
-export function getDeletedVideoIds(): Set<string> {
-  const set = new Set<string>(DEFAULT_DELETED_IDS);
-  if (typeof window === "undefined") return set;
-  try {
-    const raw = localStorage.getItem("entropy_deleted_video_ids");
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        parsed.forEach((id) => {
-          if (typeof id === "string") set.add(id);
-        });
-      }
-    }
-    return set;
-  } catch {
-    return set;
+// ----------------- Base Static Videos -----------------
+export function getBaseVideos(): VideoItem[] {
+  return ALL_VIDEOS.filter((v) => v && typeof v.id === "string" && !isNextJsFillerVideo(v));
+}
+
+// ----------------- Central In-Memory Server Video Cache -----------------
+let cachedServerVideos: VideoItem[] | null = null;
+
+export function getAllCombinedVideos(): VideoItem[] {
+  if (cachedServerVideos && cachedServerVideos.length > 0) {
+    return cachedServerVideos;
+  }
+  return getBaseVideos();
+}
+
+export function getUserVideos(): VideoItem[] {
+  return getAllCombinedVideos();
+}
+
+export function saveUserVideoMetadata(video: VideoItem): void {
+  if (!video || !video.id || isNextJsFillerVideo(video)) return;
+  const current = getAllCombinedVideos();
+  const filtered = current.filter((v) => v.id !== video.id);
+  cachedServerVideos = [video, ...filtered];
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("entropy_videos_updated"));
   }
 }
 
-export function markVideoAsDeleted(videoId: string): void {
-  if (typeof window === "undefined" || !videoId) return;
-  try {
-    const deleted = getDeletedVideoIds();
-    deleted.add(videoId);
-    localStorage.setItem("entropy_deleted_video_ids", JSON.stringify(Array.from(deleted)));
-  } catch {}
-}
-
+// ----------------- Server-Driven Video Operations -----------------
 export async function fetchServerVideos(): Promise<VideoItem[]> {
-  if (typeof window === "undefined") return [];
+  if (typeof window === "undefined") return getBaseVideos();
   try {
-    const res = await fetch("/api/videos");
+    const res = await fetch("/api/videos", { cache: "no-store" });
     const data = await res.json();
     if (data.success && Array.isArray(data.videos)) {
-      const deleted = getDeletedVideoIds();
-      const serverVideos: VideoItem[] = data.videos.filter(
-        (v: VideoItem) => v && typeof v.id === "string" && !deleted.has(v.id) && !isNextJsFillerVideo(v)
+      const cleanVideos: VideoItem[] = data.videos.filter(
+        (v: VideoItem) => v && typeof v.id === "string" && !isNextJsFillerVideo(v)
       );
-      const localVideos = getUserVideos().filter(
-        (v) => v && typeof v.id === "string" && !deleted.has(v.id) && !isNextJsFillerVideo(v)
-      );
-
-      // Merge unique by ID (server priority, do NOT auto-upload local videos)
-      const map = new Map<string, VideoItem>();
-      serverVideos.forEach((v) => map.set(v.id, v));
-      localVideos.forEach((v) => {
-        if (!map.has(v.id)) map.set(v.id, v);
-      });
-      const merged = Array.from(map.values()).filter(
-        (v) => v && !deleted.has(v.id) && !isNextJsFillerVideo(v)
-      );
-      localStorage.setItem("entropy_user_videos", JSON.stringify(merged));
-      window.dispatchEvent(new Event("entropy_videos_updated"));
-      return merged;
+      if (cleanVideos.length > 0) {
+        cachedServerVideos = cleanVideos;
+        window.dispatchEvent(new Event("entropy_videos_updated"));
+        return cleanVideos;
+      }
     }
   } catch (err) {
     console.warn("Could not fetch server videos:", err);
   }
-  return getUserVideos();
+  return getAllCombinedVideos();
 }
 
 export async function uploadVideoToServer(formData: FormData): Promise<{ success: boolean; video?: VideoItem; error?: string }> {
@@ -252,6 +162,7 @@ export async function uploadVideoToServer(formData: FormData): Promise<{ success
     const data = await res.json();
     if (data.success && data.video) {
       saveUserVideoMetadata(data.video);
+      await fetchServerVideos();
       return { success: true, video: data.video };
     }
     return { success: false, error: data.error || "Upload failed" };
@@ -261,117 +172,52 @@ export async function uploadVideoToServer(formData: FormData): Promise<{ success
   }
 }
 
-export function getUserVideos(): VideoItem[] {
-  if (typeof window === "undefined") return [];
+export async function deleteUserVideo(videoId: string): Promise<void> {
+  if (!videoId) return;
   try {
-    const deleted = getDeletedVideoIds();
-    const stored = localStorage.getItem("entropy_user_videos");
-    if (!stored) return [];
-    const parsed = JSON.parse(stored);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (v: VideoItem) => v && typeof v === "object" && typeof v.id === "string" && !deleted.has(v.id) && !isNextJsFillerVideo(v)
-    );
-  } catch {
-    return [];
-  }
-}
-
-export function saveUserVideoMetadata(video: VideoItem): void {
-  if (typeof window === "undefined" || !video || !video.id) return;
-  try {
-    const deleted = getDeletedVideoIds();
-    if (deleted.has(video.id) || isNextJsFillerVideo(video)) return;
-
-    const current = getUserVideos();
-    const filtered = current.filter((v) => v.id !== video.id);
-    const updated = [video, ...filtered];
-    localStorage.setItem("entropy_user_videos", JSON.stringify(updated));
-    window.dispatchEvent(new Event("entropy_videos_updated"));
-  } catch (e) {
-    console.warn("Could not save video metadata:", e);
-  }
-}
-
-export function updateUserVideo(videoId: string, updates: Partial<VideoItem>): void {
-  if (typeof window === "undefined" || !videoId) return;
-  try {
-    const current = getUserVideos();
-    const index = current.findIndex((v) => v.id === videoId);
-    if (index !== -1) {
-      current[index] = { ...current[index], ...updates };
-      localStorage.setItem("entropy_user_videos", JSON.stringify(current));
+    if (cachedServerVideos) {
+      cachedServerVideos = cachedServerVideos.filter((v) => v.id !== videoId);
+    }
+    if (typeof window !== "undefined") {
       window.dispatchEvent(new Event("entropy_videos_updated"));
     }
-    // Also update on server
-    fetch("/api/videos", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: videoId, ...updates }),
-    }).catch(() => {});
-  } catch (e) {
-    console.warn("Could not update video metadata:", e);
-  }
-}
-
-export async function deleteUserVideo(videoId: string): Promise<void> {
-  if (typeof window === "undefined" || !videoId) return;
-  try {
-    // 1. Immediately mark video as deleted so it can NEVER be re-synced or retrieved
-    markVideoAsDeleted(videoId);
-
-    // 2. Remove from local storage
-    const current = getUserVideos();
-    const filtered = current.filter((v) => v.id !== videoId);
-    localStorage.setItem("entropy_user_videos", JSON.stringify(filtered));
-
-    // 3. Remove IndexedDB media blob
-    await deleteVideoBlob(videoId);
-
-    // 4. Notify all tabs and listeners
-    window.dispatchEvent(new Event("entropy_videos_updated"));
-
-    // 5. Delete on server
-    await fetch(`/api/videos?id=${videoId}`, {
-      method: "DELETE",
-    });
+    await fetch(`/api/videos?id=${videoId}`, { method: "DELETE" });
+    await fetchServerVideos();
   } catch (e) {
     console.warn("Could not delete video:", e);
   }
 }
 
-export function getBaseVideos(): VideoItem[] {
-  const deleted = getDeletedVideoIds();
-  return ALL_VIDEOS.filter((v) => v && typeof v.id === "string" && !deleted.has(v.id) && !isNextJsFillerVideo(v));
-}
-
-export function getAllCombinedVideos(): VideoItem[] {
-  const deleted = getDeletedVideoIds();
-  const userVideos = getUserVideos().filter((v) => v && typeof v.id === "string" && !deleted.has(v.id) && !isNextJsFillerVideo(v));
-  const baseVideos = ALL_VIDEOS.filter((v) => v && typeof v.id === "string" && !deleted.has(v.id) && !isNextJsFillerVideo(v));
-
-  // Merge unique by id
-  const map = new Map<string, VideoItem>();
-  userVideos.forEach((v) => map.set(v.id, v));
-  baseVideos.forEach((v) => {
-    if (!map.has(v.id)) map.set(v.id, v);
-  });
-  return Array.from(map.values()).filter((v) => v && !deleted.has(v.id) && !isNextJsFillerVideo(v));
-}
-
-// Clean cached next.js filler video from local storage safely without dispatching events at module root
-if (typeof window !== "undefined") {
-  try {
-    const raw = localStorage.getItem("entropy_user_videos");
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        const cleaned = parsed.filter((v: VideoItem) => v && !isNextJsFillerVideo(v));
-        if (cleaned.length !== parsed.length) {
-          localStorage.setItem("entropy_user_videos", JSON.stringify(cleaned));
-        }
+export function updateUserVideo(videoId: string, updates: Partial<VideoItem>): void {
+  if (!videoId) return;
+  if (cachedServerVideos) {
+    const idx = cachedServerVideos.findIndex((v) => v.id === videoId);
+    if (idx !== -1) {
+      cachedServerVideos[idx] = { ...cachedServerVideos[idx], ...updates };
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("entropy_videos_updated"));
       }
     }
-  } catch {}
+  }
+  fetch("/api/videos", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id: videoId, ...updates }),
+  }).catch(() => {});
 }
 
+// ----------------- Legacy Stubs for Compatibility -----------------
+export async function saveVideoBlob(videoId: string, blob: Blob): Promise<void> {}
+export async function getVideoBlob(videoId: string): Promise<Blob | null> { return null; }
+export async function deleteVideoBlob(videoId: string): Promise<void> {}
+export function getDeletedVideoIds(): Set<string> { return new Set(["v-srv-1792152077838", "v-user-1792152077838", "sample-2"]); }
+export function markVideoAsDeleted(videoId: string): void {}
+
+// ----------------- Automatic Client Cache Sanitizer -----------------
+// Purge any legacy browser localStorage residue on client boot so no zombie videos linger
+if (typeof window !== "undefined") {
+  try {
+    localStorage.removeItem("entropy_user_videos");
+    localStorage.removeItem("entropy_deleted_video_ids");
+  } catch {}
+}
