@@ -179,5 +179,26 @@ export async function GET(
     }
   }
 
+  // 3. Stream / redirect from Vercel Blob
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    try {
+      const { list: listBlobs } = await import("@vercel/blob");
+      const { blobs } = await listBlobs();
+      const match = blobs.find((b) => {
+        const p = b.pathname.toLowerCase();
+        return (
+          p.includes(id.toLowerCase()) &&
+          (p.endsWith(".mp4") || p.endsWith(".webm") || p.endsWith(".mov") || p.endsWith(".m4v") || p.endsWith(".mkv"))
+        );
+      });
+      if (match) {
+        return NextResponse.redirect(
+          new URL(`/api/blob/serve?pathname=${encodeURIComponent(match.pathname)}`, req.url),
+          302
+        );
+      }
+    } catch {}
+  }
+
   return new Response("Video media file not found on server", { status: 404 });
 }

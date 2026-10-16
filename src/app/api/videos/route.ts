@@ -186,73 +186,146 @@ async function putSafeBlob(pathname: string, body: Buffer | string, contentType?
   }
 }
 
+async function readBlobJson(urlOrPathname: string): Promise<any | null> {
+  // 1. Try private access with useCache: false
+  try {
+    const res = await get(urlOrPathname, { access: "private", useCache: false });
+    if (res && res.stream) {
+      const text = await new Response(res.stream as unknown as BodyInit).text();
+      if (text && text.trim()) return JSON.parse(text);
+    }
+  } catch {}
+
+  // 2. Try public access with useCache: false
+  try {
+    const res = await get(urlOrPathname, { access: "public", useCache: false });
+    if (res && res.stream) {
+      const text = await new Response(res.stream as unknown as BodyInit).text();
+      if (text && text.trim()) return JSON.parse(text);
+    }
+  } catch {}
+
+  return null;
+}
+
 async function fetchBlobVideosIndex(): Promise<VideoItem[]> {
   if (!hasVercelBlob()) return [];
   const map = new Map<string, VideoItem>();
+  const deleted = readDeletedVideoIds();
 
-  // 1. Try reading the consolidated metadata/videos.json
+  let allBlobs: Array<{ pathname: string; url: string; size: number; uploadedAt: Date }> = [];
   try {
-    const result = await get("metadata/videos.json", { access: "private" });
-    if (result && result.stream) {
-      const res = new Response(result.stream as unknown as BodyInit);
-      const text = await res.text();
-      const parsed = JSON.parse(text);
+    const res = await list();
+    allBlobs = res.blobs || [];
+  } catch (err) {
+    console.warn("Could not list Vercel blobs:", err);
+  }
+
+  // 1. Read consolidated metadata files if available
+  const consolidatedCandidates = [
+    "metadata/videos.json",
+    "metadata-videos.json",
+  ];
+  for (const cand of consolidatedCandidates) {
+    try {
+      const parsed = await readBlobJson(cand);
       if (Array.isArray(parsed)) {
         parsed.forEach((v: VideoItem) => {
           if (v && v.id) map.set(v.id, v);
         });
       }
-    }
-  } catch {}
-
-  // 2. Discover all individual video metadata files from metadata/videos/
-  try {
-    const { blobs } = await list({ prefix: "metadata/videos/" });
-    for (const b of blobs) {
-      if (b.pathname.endsWith(".json")) {
-        const vidId = b.pathname.replace(/^metadata\/videos\//, "").replace(/\.json$/, "");
-        if (!map.has(vidId)) {
-          try {
-            const res = await get(b.pathname, { access: "private" });
-            if (res && res.stream) {
-              const text = await new Response(res.stream as unknown as BodyInit).text();
-              const v = JSON.parse(text);
-              if (v && v.id) map.set(v.id, v);
-            }
-          } catch {}
-        }
-      }
-    }
-  } catch (err) {
-    console.warn("Could not list metadata/videos/ folder:", err);
+    } catch {}
   }
 
-  // 3. Fallback: if metadata/videos.json has a random suffix
-  if (map.size === 0) {
+  // 2. Discover all individual video metadata files (*.json)
+  const jsonBlobs = allBlobs.filter((b) => b.pathname.toLowerCase().endsWith(".json"));
+  for (const b of jsonBlobs) {
     try {
-      const { blobs } = await list({ prefix: "metadata/videos" });
-      for (const b of blobs) {
-        if (b.pathname.endsWith(".json")) {
-          try {
-            const res = await get(b.pathname, { access: "private" });
-            if (res && res.stream) {
-              const text = await new Response(res.stream as unknown as BodyInit).text();
-              const parsed = JSON.parse(text);
-              if (Array.isArray(parsed)) {
-                parsed.forEach((v: VideoItem) => {
-                  if (v && v.id) map.set(v.id, v);
-                });
-              } else if (parsed && parsed.id) {
-                map.set(parsed.id, parsed);
-              }
-            }
-          } catch {}
-        }
+      const parsed = await readBlobJson(b.url || b.pathname);
+      if (Array.isArray(parsed)) {
+        parsed.forEach((v: VideoItem) => {
+          if (v && v.id) map.set(v.id, v);
+        });
+      } else if (parsed && parsed.id) {
+        map.set(parsed.id, parsed);
       }
     } catch {}
   }
 
-  const deleted = readDeletedVideoIds();
+  // 3. Auto-Discovery: Detect any video media files in Blob store that aren't yet indexed!
+  const videoBlobs = allBlobs.filter((b) => {
+    const p = b.pathname.toLowerCase();
+    return (
+      p.endsWith(".mp4") ||
+      p.endsWith(".webm") ||
+      p.endsWith(".mov") ||
+      p.endsWith(".m4v") ||
+      p.endsWith(".mkv")
+    );
+  });
+
+  for (const vb of videoBlobs) {
+    // Check if this video blob is already represented in our map
+    const alreadyIndexed = Array.from(map.values()).some((v) => {
+      if (!v) return false;
+      const raw = (v.rawVideoUrl || "").toLowerCase();
+      return (
+        raw.includes(vb.pathname.toLowerCase()) ||
+        (vb.url && raw.includes(vb.url.toLowerCase()))
+      );
+    });
+
+    if (!alreadyIndexed) {
+      const baseName = vb.pathname.split("/").pop() || vb.pathname;
+      const cleanBase = baseName.replace(/\.[^.]+$/, "");
+      const titleCandidate = cleanBase
+        .replace(/-[a-zA-Z0-9]{6,}$/, "")
+        .replace(/[-_]+/g, " ")
+        .trim();
+      const title =
+        (titleCandidate.charAt(0).toUpperCase() + titleCandidate.slice(1)) || "Uploaded Video";
+      const vidId = cleanBase.startsWith("v-") ? cleanBase : `v-blob-${cleanBase}`;
+
+      // Check if there is an image in blobs that matches
+      const matchingThumb = allBlobs.find((tb) => {
+        const tp = tb.pathname.toLowerCase();
+        return (
+          (tp.endsWith(".jpg") || tp.endsWith(".png") || tp.endsWith(".webp")) &&
+          (tp.includes(cleanBase.toLowerCase()) || tp.includes(vidId.toLowerCase()))
+        );
+      });
+
+      const thumbnailUrl = matchingThumb
+        ? `/api/blob/serve?pathname=${encodeURIComponent(matchingThumb.pathname)}`
+        : "/placeholder-thumb.jpg";
+
+      const discovered: VideoItem = {
+        id: vidId,
+        title,
+        description: "Shared via Entropy Cloud Storage",
+        thumbnailUrl,
+        masterPlaylistUrl: null,
+        rawVideoUrl: `/api/blob/serve?pathname=${encodeURIComponent(vb.pathname)}`,
+        durationSeconds: 120,
+        viewCount: 1,
+        publishedAt: vb.uploadedAt ? new Date(vb.uploadedAt).toISOString() : new Date().toISOString(),
+        category: "Technology",
+        tags: ["Video"],
+        channel: {
+          id: "creator",
+          handle: "creator",
+          displayName: "Creator",
+          avatarUrl: "",
+          subscribersCount: 0,
+        },
+      };
+
+      if (!deleted.has(discovered.id) && !isNextJsFillerVideo(discovered)) {
+        map.set(discovered.id, discovered);
+      }
+    }
+  }
+
   return Array.from(map.values()).filter(
     (v: VideoItem) => v && v.id && !deleted.has(v.id) && !isNextJsFillerVideo(v)
   );
@@ -264,14 +337,15 @@ async function saveBlobVideosIndex(videos: VideoItem[], newVideo?: VideoItem): P
     const deleted = readDeletedVideoIds();
     const filtered = videos.filter((v) => v && v.id && !deleted.has(v.id) && !isNextJsFillerVideo(v));
 
-    // 1. Immediately save the new video metadata individually so it can NEVER be lost
+    // 1. Immediately save the new video metadata individually
     if (newVideo && newVideo.id) {
       await putSafeBlob(`metadata/videos/${newVideo.id}.json`, JSON.stringify(newVideo, null, 2), "application/json");
     }
 
-    // 2. Also save consolidated metadata/videos.json
+    // 2. Also save consolidated metadata/videos.json and metadata-videos.json
     const content = JSON.stringify(filtered, null, 2);
     await putSafeBlob("metadata/videos.json", content, "application/json");
+    await putSafeBlob("metadata-videos.json", content, "application/json");
   } catch (err) {
     console.warn("Could not save Blob videos index:", err);
   }

@@ -270,6 +270,33 @@ export async function uploadVideoToServer(
             formData.delete("thumbnailFile");
           }
         }
+
+        const thumbDataUrl = formData.get("thumbnailDataUrl") as string | null;
+        if (thumbDataUrl && thumbDataUrl.startsWith("data:image")) {
+          try {
+            const resBlob = await fetch(thumbDataUrl);
+            const imgBlob = await resBlob.blob();
+            let thumbBlob;
+            try {
+              thumbBlob = await upload(`thumb-${Date.now()}.jpg`, imgBlob, {
+                access: "private",
+                handleUploadUrl: "/api/blob/upload",
+              });
+            } catch {
+              thumbBlob = await upload(`thumb-${Date.now()}.jpg`, imgBlob, {
+                access: "public",
+                handleUploadUrl: "/api/blob/upload",
+              });
+            }
+            if (thumbBlob) {
+              const thumbUrl = thumbBlob.pathname
+                ? `/api/blob/serve?pathname=${encodeURIComponent(thumbBlob.pathname)}`
+                : thumbBlob.url;
+              formData.set("thumbnailUrl", thumbUrl);
+              formData.delete("thumbnailDataUrl");
+            }
+          } catch {}
+        }
       } catch (blobErr) {
         // Blob token not configured on this environment; fall back to standard route upload
         console.info("Direct Blob upload not active, falling back to standard upload:", blobErr);

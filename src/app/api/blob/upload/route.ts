@@ -21,11 +21,17 @@ export async function POST(request: Request): Promise<NextResponse> {
             "video/webm",
             "video/quicktime",
             "video/x-matroska",
+            "video/x-m4v",
+            "video/ogg",
+            "video/avi",
+            "video/mpeg",
             "image/jpeg",
             "image/png",
             "image/webp",
+            "image/gif",
           ],
-          tokenPayload: JSON.stringify({}),
+          addRandomSuffix: true,
+          tokenPayload: JSON.stringify({ pathname }),
         };
       },
       onUploadCompleted: async () => {
