@@ -19,7 +19,6 @@ import {
   Flame,
   Volume2,
   VolumeX,
-  Upload,
   Play,
   Pause,
   X,
@@ -749,15 +748,6 @@ export default function ShortsPage() {
                     </div>
                   )}
                 </div>
-
-                {/* Upload Short Quick CTA */}
-                <Link
-                  href="/studio/upload?type=short"
-                  className="rounded-full p-3 bg-zinc-900/90 hover:bg-zinc-800 text-white hover:text-zinc-300 transition-colors border border-white/10"
-                  title="Upload Short"
-                >
-                  <Upload className="h-5 w-5" />
-                </Link>
               </div>
 
               {/* Up/Down Navigation Controls */}
