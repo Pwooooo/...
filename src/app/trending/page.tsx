@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Navbar from "@/components/navigation/Navbar";
 import Sidebar from "@/components/navigation/Sidebar";
 import { ALL_VIDEOS } from "@/lib/mock-data";
-import { getAllCombinedVideos, fetchServerVideos } from "@/lib/video-storage";
+import { getAllCombinedVideos, getBaseVideos, fetchServerVideos } from "@/lib/video-storage";
 import { VideoItem } from "@/types";
 import Link from "next/link";
 import { formatDuration, formatViews } from "@/lib/utils";
@@ -19,9 +19,10 @@ const TRENDING_TABS = [
 
 export default function TrendingPage() {
   const [activeTab, setActiveTab] = useState("now");
-  const [videos, setVideos] = useState<VideoItem[]>(() => getAllCombinedVideos());
+  const [videos, setVideos] = useState<VideoItem[]>(() => getBaseVideos());
 
   useEffect(() => {
+    setVideos(getAllCombinedVideos());
     fetchServerVideos().then(() => {
       setVideos(getAllCombinedVideos());
     });
@@ -31,6 +32,7 @@ export default function TrendingPage() {
   }, []);
 
   const trendingVideos = videos.filter((v) => {
+    if (!v) return false;
     if (activeTab === "music") return v.category === "Music";
     if (activeTab === "gaming") return v.category === "Gaming";
     return true;

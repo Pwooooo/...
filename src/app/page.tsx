@@ -5,7 +5,7 @@ import Navbar from "@/components/navigation/Navbar";
 import Sidebar from "@/components/navigation/Sidebar";
 import VideoCard from "@/components/video/VideoCard";
 import { ALL_VIDEOS } from "@/lib/mock-data";
-import { getAllCombinedVideos, fetchServerVideos } from "@/lib/video-storage";
+import { getAllCombinedVideos, getBaseVideos, fetchServerVideos } from "@/lib/video-storage";
 import { VideoItem } from "@/types";
 
 const CATEGORIES = [
@@ -21,16 +21,21 @@ const CATEGORIES = [
 export default function HomePage() {
   const [collapsedSidebar, setCollapsedSidebar] = useState(false);
   const [activeCategory, setActiveCategory] = useState("All");
-  const [allVideos, setAllVideos] = useState<VideoItem[]>(() => getAllCombinedVideos());
+  const [allVideos, setAllVideos] = useState<VideoItem[]>(() => getBaseVideos());
 
   useEffect(() => {
+    // Immediately after mount, sync with client-side localStorage
+    setAllVideos(getAllCombinedVideos());
+
+    // Fetch server videos
     fetchServerVideos().then(() => {
       setAllVideos(getAllCombinedVideos());
     });
+
     const loadVideos = () => {
       setAllVideos(getAllCombinedVideos());
     };
-    loadVideos();
+
     window.addEventListener("entropy_videos_updated", loadVideos);
     window.addEventListener("storage", loadVideos);
     return () => {
@@ -40,11 +45,13 @@ export default function HomePage() {
   }, []);
 
   const filteredVideos = useMemo(() => {
-    if (activeCategory === "All") return allVideos;
-    return allVideos.filter(
+    if (!Array.isArray(allVideos)) return [];
+    const valid = allVideos.filter((v): v is VideoItem => Boolean(v && typeof v === "object" && v.id));
+    if (activeCategory === "All") return valid;
+    return valid.filter(
       (video) =>
-        (video.category && video.category.toLowerCase() === activeCategory.toLowerCase()) ||
-        (video.tags && video.tags.some((t) => t.toLowerCase().includes(activeCategory.toLowerCase())))
+        (typeof video.category === "string" && video.category.toLowerCase() === activeCategory.toLowerCase()) ||
+        (Array.isArray(video.tags) && video.tags.some((t) => typeof t === "string" && t.toLowerCase().includes(activeCategory.toLowerCase())))
     );
   }, [activeCategory, allVideos]);
 

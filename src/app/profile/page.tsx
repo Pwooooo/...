@@ -54,15 +54,16 @@ export default function ProfilePage() {
       try {
         if (user) {
           const all = getAllCombinedVideos();
-          const uHandle = (user.handle || user.name || "").replace(/^@/, "").toLowerCase();
-          const uName = user.name?.toLowerCase();
+          const uHandle = typeof user.handle === "string" ? user.handle.replace(/^@/, "").toLowerCase() : (typeof user.name === "string" ? user.name.toLowerCase() : "");
+          const uName = typeof user.name === "string" ? user.name.toLowerCase() : "";
           const filtered = all.filter(
             (v: VideoItem) => {
-              const vHandle = v.channel?.handle?.replace(/^@/, "").toLowerCase();
-              const vName = v.channel?.displayName?.toLowerCase();
+              if (!v || !v.channel) return false;
+              const vHandle = typeof v.channel.handle === "string" ? v.channel.handle.replace(/^@/, "").toLowerCase() : "";
+              const vName = typeof v.channel.displayName === "string" ? v.channel.displayName.toLowerCase() : "";
               return (
-                vHandle === uHandle ||
-                v.channel?.id === user.id ||
+                (vHandle && uHandle && vHandle === uHandle) ||
+                (v.channel?.id && user.id && v.channel.id === user.id) ||
                 (vName && uName && vName === uName)
               );
             }

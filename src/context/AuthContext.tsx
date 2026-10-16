@@ -47,26 +47,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const saved = localStorage.getItem("entropy_user");
         if (saved) {
-          const parsed: User = JSON.parse(saved);
-          if (!parsed.handle) {
-            parsed.handle = (parsed.name || "user").toLowerCase().replace(/[^a-z0-9]/g, "") || "user";
-          }
-          if (!parsed.joinedAt) {
-            let jAt = "";
-            if (parsed.id?.startsWith("u-")) {
-              const ts = parseInt(parsed.id.replace("u-", ""), 10);
-              if (!isNaN(ts) && ts > 1500000000000) {
-                jAt = formatJoinedDate(ts);
-              }
+          const parsed = JSON.parse(saved);
+          if (parsed && typeof parsed === "object") {
+            if (!parsed.name) parsed.name = "User";
+            if (!parsed.handle) {
+              parsed.handle = String(parsed.name).toLowerCase().replace(/[^a-z0-9]/g, "") || "user";
             }
-            parsed.joinedAt = jAt || formatJoinedDate();
+            if (!parsed.joinedAt) {
+              let jAt = "";
+              if (typeof parsed.id === "string" && parsed.id.startsWith("u-")) {
+                const ts = parseInt(parsed.id.replace("u-", ""), 10);
+                if (!isNaN(ts) && ts > 1500000000000) {
+                  jAt = formatJoinedDate(ts);
+                }
+              }
+              parsed.joinedAt = jAt || formatJoinedDate();
+            }
+            setUser(parsed as User);
           }
-          try {
-            localStorage.setItem("entropy_user", JSON.stringify(parsed));
-          } catch {
-            // ignore
-          }
-          setUser(parsed);
         }
       } catch {
         // ignore

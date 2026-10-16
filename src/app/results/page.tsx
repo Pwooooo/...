@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/navigation/Navbar";
 import Sidebar from "@/components/navigation/Sidebar";
 import { ALL_VIDEOS } from "@/lib/mock-data";
-import { getAllCombinedVideos, fetchServerVideos } from "@/lib/video-storage";
+import { getAllCombinedVideos, getBaseVideos, fetchServerVideos } from "@/lib/video-storage";
 import { VideoItem } from "@/types";
 import Link from "next/link";
 import { formatDuration, formatViews } from "@/lib/utils";
@@ -14,10 +14,11 @@ import { SlidersHorizontal } from "lucide-react";
 function SearchResultsContent() {
   const searchParams = useSearchParams();
   const query = searchParams.get("search_query") || "";
-  const [allVideos, setAllVideos] = useState<VideoItem[]>(() => getAllCombinedVideos());
+  const [allVideos, setAllVideos] = useState<VideoItem[]>(() => getBaseVideos());
 
   useEffect(() => {
-    fetchServerVideos().then((srv) => {
+    setAllVideos(getAllCombinedVideos());
+    fetchServerVideos().then(() => {
       setAllVideos(getAllCombinedVideos());
     });
 
@@ -30,14 +31,16 @@ function SearchResultsContent() {
   }, []);
 
   const results = useMemo(() => {
-    if (!query) return allVideos;
+    if (!Array.isArray(allVideos)) return [];
+    const valid = allVideos.filter((v): v is VideoItem => Boolean(v && v.id));
+    if (!query) return valid;
     const lower = query.toLowerCase();
-    return allVideos.filter(
+    return valid.filter(
       (v) =>
-        v.title.toLowerCase().includes(lower) ||
-        (v.description && v.description.toLowerCase().includes(lower)) ||
-        (v.channel?.displayName && v.channel.displayName.toLowerCase().includes(lower)) ||
-        (Array.isArray(v.tags) && v.tags.some((t) => t.toLowerCase().includes(lower)))
+        (typeof v.title === "string" && v.title.toLowerCase().includes(lower)) ||
+        (typeof v.description === "string" && v.description.toLowerCase().includes(lower)) ||
+        (typeof v.channel?.displayName === "string" && v.channel.displayName.toLowerCase().includes(lower)) ||
+        (Array.isArray(v.tags) && v.tags.some((t) => typeof t === "string" && t.toLowerCase().includes(lower)))
     );
   }, [query, allVideos]);
 

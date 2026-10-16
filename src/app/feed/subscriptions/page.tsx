@@ -5,7 +5,7 @@ import Navbar from "@/components/navigation/Navbar";
 import Sidebar from "@/components/navigation/Sidebar";
 import VideoCard from "@/components/video/VideoCard";
 import { MOCK_CHANNELS } from "@/lib/mock-data";
-import { getAllCombinedVideos, fetchServerVideos } from "@/lib/video-storage";
+import { getAllCombinedVideos, getBaseVideos, fetchServerVideos } from "@/lib/video-storage";
 import { VideoItem } from "@/types";
 import Link from "next/link";
 import { LayoutGrid, List } from "lucide-react";
@@ -13,9 +13,10 @@ import { LayoutGrid, List } from "lucide-react";
 export default function SubscriptionsPage() {
   const [collapsedSidebar, setCollapsedSidebar] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [videos, setVideos] = useState<VideoItem[]>(() => getAllCombinedVideos());
+  const [videos, setVideos] = useState<VideoItem[]>(() => getBaseVideos());
 
   useEffect(() => {
+    setVideos(getAllCombinedVideos());
     fetchServerVideos().then(() => {
       setVideos(getAllCombinedVideos());
     });

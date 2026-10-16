@@ -187,16 +187,16 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
                   ? "bg-white/[0.12] ring-2 ring-white/20"
                   : "hover:bg-white/[0.08] hover:ring-2 hover:ring-white/10"
               }`}
-              title={user.name}
+              title={user.name || "User"}
               aria-label="Account menu"
               aria-expanded={isUserMenuOpen}
             >
               <div className="h-8 w-8 rounded-full overflow-hidden flex items-center justify-center group-hover:scale-105 transition-transform">
                 {user.avatarUrl ? (
-                  <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
+                  <img src={user.avatarUrl} alt={user.name || "User"} className="h-full w-full object-cover" />
                 ) : (
                   <div className="h-full w-full bg-white text-black flex items-center justify-center text-xs font-bold">
-                    {user.name.slice(0, 1).toUpperCase()}
+                    {(user.name ? String(user.name).charAt(0) : "U").toUpperCase()}
                   </div>
                 )}
               </div>
@@ -216,14 +216,14 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
                 >
                   <div className="h-10 w-10 rounded-full overflow-hidden bg-[#181818] text-white flex items-center justify-center text-sm font-bold flex-shrink-0 group-hover:scale-105 transition-transform">
                     {user.avatarUrl ? (
-                      <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
+                      <img src={user.avatarUrl} alt={user.name || "User"} className="h-full w-full object-cover" />
                     ) : (
-                      <span>{user.name.slice(0, 1).toUpperCase()}</span>
+                      <span>{(user.name ? String(user.name).charAt(0) : "U").toUpperCase()}</span>
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-white truncate">{user.name}</p>
-                    <p className="text-[11px] text-zinc-400 truncate">@{user.handle}</p>
+                    <p className="text-xs font-bold text-white truncate">{user.name || "User"}</p>
+                    <p className="text-[11px] text-zinc-400 truncate">@{user.handle || "user"}</p>
                     <p className="text-[11px] text-white font-medium hover:underline mt-0.5">
                       View your channel
                     </p>

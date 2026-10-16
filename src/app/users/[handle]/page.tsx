@@ -144,11 +144,12 @@ export default function UserProfilePage({
         const allAvailable = getAllCombinedVideos();
         const filtered = allAvailable.filter(
           (v: VideoItem) => {
-            const h = v.channel?.handle?.replace(/^@/, "").toLowerCase();
-            const id = v.channel?.id?.toLowerCase();
-            const d = v.channel?.displayName?.toLowerCase();
+            if (!v || !v.channel) return false;
+            const h = typeof v.channel.handle === "string" ? v.channel.handle.replace(/^@/, "").toLowerCase() : "";
+            const id = typeof v.channel.id === "string" ? v.channel.id.toLowerCase() : "";
+            const d = typeof v.channel.displayName === "string" ? v.channel.displayName.toLowerCase() : "";
             const target = cleanHandle.toLowerCase();
-            return h === target || id === target || d === target;
+            return (h && h === target) || (id && id === target) || (d && d === target);
           }
         );
         setUserVideos(filtered);

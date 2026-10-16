@@ -28,7 +28,7 @@ import { formatDuration, formatViews, formatTimeAgo, formatSubscribers } from "@
 import { ALL_VIDEOS, SAMPLE_CHAPTERS, SAMPLE_HIGHLIGHTS } from "@/lib/mock-data";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { getUserVideos, getVideoBlob, getAllCombinedVideos, fetchServerVideos } from "@/lib/video-storage";
+import { getUserVideos, getVideoBlob, getAllCombinedVideos, getBaseVideos, fetchServerVideos } from "@/lib/video-storage";
 import { VideoItem } from "@/types";
 
 function WatchContent() {
@@ -38,12 +38,12 @@ function WatchContent() {
   const chaptersPanelRef = useRef<HTMLDivElement>(null);
 
   const [currentVideo, setCurrentVideo] = useState<VideoItem>(() => {
-    const combined = getAllCombinedVideos();
-    return combined.find((v) => v.id === videoId) || combined[0] || ALL_VIDEOS[0];
+    const base = getBaseVideos();
+    return base.find((v) => v.id === videoId) || base[0] || ALL_VIDEOS[0];
   });
   const [resolvedVideoUrl, setResolvedVideoUrl] = useState<string | null>(null);
   const [allRecommendedVideos, setAllRecommendedVideos] = useState<VideoItem[]>(() => {
-    return getAllCombinedVideos().filter((v) => v.id !== videoId);
+    return getBaseVideos().filter((v) => v.id !== videoId);
   });
 
   useEffect(() => {

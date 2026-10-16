@@ -170,9 +170,9 @@ export function extractVideoDetails(file: File): Promise<{
 const DEFAULT_DELETED_IDS = ["v-srv-1792152077838", "v-user-1792152077838", "sample-2"];
 
 export function isNextJsFillerVideo(video?: { id?: string; title?: string } | null): boolean {
-  if (!video) return false;
-  const id = video.id || "";
-  const title = (video.title || "").toLowerCase();
+  if (!video || typeof video !== "object") return false;
+  const id = typeof video.id === "string" ? video.id : "";
+  const title = typeof video.title === "string" ? video.title.toLowerCase() : "";
   return (
     id === "v-srv-1792152077838" ||
     id === "v-user-1792152077838" ||
@@ -190,7 +190,9 @@ export function getDeletedVideoIds(): Set<string> {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        parsed.forEach((id) => set.add(id));
+        parsed.forEach((id) => {
+          if (typeof id === "string") set.add(id);
+        });
       }
     }
     return set;
@@ -200,7 +202,7 @@ export function getDeletedVideoIds(): Set<string> {
 }
 
 export function markVideoAsDeleted(videoId: string): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || !videoId) return;
   try {
     const deleted = getDeletedVideoIds();
     deleted.add(videoId);
@@ -216,10 +218,10 @@ export async function fetchServerVideos(): Promise<VideoItem[]> {
     if (data.success && Array.isArray(data.videos)) {
       const deleted = getDeletedVideoIds();
       const serverVideos: VideoItem[] = data.videos.filter(
-        (v: VideoItem) => !deleted.has(v.id) && !isNextJsFillerVideo(v)
+        (v: VideoItem) => v && typeof v.id === "string" && !deleted.has(v.id) && !isNextJsFillerVideo(v)
       );
       const localVideos = getUserVideos().filter(
-        (v) => !deleted.has(v.id) && !isNextJsFillerVideo(v)
+        (v) => v && typeof v.id === "string" && !deleted.has(v.id) && !isNextJsFillerVideo(v)
       );
 
       // Merge unique by ID (server priority, do NOT auto-upload local videos)
@@ -229,7 +231,7 @@ export async function fetchServerVideos(): Promise<VideoItem[]> {
         if (!map.has(v.id)) map.set(v.id, v);
       });
       const merged = Array.from(map.values()).filter(
-        (v) => !deleted.has(v.id) && !isNextJsFillerVideo(v)
+        (v) => v && !deleted.has(v.id) && !isNextJsFillerVideo(v)
       );
       localStorage.setItem("entropy_user_videos", JSON.stringify(merged));
       window.dispatchEvent(new Event("entropy_videos_updated"));
@@ -267,14 +269,16 @@ export function getUserVideos(): VideoItem[] {
     if (!stored) return [];
     const parsed = JSON.parse(stored);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter((v: VideoItem) => !deleted.has(v.id) && !isNextJsFillerVideo(v));
+    return parsed.filter(
+      (v: VideoItem) => v && typeof v === "object" && typeof v.id === "string" && !deleted.has(v.id) && !isNextJsFillerVideo(v)
+    );
   } catch {
     return [];
   }
 }
 
 export function saveUserVideoMetadata(video: VideoItem): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || !video || !video.id) return;
   try {
     const deleted = getDeletedVideoIds();
     if (deleted.has(video.id) || isNextJsFillerVideo(video)) return;
@@ -290,7 +294,7 @@ export function saveUserVideoMetadata(video: VideoItem): void {
 }
 
 export function updateUserVideo(videoId: string, updates: Partial<VideoItem>): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || !videoId) return;
   try {
     const current = getUserVideos();
     const index = current.findIndex((v) => v.id === videoId);
@@ -311,7 +315,7 @@ export function updateUserVideo(videoId: string, updates: Partial<VideoItem>): v
 }
 
 export async function deleteUserVideo(videoId: string): Promise<void> {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || !videoId) return;
   try {
     // 1. Immediately mark video as deleted so it can NEVER be re-synced or retrieved
     markVideoAsDeleted(videoId);
@@ -336,10 +340,15 @@ export async function deleteUserVideo(videoId: string): Promise<void> {
   }
 }
 
+export function getBaseVideos(): VideoItem[] {
+  const deleted = getDeletedVideoIds();
+  return ALL_VIDEOS.filter((v) => v && typeof v.id === "string" && !deleted.has(v.id) && !isNextJsFillerVideo(v));
+}
+
 export function getAllCombinedVideos(): VideoItem[] {
   const deleted = getDeletedVideoIds();
-  const userVideos = getUserVideos().filter((v) => !deleted.has(v.id) && !isNextJsFillerVideo(v));
-  const baseVideos = ALL_VIDEOS.filter((v) => !deleted.has(v.id) && !isNextJsFillerVideo(v));
+  const userVideos = getUserVideos().filter((v) => v && typeof v.id === "string" && !deleted.has(v.id) && !isNextJsFillerVideo(v));
+  const baseVideos = ALL_VIDEOS.filter((v) => v && typeof v.id === "string" && !deleted.has(v.id) && !isNextJsFillerVideo(v));
 
   // Merge unique by id
   const map = new Map<string, VideoItem>();
@@ -347,23 +356,22 @@ export function getAllCombinedVideos(): VideoItem[] {
   baseVideos.forEach((v) => {
     if (!map.has(v.id)) map.set(v.id, v);
   });
-  return Array.from(map.values()).filter((v) => !deleted.has(v.id) && !isNextJsFillerVideo(v));
+  return Array.from(map.values()).filter((v) => v && !deleted.has(v.id) && !isNextJsFillerVideo(v));
 }
 
-// Auto-sync server videos on client load and sanitize cached entries
+// Clean cached next.js filler video from local storage safely without dispatching events at module root
 if (typeof window !== "undefined") {
   try {
     const raw = localStorage.getItem("entropy_user_videos");
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        const cleaned = parsed.filter((v: VideoItem) => !isNextJsFillerVideo(v));
+        const cleaned = parsed.filter((v: VideoItem) => v && !isNextJsFillerVideo(v));
         if (cleaned.length !== parsed.length) {
           localStorage.setItem("entropy_user_videos", JSON.stringify(cleaned));
         }
       }
     }
   } catch {}
-  fetchServerVideos();
 }
 
