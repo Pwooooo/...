@@ -20,6 +20,7 @@ import {
   Eye,
 } from "lucide-react";
 import Link from "next/link";
+import { validateDisplayName, validateHandle } from "@/lib/user-validation";
 
 function BoxToggle({
   checked,
@@ -179,11 +180,22 @@ export default function SettingsPage() {
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+
+    const nameVal = validateDisplayName(name);
+    if (!nameVal.valid) {
+      showToast(nameVal.error || "Invalid display name (3–20 characters)");
+      return;
+    }
+
+    const handleVal = validateHandle(handle, user?.id);
+    if (!handleVal.valid) {
+      showToast(handleVal.error || "Invalid handle");
+      return;
+    }
 
     updateUser({
       name: name.trim(),
-      handle: handle.trim().replace(/^@/, "").toLowerCase() || "user",
+      handle: handleVal.cleanHandle,
       bio: bio.trim(),
       country: country.trim(),
       avatarUrl: avatarUrl.trim(),
@@ -355,12 +367,19 @@ export default function SettingsPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
-                      Display Name
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-semibold text-zinc-300">
+                        Display Name
+                      </label>
+                      <span className="text-[11px] font-mono text-zinc-500">
+                        {name.length}/20
+                      </span>
+                    </div>
                     <input
                       type="text"
                       required
+                      minLength={3}
+                      maxLength={20}
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       className="w-full rounded-xl bg-[#0a0a0a] border border-white/[0.08] px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors"
@@ -368,19 +387,29 @@ export default function SettingsPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
-                      Channel Handle
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-semibold text-zinc-300">
+                        Channel Handle
+                      </label>
+                      <span className="text-[11px] font-mono text-zinc-500">
+                        {handle.replace(/^@/, "").length}/30
+                      </span>
+                    </div>
                     <div className="flex items-center rounded-xl bg-[#0a0a0a] border border-white/[0.08] px-3.5 py-2.5 focus-within:border-white/20 transition-colors">
                       <span className="text-zinc-500 text-xs font-mono select-none">@</span>
                       <input
                         type="text"
                         required
-                        value={handle}
+                        minLength={3}
+                        maxLength={30}
+                        value={handle.replace(/^@/, "")}
                         onChange={(e) => setHandle(e.target.value)}
                         className="w-full bg-transparent text-xs text-white placeholder-zinc-500 outline-none ml-1 font-mono"
                       />
                     </div>
+                    <p className="text-[10px] text-zinc-500 mt-1">
+                      3–30 chars. Letters, numbers, and _ - . · (cannot start or end with separators).
+                    </p>
                   </div>
                 </div>
 

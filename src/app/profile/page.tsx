@@ -32,6 +32,7 @@ import { useAuth } from "@/context/AuthContext";
 import { VideoItem } from "@/types";
 import CommunityTab from "@/components/channel/CommunityTab";
 import { fetchServerVideos, getAllCombinedVideos, getUserVideos } from "@/lib/video-storage";
+import { validateDisplayName, validateHandle } from "@/lib/user-validation";
 
 const PROFILE_TABS = ["Videos", "Playlists", "Community", "About"];
 
@@ -44,9 +45,11 @@ export default function ProfilePage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [editName, setEditName] = useState("");
+  const [editHandle, setEditHandle] = useState("");
   const [editBio, setEditBio] = useState("");
   const [editCountry, setEditCountry] = useState("");
   const [editAvatarUrl, setEditAvatarUrl] = useState("");
+  const [editError, setEditError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -102,6 +105,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (user) {
       setEditName(user.name || "");
+      setEditHandle(user.handle || "");
       setEditBio(user.bio || "");
       setEditCountry(user.country || "");
       setEditAvatarUrl(user.avatarUrl || "");
@@ -158,9 +162,23 @@ export default function ProfilePage() {
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editName.trim()) return;
+    setEditError(null);
+
+    const nameVal = validateDisplayName(editName);
+    if (!nameVal.valid) {
+      setEditError(nameVal.error || "Invalid name");
+      return;
+    }
+
+    const handleVal = validateHandle(editHandle, user?.id);
+    if (!handleVal.valid) {
+      setEditError(handleVal.error || "Invalid handle");
+      return;
+    }
+
     updateUser({
       name: editName.trim(),
+      handle: handleVal.cleanHandle,
       bio: editBio.trim(),
       country: editCountry.trim(),
       avatarUrl: editAvatarUrl.trim(),
@@ -170,7 +188,8 @@ export default function ProfilePage() {
 
   const handleShare = () => {
     if (typeof window !== "undefined") {
-      navigator.clipboard?.writeText(window.location.href);
+      const url = `${window.location.origin}/profile/@${user?.handle || "user"}`;
+      navigator.clipboard?.writeText(url);
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2500);
     }
@@ -265,7 +284,13 @@ export default function ProfilePage() {
                       </h1>
                     </div>
                     <p className="text-xs sm:text-sm text-zinc-400 font-normal mt-0.5 flex flex-wrap items-center gap-1.5">
-                      <span>@{user.handle}</span>
+                      <Link
+                        href={`/profile/@${user.handle}`}
+                        className="font-semibold text-white hover:underline cursor-pointer"
+                        title="View your public channel"
+                      >
+                        @{user.handle}
+                      </Link>
                       <span className="text-zinc-600">•</span>
                       <span>0 subscribers</span>
                       <span className="text-zinc-600">•</span>
@@ -505,18 +530,57 @@ export default function ProfilePage() {
               </button>
             </div>
 
+            {editError && (
+              <div className="mt-3 p-3 rounded-xl bg-red-950/60 border border-red-500/30 text-xs text-red-200">
+                {editError}
+              </div>
+            )}
+
             <form onSubmit={handleSaveProfile} className="space-y-4 pt-4">
               <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">
-                  Display Name
-                </label>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="block text-xs font-semibold text-zinc-400">
+                    Display Name
+                  </label>
+                  <span className="text-[11px] text-zinc-500 font-mono">
+                    {editName.length}/20
+                  </span>
+                </div>
                 <input
                   type="text"
                   required
+                  minLength={3}
+                  maxLength={20}
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
                   className="w-full rounded-xl bg-[#0a0a0a] border border-white/[0.08] px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors"
                 />
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="block text-xs font-semibold text-zinc-400">
+                    Channel Handle
+                  </label>
+                  <span className="text-[11px] text-zinc-500 font-mono">
+                    {editHandle.replace(/^@/, "").length}/30
+                  </span>
+                </div>
+                <div className="flex items-center rounded-xl bg-[#0a0a0a] border border-white/[0.08] px-3 py-2 focus-within:border-white/20 transition-colors">
+                  <span className="text-zinc-500 text-xs font-mono select-none">@</span>
+                  <input
+                    type="text"
+                    required
+                    minLength={3}
+                    maxLength={30}
+                    value={editHandle.replace(/^@/, "")}
+                    onChange={(e) => setEditHandle(e.target.value)}
+                    className="w-full bg-transparent text-xs text-white placeholder-zinc-500 outline-none ml-1 font-mono"
+                  />
+                </div>
+                <p className="text-[10px] text-zinc-500 mt-1">
+                  3–30 chars. Letters, numbers, and _ - . · (cannot start or end with separators).
+                </p>
               </div>
 
               <div>

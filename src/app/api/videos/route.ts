@@ -550,8 +550,10 @@ export async function POST(req: NextRequest) {
     safeEnsureDirs();
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
-    const title = (formData.get("title") as string) || "Untitled Video";
-    const description = (formData.get("description") as string) || "";
+    const rawTitle = (formData.get("title") as string) || "Untitled Video";
+    const title = rawTitle.slice(0, 100);
+    const rawDescription = (formData.get("description") as string) || "";
+    const description = rawDescription.slice(0, 10000);
     const category = (formData.get("category") as string) || "Technology";
     const tagsRaw = (formData.get("tags") as string) || "";
     const durationRaw = (formData.get("duration") as string) || "0";

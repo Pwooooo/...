@@ -97,6 +97,16 @@ export default function StudioVideosPage() {
       return;
     }
 
+    if (editTitle.trim().length > 100) {
+      alert("Video title cannot exceed 100 characters.");
+      return;
+    }
+
+    if (editDescription.length > 10000) {
+      alert("Video description cannot exceed 10,000 characters.");
+      return;
+    }
+
     const parsedTags = editTags
       .split(",")
       .map((t) => t.trim().toLowerCase().replace(/^#/, ""))
@@ -365,12 +375,22 @@ export default function StudioVideosPage() {
               <div className="p-6 space-y-5 overflow-y-auto scrollbar-none flex-1">
                 {/* Title */}
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
-                    Title <span className="text-red-400">*</span>
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-semibold text-zinc-300">
+                      Title <span className="text-red-400">*</span>
+                    </label>
+                    <span
+                      className={`text-[11px] font-mono ${
+                        editTitle.length >= 100 ? "text-amber-400 font-bold" : "text-zinc-500"
+                      }`}
+                    >
+                      {editTitle.length}/100
+                    </span>
+                  </div>
                   <input
                     type="text"
                     required
+                    maxLength={100}
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
                     placeholder="Enter video title"
@@ -380,11 +400,21 @@ export default function StudioVideosPage() {
 
                 {/* Description */}
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
-                    Description
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-semibold text-zinc-300">
+                      Description
+                    </label>
+                    <span
+                      className={`text-[11px] font-mono ${
+                        editDescription.length >= 10000 ? "text-amber-400 font-bold" : "text-zinc-500"
+                      }`}
+                    >
+                      {editDescription.length}/10000
+                    </span>
+                  </div>
                   <textarea
                     rows={4}
+                    maxLength={10000}
                     value={editDescription}
                     onChange={(e) => setEditDescription(e.target.value)}
                     placeholder="Tell viewers about your video"

@@ -155,6 +155,15 @@ export default function StudioUploadPage() {
     e.preventDefault();
     if (!file || !user) return;
 
+    if (title.trim().length > 100) {
+      showToast("Video title cannot exceed 100 characters");
+      return;
+    }
+    if (description.length > 10000) {
+      showToast("Video description cannot exceed 10,000 characters");
+      return;
+    }
+
     setIsUploading(true);
     setUploadProgress(5);
     setUploadStage("Uploading");
@@ -508,12 +517,22 @@ export default function StudioUploadPage() {
                     {/* Left details */}
                     <div className="lg:col-span-7 space-y-4">
                       <div>
-                        <label className="block text-xs font-bold text-zinc-300 mb-1.5">
-                          Title <span className="text-red-400">*</span>
-                        </label>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="block text-xs font-bold text-zinc-300">
+                            Title <span className="text-red-400">*</span>
+                          </label>
+                          <span
+                            className={`text-[11px] font-mono ${
+                              title.length >= 100 ? "text-amber-400 font-bold" : "text-zinc-500"
+                            }`}
+                          >
+                            {title.length}/100
+                          </span>
+                        </div>
                         <input
                           type="text"
                           required
+                          maxLength={100}
                           value={title}
                           onChange={(e) => setTitle(e.target.value)}
                           placeholder="Give your video a catchy title..."
@@ -529,6 +548,7 @@ export default function StudioUploadPage() {
                           </label>
                           <input
                             type="text"
+                            maxLength={100}
                             value={songName}
                             onChange={(e) => setSongName(e.target.value)}
                             placeholder="Original Audio or Sound Title"
@@ -538,11 +558,21 @@ export default function StudioUploadPage() {
                       )}
 
                       <div>
-                        <label className="block text-xs font-bold text-zinc-300 mb-1.5">
-                          Description
-                        </label>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="block text-xs font-bold text-zinc-300">
+                            Description
+                          </label>
+                          <span
+                            className={`text-[11px] font-mono ${
+                              description.length >= 10000 ? "text-amber-400 font-bold" : "text-zinc-500"
+                            }`}
+                          >
+                            {description.length}/10000
+                          </span>
+                        </div>
                         <textarea
                           rows={uploadType === "short" ? 3 : 4}
+                          maxLength={10000}
                           value={description}
                           onChange={(e) => setDescription(e.target.value)}
                           placeholder={

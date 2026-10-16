@@ -258,7 +258,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
               >
                 {/* Profile header link (matches user screenshot) */}
                 <Link
-                  href="/profile"
+                  href={`/profile/@${user.handle || "user"}`}
                   onClick={() => setIsUserMenuOpen(false)}
                   className="flex items-center gap-3 p-2.5 pb-3 border-b border-white/[0.08] hover:bg-[#222222] rounded-xl transition-colors cursor-pointer group"
                 >

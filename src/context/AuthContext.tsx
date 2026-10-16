@@ -1,7 +1,14 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { X, User as UserIcon, Lock, Mail, CheckCircle2 } from "lucide-react";
+import { X, User as UserIcon, Lock, Mail, CheckCircle2, AtSign } from "lucide-react";
+import {
+  saveRegisteredUser,
+  validateDisplayName,
+  validateHandle,
+  suggestHandleFromName,
+  getRegisteredUsers,
+} from "@/lib/user-validation";
 
 export interface User {
   id: string;
@@ -39,6 +46,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [emailInput, setEmailInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
   const [nameInput, setNameInput] = useState("");
+  const [handleInput, setHandleInput] = useState("");
+  const [handleManuallyEdited, setHandleManuallyEdited] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Initialize from localStorage safely
@@ -68,6 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               parsed.avatar = "/default-avatar.png";
             }
             setUser(parsed as User);
+            saveRegisteredUser(parsed as User);
           }
         }
       } catch {
@@ -109,11 +120,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
+    const cleanHandle = (userData?.handle || username.toLowerCase().replace(/[^a-z0-9]/g, "") || "user").replace(/^@/, "");
+
     const newUser: User = {
       id,
       name: username,
       email: userData?.email || "user@entropy.stream",
-      handle: userData?.handle || username.toLowerCase().replace(/[^a-z0-9]/g, "") || "user",
+      handle: cleanHandle,
       avatarUrl: userData?.avatarUrl || "/default-avatar.png",
       avatar: userData?.avatar || userData?.avatarUrl || "/default-avatar.png",
       bio: userData?.bio || "",
@@ -121,6 +134,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       joinedAt: userJoinedAt,
     };
     setUser(newUser);
+    saveRegisteredUser(newUser);
+
     try {
       localStorage.setItem("entropy_user", JSON.stringify(newUser));
       if (typeof window !== "undefined") {
@@ -149,7 +164,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateUser = (userData: Partial<User>) => {
     setUser((prev) => {
       if (!prev) return null;
-      const updated = { ...prev, ...userData };
+      const cleanHandle = userData.handle ? userData.handle.replace(/^@/, "").toLowerCase() : prev.handle;
+      const updated = { ...prev, ...userData, handle: cleanHandle };
+      saveRegisteredUser(updated);
       try {
         localStorage.setItem("entropy_user", JSON.stringify(updated));
         if (typeof window !== "undefined") {
@@ -163,30 +180,81 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     showToast("Profile updated");
   };
 
-  const openAuthModal = () => setIsAuthModalOpen(true);
+  const openAuthModal = () => {
+    setAuthError(null);
+    setIsAuthModalOpen(true);
+  };
+
   const closeAuthModal = () => {
     setIsAuthModalOpen(false);
+    setAuthError(null);
     setEmailInput("");
     setPasswordInput("");
     setNameInput("");
+    setHandleInput("");
+    setHandleManuallyEdited(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!emailInput.trim()) return;
+    setAuthError(null);
 
-    const username = nameInput.trim() || emailInput.split("@")[0] || "User";
-    login({
-      id: `u-${Date.now()}`,
-      name: username,
-      email: emailInput.trim(),
-      handle: username.toLowerCase().replace(/[^a-z0-9]/g, "") || "user",
-      avatarUrl: "",
-      avatar: "",
-    });
+    if (authMode === "signup") {
+      const nameVal = validateDisplayName(nameInput);
+      if (!nameVal.valid) {
+        setAuthError(nameVal.error || "Display name must be 3–20 characters.");
+        return;
+      }
+
+      const handleVal = validateHandle(handleInput);
+      if (!handleVal.valid) {
+        setAuthError(handleVal.error || "Invalid handle.");
+        return;
+      }
+
+      if (!emailInput.trim()) {
+        setAuthError("Email address is required.");
+        return;
+      }
+
+      login({
+        id: `u-${Date.now()}`,
+        name: nameInput.trim(),
+        email: emailInput.trim(),
+        handle: handleVal.cleanHandle!,
+        avatarUrl: "",
+        avatar: "",
+      });
+    } else {
+      if (!emailInput.trim()) return;
+      const cleanLogin = emailInput.trim().toLowerCase().replace(/^@/, "");
+      const registered = getRegisteredUsers();
+      const existing = registered.find(
+        (u) =>
+          u.email?.toLowerCase() === cleanLogin ||
+          (u.handle && u.handle.toLowerCase() === cleanLogin)
+      );
+
+      if (existing) {
+        login(existing);
+      } else {
+        const username = emailInput.split("@")[0] || "User";
+        login({
+          id: `u-${Date.now()}`,
+          name: username,
+          email: emailInput.trim(),
+          handle: suggestHandleFromName(username),
+          avatarUrl: "",
+          avatar: "",
+        });
+      }
+    }
+
     setEmailInput("");
     setPasswordInput("");
     setNameInput("");
+    setHandleInput("");
+    setHandleManuallyEdited(false);
   };
 
   return (
@@ -273,44 +341,109 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               </button>
             </div>
 
+            {/* Error Banner */}
+            {authError && (
+              <div className="mb-4 p-3 rounded-xl bg-red-950/60 border border-red-500/30 text-xs text-red-200">
+                {authError}
+              </div>
+            )}
+
             {/* Auth Form */}
             <form onSubmit={handleSubmit} className="space-y-3">
               {authMode === "signup" && (
+                <>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[11px] font-semibold text-zinc-400">Name</span>
+                      <span className="text-[10px] font-mono text-zinc-500">{nameInput.length}/20</span>
+                    </div>
+                    <div className="relative">
+                      <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
+                      <input
+                        type="text"
+                        required
+                        minLength={3}
+                        maxLength={20}
+                        placeholder="Your Name (3–20 characters)"
+                        value={nameInput}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setNameInput(val);
+                          if (!handleManuallyEdited) {
+                            setHandleInput(suggestHandleFromName(val));
+                          }
+                        }}
+                        className="w-full rounded-xl bg-[#0a0a0a] border border-white/[0.08] pl-9 pr-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[11px] font-semibold text-zinc-400">Username / Handle</span>
+                      <span className="text-[10px] font-mono text-zinc-500">
+                        {handleInput.replace(/^@/, "").length}/30
+                      </span>
+                    </div>
+                    <div className="relative flex items-center rounded-xl bg-[#0a0a0a] border border-white/[0.08] px-3 py-2 focus-within:border-white/20 transition-colors">
+                      <span className="text-zinc-500 text-xs font-mono select-none">@</span>
+                      <input
+                        type="text"
+                        required
+                        minLength={3}
+                        maxLength={30}
+                        placeholder="handle (e.g. user_123)"
+                        value={handleInput.replace(/^@/, "")}
+                        onChange={(e) => {
+                          setHandleManuallyEdited(true);
+                          setHandleInput(e.target.value);
+                        }}
+                        className="w-full bg-transparent text-xs text-white placeholder-zinc-500 outline-none ml-1 font-mono"
+                      />
+                    </div>
+                    <p className="text-[10px] text-zinc-500 mt-1 leading-tight">
+                      3–30 chars. Letters, numbers, and _ - . · (cannot start/end with separators). Unique.
+                    </p>
+                  </div>
+                </>
+              )}
+
+              <div>
+                {authMode === "signup" && (
+                  <label className="block text-[11px] font-semibold text-zinc-400 mb-1">
+                    Email address
+                  </label>
+                )}
                 <div className="relative">
-                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
                   <input
-                    type="text"
+                    type={authMode === "signup" ? "email" : "text"}
                     required
-                    placeholder="Your Name / Channel Name"
-                    value={nameInput}
-                    onChange={(e) => setNameInput(e.target.value)}
+                    placeholder={authMode === "signup" ? "Email address" : "Email or @username"}
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
                     className="w-full rounded-xl bg-[#0a0a0a] border border-white/[0.08] pl-9 pr-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors"
                   />
                 </div>
-              )}
-
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
-                <input
-                  type="email"
-                  required
-                  placeholder="Email address"
-                  value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value)}
-                  className="w-full rounded-xl bg-[#0a0a0a] border border-white/[0.08] pl-9 pr-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors"
-                />
               </div>
 
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
-                <input
-                  type="password"
-                  required
-                  placeholder="Password"
-                  value={passwordInput}
-                  onChange={(e) => setPasswordInput(e.target.value)}
-                  className="w-full rounded-xl bg-[#0a0a0a] border border-white/[0.08] pl-9 pr-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors"
-                />
+              <div>
+                {authMode === "signup" && (
+                  <label className="block text-[11px] font-semibold text-zinc-400 mb-1">
+                    Password
+                  </label>
+                )}
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
+                  <input
+                    type="password"
+                    required
+                    placeholder="Password"
+                    value={passwordInput}
+                    onChange={(e) => setPasswordInput(e.target.value)}
+                    className="w-full rounded-xl bg-[#0a0a0a] border border-white/[0.08] pl-9 pr-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors"
+                  />
+                </div>
               </div>
 
               <button
