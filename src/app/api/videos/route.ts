@@ -155,8 +155,10 @@ function hasVercelBlob(): boolean {
 }
 
 async function putSafeBlob(pathname: string, body: Buffer | string, contentType?: string) {
+  const token = ensureBlobToken();
   try {
     return await put(pathname, body, {
+      token,
       access: "private",
       contentType,
       addRandomSuffix: false,
@@ -165,6 +167,7 @@ async function putSafeBlob(pathname: string, body: Buffer | string, contentType?
   } catch {
     try {
       return await put(pathname, body, {
+        token,
         access: "private",
         contentType,
         addRandomSuffix: true,
@@ -172,6 +175,7 @@ async function putSafeBlob(pathname: string, body: Buffer | string, contentType?
     } catch {
       try {
         return await put(pathname, body, {
+          token,
           access: "public",
           contentType,
           addRandomSuffix: false,
@@ -179,6 +183,7 @@ async function putSafeBlob(pathname: string, body: Buffer | string, contentType?
         });
       } catch {
         return await put(pathname, body, {
+          token,
           access: "public",
           contentType,
           addRandomSuffix: true,
@@ -189,9 +194,10 @@ async function putSafeBlob(pathname: string, body: Buffer | string, contentType?
 }
 
 async function readBlobJson(urlOrPathname: string): Promise<any | null> {
+  const token = ensureBlobToken();
   // 1. Try private access with useCache: false
   try {
-    const res = await get(urlOrPathname, { access: "private", useCache: false });
+    const res = await get(urlOrPathname, { token, access: "private", useCache: false });
     if (res && res.stream) {
       const text = await new Response(res.stream as unknown as BodyInit).text();
       if (text && text.trim()) return JSON.parse(text);
@@ -200,7 +206,7 @@ async function readBlobJson(urlOrPathname: string): Promise<any | null> {
 
   // 2. Try public access with useCache: false
   try {
-    const res = await get(urlOrPathname, { access: "public", useCache: false });
+    const res = await get(urlOrPathname, { token, access: "public", useCache: false });
     if (res && res.stream) {
       const text = await new Response(res.stream as unknown as BodyInit).text();
       if (text && text.trim()) return JSON.parse(text);
@@ -210,16 +216,23 @@ async function readBlobJson(urlOrPathname: string): Promise<any | null> {
   return null;
 }
 
+let lastDiscoveredBlobs: string[] = [];
+let lastListError: string | null = null;
+
 async function fetchBlobVideosIndex(): Promise<VideoItem[]> {
-  if (!hasVercelBlob()) return [];
+  const token = ensureBlobToken();
+  if (!token) return [];
   const map = new Map<string, VideoItem>();
   const deleted = readDeletedVideoIds();
 
   let allBlobs: Array<{ pathname: string; url: string; size: number; uploadedAt: Date }> = [];
   try {
-    const res = await list();
+    const res = await list({ token });
     allBlobs = res.blobs || [];
+    lastDiscoveredBlobs = allBlobs.map((b) => b.pathname);
+    lastListError = null;
   } catch (err) {
+    lastListError = err instanceof Error ? err.message : String(err);
     console.warn("Could not list Vercel blobs:", err);
   }
 
@@ -554,6 +567,9 @@ export async function GET() {
       totalVideos: all.length,
       userVideosCount: userCloudVideos.length,
       blobVideosCount: blobVideos.length,
+      rawBlobCount: lastDiscoveredBlobs.length,
+      rawBlobs: lastDiscoveredBlobs,
+      listError: lastListError,
       r2VideosCount: r2Videos.length,
       localVideosCount: localVideos.length,
     };
