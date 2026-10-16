@@ -107,12 +107,21 @@ export function getBaseVideos(): VideoItem[] {
   return ALL_VIDEOS.filter((v) => v && typeof v.id === "string" && !isNextJsFillerVideo(v));
 }
 
-// ----------------- Central In-Memory Server Video Cache -----------------
-let cachedServerVideos: VideoItem[] | null = null;
+// ----------------- Central Client Video Cache -----------------
+const CACHE_KEY = "entropy_server_videos_cache";
 
 export function getAllCombinedVideos(): VideoItem[] {
-  if (cachedServerVideos && cachedServerVideos.length > 0) {
-    return cachedServerVideos;
+  if (typeof window !== "undefined") {
+    try {
+      const stored = localStorage.getItem(CACHE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const clean = parsed.filter((v: VideoItem) => v && typeof v.id === "string" && !isNextJsFillerVideo(v));
+          if (clean.length > 0) return clean;
+        }
+      }
+    } catch {}
   }
   return getBaseVideos();
 }
@@ -125,8 +134,11 @@ export function saveUserVideoMetadata(video: VideoItem): void {
   if (!video || !video.id || isNextJsFillerVideo(video)) return;
   const current = getAllCombinedVideos();
   const filtered = current.filter((v) => v.id !== video.id);
-  cachedServerVideos = [video, ...filtered];
+  const updated = [video, ...filtered];
   if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify(updated));
+    } catch {}
     window.dispatchEvent(new Event("entropy_videos_updated"));
   }
 }
@@ -135,14 +147,19 @@ export function saveUserVideoMetadata(video: VideoItem): void {
 export async function fetchServerVideos(): Promise<VideoItem[]> {
   if (typeof window === "undefined") return getBaseVideos();
   try {
-    const res = await fetch("/api/videos", { cache: "no-store" });
+    const res = await fetch(`/api/videos?t=${Date.now()}`, {
+      cache: "no-store",
+      headers: { "Cache-Control": "no-cache, no-store, must-revalidate" },
+    });
     const data = await res.json();
     if (data.success && Array.isArray(data.videos)) {
       const cleanVideos: VideoItem[] = data.videos.filter(
         (v: VideoItem) => v && typeof v.id === "string" && !isNextJsFillerVideo(v)
       );
       if (cleanVideos.length > 0) {
-        cachedServerVideos = cleanVideos;
+        try {
+          localStorage.setItem(CACHE_KEY, JSON.stringify(cleanVideos));
+        } catch {}
         window.dispatchEvent(new Event("entropy_videos_updated"));
         return cleanVideos;
       }
@@ -175,10 +192,12 @@ export async function uploadVideoToServer(formData: FormData): Promise<{ success
 export async function deleteUserVideo(videoId: string): Promise<void> {
   if (!videoId) return;
   try {
-    if (cachedServerVideos) {
-      cachedServerVideos = cachedServerVideos.filter((v) => v.id !== videoId);
-    }
+    const current = getAllCombinedVideos();
+    const updated = current.filter((v) => v.id !== videoId);
     if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify(updated));
+      } catch {}
       window.dispatchEvent(new Event("entropy_videos_updated"));
     }
     await fetch(`/api/videos?id=${videoId}`, { method: "DELETE" });
@@ -190,13 +209,15 @@ export async function deleteUserVideo(videoId: string): Promise<void> {
 
 export function updateUserVideo(videoId: string, updates: Partial<VideoItem>): void {
   if (!videoId) return;
-  if (cachedServerVideos) {
-    const idx = cachedServerVideos.findIndex((v) => v.id === videoId);
-    if (idx !== -1) {
-      cachedServerVideos[idx] = { ...cachedServerVideos[idx], ...updates };
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new Event("entropy_videos_updated"));
-      }
+  const current = getAllCombinedVideos();
+  const idx = current.findIndex((v) => v.id === videoId);
+  if (idx !== -1) {
+    current[idx] = { ...current[idx], ...updates };
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify(current));
+      } catch {}
+      window.dispatchEvent(new Event("entropy_videos_updated"));
     }
   }
   fetch("/api/videos", {
@@ -212,12 +233,3 @@ export async function getVideoBlob(videoId: string): Promise<Blob | null> { retu
 export async function deleteVideoBlob(videoId: string): Promise<void> {}
 export function getDeletedVideoIds(): Set<string> { return new Set(["v-srv-1792152077838", "v-user-1792152077838", "sample-2"]); }
 export function markVideoAsDeleted(videoId: string): void {}
-
-// ----------------- Automatic Client Cache Sanitizer -----------------
-// Purge any legacy browser localStorage residue on client boot so no zombie videos linger
-if (typeof window !== "undefined") {
-  try {
-    localStorage.removeItem("entropy_user_videos");
-    localStorage.removeItem("entropy_deleted_video_ids");
-  } catch {}
-}

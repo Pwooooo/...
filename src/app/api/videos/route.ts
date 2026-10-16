@@ -6,6 +6,8 @@ import { VideoItem } from "@/types";
 import { ALL_VIDEOS } from "@/lib/mock-data";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 export const maxDuration = 60;
 
 const DATA_DIR = path.join(process.cwd(), "data");
@@ -295,7 +297,16 @@ export async function GET() {
       writeLocalVideos(all);
     }
 
-    return NextResponse.json({ success: true, videos: all });
+    return NextResponse.json(
+      { success: true, videos: all },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      }
+    );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Error reading videos";
     return NextResponse.json({ success: false, error: message }, { status: 500 });
