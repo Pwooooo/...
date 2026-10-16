@@ -84,7 +84,7 @@ export function extractVideoDetails(file: File): Promise<{
         cleanup();
         resolve({ duration: Math.round(video.duration) || 0, thumbnailUrl: "", width: 1280, height: 720 });
       }
-    }, 6000);
+    }, 2500);
   });
 }
 
@@ -250,7 +250,7 @@ export async function uploadVideoToServer(
 
         // 1. Upload video file with real-time byte progress & multipart
         const videoBlob = await upload(file.name, file, {
-          access: "public",
+          access: "private",
           handleUploadUrl: "/api/blob/upload",
           multipart: true,
           onUploadProgress: (progress) => {
@@ -272,7 +272,7 @@ export async function uploadVideoToServer(
         if (thumbFile) {
           try {
             const thumbBlob = await upload(thumbFile.name, thumbFile, {
-              access: "public",
+              access: "private",
               handleUploadUrl: "/api/blob/upload",
             });
             if (thumbBlob) {
@@ -290,7 +290,7 @@ export async function uploadVideoToServer(
               const resBlob = await fetch(thumbDataUrl);
               const imgBlob = await resBlob.blob();
               const thumbBlob = await upload(`thumb-${Date.now()}.jpg`, imgBlob, {
-                access: "public",
+                access: "private",
                 handleUploadUrl: "/api/blob/upload",
               });
               if (thumbBlob) {

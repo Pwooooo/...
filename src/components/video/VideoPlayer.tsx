@@ -72,6 +72,7 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     const [showChaptersDrawer, setShowChaptersDrawer] = useState(false);
     const [hoverTime, setHoverTime] = useState<number | null>(null);
     const [hoverPos, setHoverPos] = useState<number>(0);
+    const [playbackError, setPlaybackError] = useState<string | null>(null);
 
     // Expose seekTo method to parent components
     useImperativeHandle(ref, () => ({
@@ -277,13 +278,39 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
         <video
           ref={videoRef}
           poster={poster}
+          playsInline
           className="h-full w-full object-contain cursor-pointer"
           onClick={togglePlay}
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
-          onPlay={() => setIsPlaying(true)}
+          onPlay={() => {
+            setIsPlaying(true);
+            setPlaybackError(null);
+          }}
           onPause={() => setIsPlaying(false)}
+          onError={() => {
+            setPlaybackError("This video uses a codec unsupported natively by your current browser (such as Apple ProRes / HEVC in .mov).");
+          }}
         />
+
+        {playbackError && (
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/90 p-6 text-center animate-in fade-in">
+            <div className="h-12 w-12 rounded-full bg-white/10 flex items-center justify-center text-zinc-400 mb-3">
+              <Play className="h-6 w-6 text-zinc-300 ml-0.5" />
+            </div>
+            <p className="text-sm font-semibold text-white mb-1.5">Codec Playback Notice</p>
+            <p className="text-xs text-zinc-400 max-w-md mb-4">{playbackError}</p>
+            <a
+              href={src}
+              target="_blank"
+              rel="noopener noreferrer"
+              download
+              className="px-4 py-2 rounded-xl bg-white text-black text-xs font-bold hover:bg-zinc-200 transition-colors shadow-lg"
+            >
+              Download or Open Original Video
+            </a>
+          </div>
+        )}
 
         {/* Control Overlay */}
         <div className="absolute inset-0 flex flex-col justify-between bg-gradient-to-t from-black/90 via-transparent to-black/20 opacity-0 group-hover:opacity-100 transition-opacity p-4">

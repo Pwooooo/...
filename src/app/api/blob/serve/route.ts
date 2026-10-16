@@ -99,6 +99,41 @@ async function resolveBlob(raw: string, rangeHeader?: string | null) {
   return null;
 }
 
+function inferMimeType(pathname: string, detectedType?: string | null): string {
+  if (detectedType && detectedType !== "application/octet-stream") {
+    return detectedType;
+  }
+  const clean = pathname.split("?")[0].toLowerCase();
+  const ext = clean.split(".").pop();
+  switch (ext) {
+    case "mov":
+      return "video/quicktime";
+    case "mp4":
+    case "m4v":
+      return "video/mp4";
+    case "webm":
+      return "video/webm";
+    case "mkv":
+      return "video/x-matroska";
+    case "avi":
+      return "video/x-msvideo";
+    case "ogg":
+    case "ogv":
+      return "video/ogg";
+    case "jpg":
+    case "jpeg":
+      return "image/jpeg";
+    case "png":
+      return "image/png";
+    case "webp":
+      return "image/webp";
+    case "gif":
+      return "image/gif";
+    default:
+      return detectedType || "video/mp4";
+  }
+}
+
 export async function HEAD(request: NextRequest): Promise<NextResponse> {
   const raw =
     request.nextUrl.searchParams.get("pathname") ||
@@ -115,12 +150,14 @@ export async function HEAD(request: NextRequest): Promise<NextResponse> {
       return new NextResponse(null, { status: 404 });
     }
 
+    const mimeType = inferMimeType(raw, result.blob.contentType);
+
     return new NextResponse(null, {
       status: 200,
       headers: {
         "Accept-Ranges": "bytes",
         "Content-Length": result.blob.size ? result.blob.size.toString() : "0",
-        "Content-Type": result.blob.contentType || "video/mp4",
+        "Content-Type": mimeType,
         "Cache-Control": "public, max-age=3600",
       },
     });
@@ -151,10 +188,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return new NextResponse(null, { status: 304 });
     }
 
+    const mimeType = inferMimeType(raw, result.blob.contentType);
+
     const headers: Record<string, string> = {
       "Cache-Control": "public, max-age=3600",
-      "Content-Type": result.blob.contentType || "video/mp4",
-      "X-Content-Type-Options": "nosniff",
+      "Content-Type": mimeType,
       "Accept-Ranges": "bytes",
     };
 
