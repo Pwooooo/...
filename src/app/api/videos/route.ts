@@ -294,7 +294,21 @@ export async function POST(req: NextRequest) {
 
     const requestedId = (formData.get("id") as string) || "";
     const videoId = requestedId || `v-srv-${Date.now()}`;
-    unmarkDeletedVideoId(videoId);
+
+    // Block the Next.js filler video from ever being accepted or re-uploaded
+    if (
+      videoId === "v-srv-1792152077838" ||
+      videoId === "v-user-1792152077838" ||
+      videoId === "sample-2" ||
+      (title.toLowerCase().includes("next.js") && (title.toLowerCase().includes("deep dive") || title.toLowerCase().includes("16")))
+    ) {
+      recordDeletedVideoId(videoId);
+      return NextResponse.json({ success: false, error: "Filler video is permanently removed" }, { status: 400 });
+    }
+
+    if (!readDeletedVideoIds().has(videoId)) {
+      unmarkDeletedVideoId(videoId);
+    }
 
     let rawVideoUrl = (formData.get("rawVideoUrl") as string) || "";
 

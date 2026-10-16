@@ -167,7 +167,20 @@ export function extractVideoDetails(file: File): Promise<{
 }
 
 // ----------------- Deleted Videos Tracker -----------------
-const DEFAULT_DELETED_IDS = ["v-srv-1792152077838"];
+const DEFAULT_DELETED_IDS = ["v-srv-1792152077838", "v-user-1792152077838", "sample-2"];
+
+export function isNextJsFillerVideo(video?: { id?: string; title?: string } | null): boolean {
+  if (!video) return false;
+  const id = video.id || "";
+  const title = (video.title || "").toLowerCase();
+  return (
+    id === "v-srv-1792152077838" ||
+    id === "v-user-1792152077838" ||
+    id === "sample-2" ||
+    (title.includes("next.js") && title.includes("deep dive")) ||
+    title.includes("next.js 16")
+  );
+}
 
 export function getDeletedVideoIds(): Set<string> {
   const set = new Set<string>(DEFAULT_DELETED_IDS);
@@ -195,54 +208,6 @@ export function markVideoAsDeleted(videoId: string): void {
   } catch {}
 }
 
-const syncingVideoIds = new Set<string>();
-
-export async function syncVideoToServer(video: VideoItem): Promise<void> {
-  const deleted = getDeletedVideoIds();
-  if (deleted.has(video.id)) return;
-  if (syncingVideoIds.has(video.id)) return;
-  syncingVideoIds.add(video.id);
-
-  try {
-    const formData = new FormData();
-    formData.append("id", video.id);
-    formData.append("title", video.title);
-    formData.append("description", video.description || "");
-    formData.append("category", video.category || "Technology");
-    formData.append("tags", (video.tags || []).join(","));
-    formData.append("duration", (video.durationSeconds || 0).toString());
-    formData.append("channel", JSON.stringify(video.channel || {}));
-    if (video.rawVideoUrl && !video.rawVideoUrl.startsWith("blob:")) {
-      formData.append("rawVideoUrl", video.rawVideoUrl);
-    }
-
-    const blob = await getVideoBlob(video.id);
-    if (blob) {
-      const ext = blob.type?.includes("webm") ? "webm" : "mp4";
-      formData.append("file", blob, `${video.id}.${ext}`);
-    }
-
-    if (video.thumbnailUrl && video.thumbnailUrl.startsWith("data:image")) {
-      formData.append("thumbnailDataUrl", video.thumbnailUrl);
-    } else if (video.thumbnailUrl) {
-      formData.append("thumbnailUrl", video.thumbnailUrl);
-    }
-
-    const res = await fetch("/api/videos", {
-      method: "POST",
-      body: formData,
-    });
-    const data = await res.json();
-    if (data.success && data.video) {
-      saveUserVideoMetadata(data.video);
-    }
-  } catch (err) {
-    console.warn("Could not sync local video to server:", err);
-  } finally {
-    syncingVideoIds.delete(video.id);
-  }
-}
-
 export async function fetchServerVideos(): Promise<VideoItem[]> {
   if (typeof window === "undefined") return [];
   try {
@@ -250,26 +215,22 @@ export async function fetchServerVideos(): Promise<VideoItem[]> {
     const data = await res.json();
     if (data.success && Array.isArray(data.videos)) {
       const deleted = getDeletedVideoIds();
-      const serverVideos: VideoItem[] = data.videos.filter((v: VideoItem) => !deleted.has(v.id));
-      const localVideos = getUserVideos().filter((v) => !deleted.has(v.id));
-
-      // Check if any locally stored videos are missing on the server and sync them
-      const missingOnServer = localVideos.filter(
-        (lv) => !deleted.has(lv.id) && !serverVideos.some((sv) => sv.id === lv.id)
+      const serverVideos: VideoItem[] = data.videos.filter(
+        (v: VideoItem) => !deleted.has(v.id) && !isNextJsFillerVideo(v)
       );
-      if (missingOnServer.length > 0) {
-        missingOnServer.forEach((v) => {
-          syncVideoToServer(v);
-        });
-      }
+      const localVideos = getUserVideos().filter(
+        (v) => !deleted.has(v.id) && !isNextJsFillerVideo(v)
+      );
 
-      // Merge unique by ID
+      // Merge unique by ID (server priority, do NOT auto-upload local videos)
       const map = new Map<string, VideoItem>();
       serverVideos.forEach((v) => map.set(v.id, v));
       localVideos.forEach((v) => {
         if (!map.has(v.id)) map.set(v.id, v);
       });
-      const merged = Array.from(map.values()).filter((v) => !deleted.has(v.id));
+      const merged = Array.from(map.values()).filter(
+        (v) => !deleted.has(v.id) && !isNextJsFillerVideo(v)
+      );
       localStorage.setItem("entropy_user_videos", JSON.stringify(merged));
       window.dispatchEvent(new Event("entropy_videos_updated"));
       return merged;
@@ -306,7 +267,7 @@ export function getUserVideos(): VideoItem[] {
     if (!stored) return [];
     const parsed = JSON.parse(stored);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter((v: VideoItem) => !deleted.has(v.id));
+    return parsed.filter((v: VideoItem) => !deleted.has(v.id) && !isNextJsFillerVideo(v));
   } catch {
     return [];
   }
@@ -316,7 +277,7 @@ export function saveUserVideoMetadata(video: VideoItem): void {
   if (typeof window === "undefined") return;
   try {
     const deleted = getDeletedVideoIds();
-    if (deleted.has(video.id)) return;
+    if (deleted.has(video.id) || isNextJsFillerVideo(video)) return;
 
     const current = getUserVideos();
     const filtered = current.filter((v) => v.id !== video.id);
@@ -377,8 +338,8 @@ export async function deleteUserVideo(videoId: string): Promise<void> {
 
 export function getAllCombinedVideos(): VideoItem[] {
   const deleted = getDeletedVideoIds();
-  const userVideos = getUserVideos().filter((v) => !deleted.has(v.id));
-  const baseVideos = ALL_VIDEOS.filter((v) => !deleted.has(v.id));
+  const userVideos = getUserVideos().filter((v) => !deleted.has(v.id) && !isNextJsFillerVideo(v));
+  const baseVideos = ALL_VIDEOS.filter((v) => !deleted.has(v.id) && !isNextJsFillerVideo(v));
 
   // Merge unique by id
   const map = new Map<string, VideoItem>();
@@ -386,7 +347,7 @@ export function getAllCombinedVideos(): VideoItem[] {
   baseVideos.forEach((v) => {
     if (!map.has(v.id)) map.set(v.id, v);
   });
-  return Array.from(map.values());
+  return Array.from(map.values()).filter((v) => !deleted.has(v.id) && !isNextJsFillerVideo(v));
 }
 
 // Auto-sync server videos on client load and sanitize cached entries
@@ -396,11 +357,7 @@ if (typeof window !== "undefined") {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        const cleaned = parsed.filter(
-          (v: VideoItem) =>
-            v.id !== "v-srv-1792152077838" &&
-            v.title?.toLowerCase() !== "next.js 16 deep dive"
-        );
+        const cleaned = parsed.filter((v: VideoItem) => !isNextJsFillerVideo(v));
         if (cleaned.length !== parsed.length) {
           localStorage.setItem("entropy_user_videos", JSON.stringify(cleaned));
         }
