@@ -166,9 +166,33 @@ export function extractVideoDetails(file: File): Promise<{
   });
 }
 
+// ----------------- Deleted Videos Tracker -----------------
+export function getDeletedVideoIds(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = localStorage.getItem("entropy_deleted_video_ids");
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    return new Set(Array.isArray(parsed) ? parsed : []);
+  } catch {
+    return new Set();
+  }
+}
+
+export function markVideoAsDeleted(videoId: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    const deleted = getDeletedVideoIds();
+    deleted.add(videoId);
+    localStorage.setItem("entropy_deleted_video_ids", JSON.stringify(Array.from(deleted)));
+  } catch {}
+}
+
 const syncingVideoIds = new Set<string>();
 
 export async function syncVideoToServer(video: VideoItem): Promise<void> {
+  const deleted = getDeletedVideoIds();
+  if (deleted.has(video.id)) return;
   if (syncingVideoIds.has(video.id)) return;
   syncingVideoIds.add(video.id);
 
@@ -218,12 +242,13 @@ export async function fetchServerVideos(): Promise<VideoItem[]> {
     const res = await fetch("/api/videos");
     const data = await res.json();
     if (data.success && Array.isArray(data.videos)) {
-      const serverVideos: VideoItem[] = data.videos;
-      const localVideos = getUserVideos();
+      const deleted = getDeletedVideoIds();
+      const serverVideos: VideoItem[] = data.videos.filter((v: VideoItem) => !deleted.has(v.id));
+      const localVideos = getUserVideos().filter((v) => !deleted.has(v.id));
 
       // Check if any locally stored videos are missing on the server and sync them
       const missingOnServer = localVideos.filter(
-        (lv) => !serverVideos.some((sv) => sv.id === lv.id)
+        (lv) => !deleted.has(lv.id) && !serverVideos.some((sv) => sv.id === lv.id)
       );
       if (missingOnServer.length > 0) {
         missingOnServer.forEach((v) => {
@@ -237,7 +262,7 @@ export async function fetchServerVideos(): Promise<VideoItem[]> {
       localVideos.forEach((v) => {
         if (!map.has(v.id)) map.set(v.id, v);
       });
-      const merged = Array.from(map.values());
+      const merged = Array.from(map.values()).filter((v) => !deleted.has(v.id));
       localStorage.setItem("entropy_user_videos", JSON.stringify(merged));
       window.dispatchEvent(new Event("entropy_videos_updated"));
       return merged;
@@ -269,10 +294,12 @@ export async function uploadVideoToServer(formData: FormData): Promise<{ success
 export function getUserVideos(): VideoItem[] {
   if (typeof window === "undefined") return [];
   try {
+    const deleted = getDeletedVideoIds();
     const stored = localStorage.getItem("entropy_user_videos");
     if (!stored) return [];
     const parsed = JSON.parse(stored);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((v: VideoItem) => !deleted.has(v.id));
   } catch {
     return [];
   }
@@ -281,6 +308,9 @@ export function getUserVideos(): VideoItem[] {
 export function saveUserVideoMetadata(video: VideoItem): void {
   if (typeof window === "undefined") return;
   try {
+    const deleted = getDeletedVideoIds();
+    if (deleted.has(video.id)) return;
+
     const current = getUserVideos();
     const filtered = current.filter((v) => v.id !== video.id);
     const updated = [video, ...filtered];
@@ -312,30 +342,47 @@ export function updateUserVideo(videoId: string, updates: Partial<VideoItem>): v
   }
 }
 
-export function deleteUserVideo(videoId: string): void {
+export async function deleteUserVideo(videoId: string): Promise<void> {
   if (typeof window === "undefined") return;
   try {
+    // 1. Immediately mark video as deleted so it can NEVER be re-synced or retrieved
+    markVideoAsDeleted(videoId);
+
+    // 2. Remove from local storage
     const current = getUserVideos();
     const filtered = current.filter((v) => v.id !== videoId);
     localStorage.setItem("entropy_user_videos", JSON.stringify(filtered));
-    deleteVideoBlob(videoId);
+
+    // 3. Remove IndexedDB media blob
+    await deleteVideoBlob(videoId);
+
+    // 4. Notify all tabs and listeners
     window.dispatchEvent(new Event("entropy_videos_updated"));
-    // Also delete on server
-    fetch(`/api/videos?id=${videoId}`, {
+
+    // 5. Delete on server
+    await fetch(`/api/videos?id=${videoId}`, {
       method: "DELETE",
-    }).catch(() => {});
-  } catch {
-    // ignore
+    });
+  } catch (e) {
+    console.warn("Could not delete video:", e);
   }
 }
 
 export function getAllCombinedVideos(): VideoItem[] {
-  const userVideos = getUserVideos();
-  return [...userVideos, ...ALL_VIDEOS];
+  const deleted = getDeletedVideoIds();
+  const userVideos = getUserVideos().filter((v) => !deleted.has(v.id));
+  const baseVideos = ALL_VIDEOS.filter((v) => !deleted.has(v.id));
+
+  // Merge unique by id
+  const map = new Map<string, VideoItem>();
+  userVideos.forEach((v) => map.set(v.id, v));
+  baseVideos.forEach((v) => {
+    if (!map.has(v.id)) map.set(v.id, v);
+  });
+  return Array.from(map.values());
 }
 
 // Auto-sync server videos on client load
 if (typeof window !== "undefined") {
   fetchServerVideos();
 }
-

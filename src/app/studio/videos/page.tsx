@@ -156,10 +156,10 @@ export default function StudioVideosPage() {
     };
   }, [user]);
 
-  const deleteVideo = (id: string) => {
-    const updated = videos.filter((v) => v.id !== id);
-    setVideos(updated);
-    deleteUserVideo(id);
+  const deleteVideo = async (id: string) => {
+    setVideos((prev) => prev.filter((v) => v.id !== id));
+    await deleteUserVideo(id);
+    showToast("Video deleted permanently");
   };
 
   return (

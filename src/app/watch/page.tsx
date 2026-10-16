@@ -38,8 +38,8 @@ function WatchContent() {
   const chaptersPanelRef = useRef<HTMLDivElement>(null);
 
   const [currentVideo, setCurrentVideo] = useState<VideoItem>(() => {
-    const userVideos = getUserVideos();
-    return userVideos.find((v) => v.id === videoId) || ALL_VIDEOS.find((v) => v.id === videoId) || ALL_VIDEOS[0];
+    const combined = getAllCombinedVideos();
+    return combined.find((v) => v.id === videoId) || combined[0] || ALL_VIDEOS[0];
   });
   const [resolvedVideoUrl, setResolvedVideoUrl] = useState<string | null>(null);
   const [allRecommendedVideos, setAllRecommendedVideos] = useState<VideoItem[]>(() => {
@@ -72,24 +72,21 @@ function WatchContent() {
       }
     };
 
-    const userVideos = getUserVideos();
-    const found = userVideos.find((v) => v.id === videoId) || ALL_VIDEOS.find((v) => v.id === videoId);
+    const combined = getAllCombinedVideos();
+    const found = combined.find((v) => v.id === videoId);
 
     if (found) {
       applyVideo(found);
     }
 
-    fetchServerVideos().then((serverVideos) => {
+    fetchServerVideos().then(() => {
       if (isCancelled) return;
-      const srvFound =
-        serverVideos.find((v) => v.id === videoId) ||
-        userVideos.find((v) => v.id === videoId) ||
-        ALL_VIDEOS.find((v) => v.id === videoId) ||
-        ALL_VIDEOS[0];
+      const allCurrent = getAllCombinedVideos();
+      const srvFound = allCurrent.find((v) => v.id === videoId) || allCurrent[0];
       if (srvFound) {
         applyVideo(srvFound);
       }
-      setAllRecommendedVideos(getAllCombinedVideos().filter((v) => v.id !== (srvFound ? srvFound.id : videoId)));
+      setAllRecommendedVideos(allCurrent.filter((v) => v.id !== (srvFound ? srvFound.id : videoId)));
     });
 
     const handleVideosUpdated = () => {
