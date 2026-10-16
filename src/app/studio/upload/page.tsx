@@ -173,6 +173,12 @@ export default function StudioUploadPage() {
       .map((t) => t.trim().toLowerCase().replace(/^#/, ""))
       .filter(Boolean);
 
+    if (parsedTags.length > 10) {
+      showToast("Maximum 10 tags allowed for videos and shorts");
+      setIsUploading(false);
+      return;
+    }
+
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -603,14 +609,25 @@ export default function StudioUploadPage() {
                         </div>
 
                         <div>
-                          <label className="block text-xs font-bold text-zinc-300 mb-1.5">
-                            Tags (comma separated)
-                          </label>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <label className="block text-xs font-bold text-zinc-300">
+                              Tags (comma separated)
+                            </label>
+                            <span
+                              className={`text-[11px] font-mono ${
+                                tagsInput.split(",").map((t) => t.trim()).filter(Boolean).length > 10
+                                  ? "text-amber-400 font-bold"
+                                  : "text-zinc-500"
+                              }`}
+                            >
+                              {tagsInput.split(",").map((t) => t.trim()).filter(Boolean).length}/10 tags
+                            </span>
+                          </div>
                           <input
                             type="text"
                             value={tagsInput}
                             onChange={(e) => setTagsInput(e.target.value)}
-                            placeholder={uploadType === "short" ? "shorts, viral, trending" : "gaming, gameplay, tips"}
+                            placeholder={uploadType === "short" ? "shorts, viral, trending (max 10)" : "gaming, tips, tutorial (max 10)"}
                             className="w-full rounded-xl bg-black border border-white/[0.08] px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors"
                           />
                         </div>

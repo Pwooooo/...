@@ -743,11 +743,20 @@ export async function POST(req: NextRequest) {
     const tags = tagsRaw
       .split(",")
       .map((t) => t.trim().toLowerCase().replace(/^#/, ""))
-      .filter(Boolean);
+      .filter(Boolean)
+      .slice(0, 10);
 
     const isShortRaw = formData.get("isShort") as string | null;
     const isShort = isShortRaw === "true" || category === "Shorts" || tags.includes("shorts");
     const songName = (formData.get("songName") as string) || "Original Audio";
+
+    let finalTags = tags;
+    if (isShort && !finalTags.includes("shorts")) {
+      finalTags = [...finalTags.slice(0, 9), "shorts"];
+    } else if (finalTags.length === 0) {
+      finalTags = [category];
+    }
+    finalTags = finalTags.slice(0, 10);
 
     const newVideo: VideoItem = {
       id: videoId,
@@ -760,7 +769,7 @@ export async function POST(req: NextRequest) {
       viewCount: 0,
       publishedAt: new Date().toISOString(),
       category: isShort && category === "Technology" ? "Shorts" : category,
-      tags: isShort && !tags.includes("shorts") ? [...tags, "shorts"] : tags.length > 0 ? tags : [category],
+      tags: finalTags,
       channel,
       isShort,
       songName,
