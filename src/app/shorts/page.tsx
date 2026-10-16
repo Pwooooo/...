@@ -26,12 +26,15 @@ import {
   SlidersHorizontal,
   Flag,
   Check,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 
 interface ShortComment {
   id: string;
   author: string;
+  authorId?: string;
+  authorHandle?: string;
   avatar: string;
   content: string;
   timeAgo: string;
@@ -154,7 +157,7 @@ export default function ShortsPage() {
 
   const currentShort = shortsList[currentIndex] || null;
 
-  // Restore and initialize comments for current short
+  // Restore comments for current short
   useEffect(() => {
     if (!currentShort) return;
     try {
@@ -162,7 +165,11 @@ export default function ShortsPage() {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
-          setCommentsMap((prev) => ({ ...prev, [currentShort.id]: parsed }));
+          // Remove any legacy seeded filler comments
+          const cleaned = parsed.filter(
+            (c) => c && !c.id?.startsWith("c-1-") && c.content !== "Check out this short!"
+          );
+          setCommentsMap((prev) => ({ ...prev, [currentShort.id]: cleaned }));
           return;
         }
       }
@@ -172,17 +179,7 @@ export default function ShortsPage() {
       if (prev[currentShort.id]) return prev;
       return {
         ...prev,
-        [currentShort.id]: [
-          {
-            id: `c-1-${currentShort.id}`,
-            author: currentShort.channel.displayName || "Viewer",
-            avatar: currentShort.channel.avatarUrl || "/default-avatar.png",
-            content: "Check out this short!",
-            timeAgo: "2h ago",
-            likes: 5,
-            dislikes: 0,
-          },
-        ],
+        [currentShort.id]: [],
       };
     });
   }, [currentShort?.id]);
@@ -330,6 +327,8 @@ export default function ShortsPage() {
     const newComment: ShortComment = {
       id: `c-${Date.now()}`,
       author: user?.name || user?.handle || "Viewer",
+      authorId: user?.id,
+      authorHandle: user?.handle,
       avatar: user?.avatarUrl || user?.avatar || "/default-avatar.png",
       content: commentInput.trim(),
       timeAgo: "Just now",
@@ -345,6 +344,38 @@ export default function ShortsPage() {
     try {
       localStorage.setItem(`entropy_comments_${currentShort.id}`, JSON.stringify(updated));
     } catch {}
+  };
+
+  const canDeleteComment = (comment: ShortComment): boolean => {
+    if (!user || !currentShort) return false;
+
+    // 1. Is user the creator of this Short?
+    const isVideoCreator =
+      Boolean(user.id && currentShort.channel?.id && user.id === currentShort.channel.id) ||
+      Boolean(user.handle && currentShort.channel?.handle && user.handle.toLowerCase() === currentShort.channel.handle.toLowerCase()) ||
+      Boolean(user.name && currentShort.channel?.displayName && user.name.toLowerCase() === currentShort.channel.displayName.toLowerCase());
+
+    if (isVideoCreator) return true;
+
+    // 2. Is user the author of this comment?
+    const isCommentAuthor =
+      Boolean(comment.authorId && user.id && comment.authorId === user.id) ||
+      Boolean(comment.authorHandle && user.handle && comment.authorHandle.toLowerCase() === user.handle.toLowerCase()) ||
+      Boolean(comment.author && user.name && comment.author.toLowerCase() === user.name.toLowerCase()) ||
+      Boolean(comment.author && user.handle && comment.author.toLowerCase() === user.handle.toLowerCase());
+
+    return Boolean(isCommentAuthor);
+  };
+
+  const handleDeleteComment = (commentId: string) => {
+    if (!currentShort) return;
+    const currentList = commentsMap[currentShort.id] || [];
+    const updated = currentList.filter((c) => c.id !== commentId);
+    setCommentsMap((prev) => ({ ...prev, [currentShort.id]: updated }));
+    try {
+      localStorage.setItem(`entropy_comments_${currentShort.id}`, JSON.stringify(updated));
+    } catch {}
+    showToast("Comment deleted");
   };
 
   const handleCommentVote = (commentId: string, type: "like" | "dislike") => {
@@ -707,6 +738,16 @@ export default function ShortsPage() {
                             <div className="flex items-center gap-1.5 mb-1">
                               <span className="font-semibold text-zinc-200 truncate">@{comment.author}</span>
                               <span className="text-[11px] text-zinc-500">{comment.timeAgo}</span>
+                              {canDeleteComment(comment) && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteComment(comment.id)}
+                                  className="ml-auto p-1 rounded text-zinc-500 hover:text-red-400 hover:bg-white/[0.06] transition-colors cursor-pointer"
+                                  title="Delete comment"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              )}
                             </div>
                             <p className="text-zinc-300 text-xs leading-relaxed break-words">{comment.content}</p>
                             <div className="flex items-center gap-4 mt-2 text-zinc-400">
@@ -815,6 +856,16 @@ export default function ShortsPage() {
                             <div className="flex items-center gap-1.5 mb-0.5">
                               <span className="font-semibold text-zinc-200 truncate">@{comment.author}</span>
                               <span className="text-[10px] text-zinc-500">{comment.timeAgo}</span>
+                              {canDeleteComment(comment) && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteComment(comment.id)}
+                                  className="ml-auto p-1 rounded text-zinc-500 hover:text-red-400 hover:bg-white/[0.06] transition-colors cursor-pointer"
+                                  title="Delete comment"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              )}
                             </div>
                             <p className="text-zinc-300 text-xs leading-relaxed break-words">{comment.content}</p>
                           </div>
