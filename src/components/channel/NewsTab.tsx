@@ -14,7 +14,6 @@ import {
   X,
 } from "lucide-react";
 import { NewsPost } from "@/types";
-import VerifiedBadge from "@/components/common/VerifiedBadge";
 
 interface NewsTabProps {
   channel?: {
@@ -392,9 +391,8 @@ export default function NewsTab({ channel, isOwnProfile = false }: NewsTabProps)
                     )}
                   </div>
                   <div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
                       <span className="font-bold text-sm text-white">{post.channelName}</span>
-                      <VerifiedBadge subscribersCount={channel?.subscribersCount} className="h-4 w-4" />
                       {post.isPinned && (
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/20">
                           <Pin className="h-2.5 w-2.5 fill-amber-400" />

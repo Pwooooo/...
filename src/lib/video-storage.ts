@@ -166,6 +166,52 @@ export function extractVideoDetails(file: File): Promise<{
   });
 }
 
+const syncingVideoIds = new Set<string>();
+
+export async function syncVideoToServer(video: VideoItem): Promise<void> {
+  if (syncingVideoIds.has(video.id)) return;
+  syncingVideoIds.add(video.id);
+
+  try {
+    const formData = new FormData();
+    formData.append("id", video.id);
+    formData.append("title", video.title);
+    formData.append("description", video.description || "");
+    formData.append("category", video.category || "Technology");
+    formData.append("tags", (video.tags || []).join(","));
+    formData.append("duration", (video.durationSeconds || 0).toString());
+    formData.append("channel", JSON.stringify(video.channel || {}));
+    if (video.rawVideoUrl && !video.rawVideoUrl.startsWith("blob:")) {
+      formData.append("rawVideoUrl", video.rawVideoUrl);
+    }
+
+    const blob = await getVideoBlob(video.id);
+    if (blob) {
+      const ext = blob.type?.includes("webm") ? "webm" : "mp4";
+      formData.append("file", blob, `${video.id}.${ext}`);
+    }
+
+    if (video.thumbnailUrl && video.thumbnailUrl.startsWith("data:image")) {
+      formData.append("thumbnailDataUrl", video.thumbnailUrl);
+    } else if (video.thumbnailUrl) {
+      formData.append("thumbnailUrl", video.thumbnailUrl);
+    }
+
+    const res = await fetch("/api/videos", {
+      method: "POST",
+      body: formData,
+    });
+    const data = await res.json();
+    if (data.success && data.video) {
+      saveUserVideoMetadata(data.video);
+    }
+  } catch (err) {
+    console.warn("Could not sync local video to server:", err);
+  } finally {
+    syncingVideoIds.delete(video.id);
+  }
+}
+
 export async function fetchServerVideos(): Promise<VideoItem[]> {
   if (typeof window === "undefined") return [];
   try {
@@ -174,6 +220,17 @@ export async function fetchServerVideos(): Promise<VideoItem[]> {
     if (data.success && Array.isArray(data.videos)) {
       const serverVideos: VideoItem[] = data.videos;
       const localVideos = getUserVideos();
+
+      // Check if any locally stored videos are missing on the server and sync them
+      const missingOnServer = localVideos.filter(
+        (lv) => !serverVideos.some((sv) => sv.id === lv.id)
+      );
+      if (missingOnServer.length > 0) {
+        missingOnServer.forEach((v) => {
+          syncVideoToServer(v);
+        });
+      }
+
       // Merge unique by ID
       const map = new Map<string, VideoItem>();
       serverVideos.forEach((v) => map.set(v.id, v));

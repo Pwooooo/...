@@ -64,21 +64,21 @@ export async function POST(req: NextRequest) {
     const thumbnailFile = formData.get("thumbnailFile") as File | null;
     const thumbnailDataUrl = (formData.get("thumbnailDataUrl") as string) || "";
 
-    if (!file) {
-      return NextResponse.json({ success: false, error: "No video file provided" }, { status: 400 });
+    const requestedId = (formData.get("id") as string) || "";
+    const videoId = requestedId || `v-srv-${Date.now()}`;
+    let rawVideoUrl = (formData.get("rawVideoUrl") as string) || "";
+
+    if (file) {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "mp4";
+      const videoFileName = `${videoId}.${ext}`;
+      const videoFilePath = path.join(VIDEOS_DIR, videoFileName);
+      const videoBuffer = Buffer.from(await file.arrayBuffer());
+      await fs.promises.writeFile(videoFilePath, videoBuffer);
+      rawVideoUrl = `/uploads/videos/${videoFileName}`;
     }
 
-    const videoId = `v-srv-${Date.now()}`;
-    const ext = file.name.split(".").pop()?.toLowerCase() || "mp4";
-    const videoFileName = `${videoId}.${ext}`;
-    const videoFilePath = path.join(VIDEOS_DIR, videoFileName);
-
-    // Save Video Binary
-    const videoBuffer = Buffer.from(await file.arrayBuffer());
-    await fs.promises.writeFile(videoFilePath, videoBuffer);
-
     // Handle Thumbnail
-    let thumbnailUrl = "";
+    let thumbnailUrl = (formData.get("thumbnailUrl") as string) || "";
     if (thumbnailFile) {
       const thumbExt = thumbnailFile.name.split(".").pop()?.toLowerCase() || "jpg";
       const thumbFileName = `${videoId}.${thumbExt}`;
@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
       description: description.trim(),
       thumbnailUrl: thumbnailUrl || null,
       masterPlaylistUrl: null,
-      rawVideoUrl: `/uploads/videos/${videoFileName}`,
+      rawVideoUrl: rawVideoUrl || null,
       durationSeconds: Math.round(Number(durationRaw)) || 0,
       viewCount: 0,
       publishedAt: new Date().toISOString(),

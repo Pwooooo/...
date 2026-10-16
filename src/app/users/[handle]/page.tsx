@@ -30,7 +30,6 @@ import { VideoItem } from "@/types";
 import Link from "next/link";
 import CommunityTab from "@/components/channel/CommunityTab";
 import { getAllCombinedVideos, getUserVideos, fetchServerVideos } from "@/lib/video-storage";
-import VerifiedBadge from "@/components/common/VerifiedBadge";
 
 const USER_TABS = ["Videos", "Playlists", "Community", "About"];
 
@@ -144,9 +143,13 @@ export default function UserProfilePage({
       try {
         const allAvailable = getAllCombinedVideos();
         const filtered = allAvailable.filter(
-          (v: VideoItem) =>
-            v.channel?.handle?.replace(/^@/, "").toLowerCase() === cleanHandle.toLowerCase() ||
-            v.channel?.id?.toLowerCase() === cleanHandle.toLowerCase()
+          (v: VideoItem) => {
+            const h = v.channel?.handle?.replace(/^@/, "").toLowerCase();
+            const id = v.channel?.id?.toLowerCase();
+            const d = v.channel?.displayName?.toLowerCase();
+            const target = cleanHandle.toLowerCase();
+            return h === target || id === target || d === target;
+          }
         );
         setUserVideos(filtered);
       } catch {
@@ -164,9 +167,6 @@ export default function UserProfilePage({
     };
   }, [cleanHandle]);
 
-  // Determine user data
-  const isZeroUser = cleanHandle === "0";
-
   const channel = isOwnProfile && user
     ? {
         id: user.id,
@@ -178,18 +178,6 @@ export default function UserProfilePage({
         description: user.bio || "Welcome to my Entropy channel! Streaming, creating, and connecting.",
         country: user.country || "",
         joinedAt: user.joinedAt || "Joined recently",
-      }
-    : isZeroUser
-    ? {
-        id: "user-0",
-        handle: "0",
-        displayName: "0",
-        avatarUrl: "/entropy-icon.png",
-        bannerUrl: "",
-        subscribersCount: 69,
-        description: "Entropy User #0 • Genesis Pioneer & Founder",
-        country: "Global",
-        joinedAt: "Joined Oct 1, 2025",
       }
     : MOCK_CHANNELS[cleanHandle] || {
         id: userVideos[0]?.channel?.id || `user-${cleanHandle}`,
@@ -203,7 +191,7 @@ export default function UserProfilePage({
         joinedAt: "Joined recently",
       };
 
-  const channelVideos = userVideos.length > 0 ? userVideos : (isZeroUser ? ALL_VIDEOS : []);
+  const channelVideos = userVideos;
 
   const totalViews = channelVideos.reduce((acc, v) => acc + (v.viewCount || 0), 0);
 
@@ -284,9 +272,8 @@ export default function UserProfilePage({
                   {/* Name and Handle with Subscriber/Video Count */}
                   <div className="pb-1 sm:pb-2">
                     <div className="flex items-center gap-2">
-                      <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white leading-tight flex items-center gap-1.5">
-                        <span>{channel.displayName}</span>
-                        <VerifiedBadge subscribersCount={channel.subscribersCount} className="h-5 w-5" />
+                      <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white leading-tight">
+                        {channel.displayName}
                       </h1>
                     </div>
                     <p className="text-xs sm:text-sm text-zinc-400 font-normal mt-0.5 flex flex-wrap items-center gap-1.5">

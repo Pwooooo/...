@@ -22,7 +22,7 @@ import { formatViews } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { VideoItem } from "@/types";
 
-import { getUserVideos, deleteUserVideo, updateUserVideo } from "@/lib/video-storage";
+import { getUserVideos, deleteUserVideo, updateUserVideo, fetchServerVideos } from "@/lib/video-storage";
 
 const CATEGORIES = [
   "Technology",
@@ -122,11 +122,18 @@ export default function StudioVideosPage() {
     try {
       if (user) {
         const stored = getUserVideos();
-        const userVideos = stored.filter(
-          (v: VideoItem) =>
-            v.channel?.handle?.toLowerCase() === user.handle.toLowerCase() ||
-            v.channel?.id === user.id
-        );
+        const userVideos = stored.filter((v: VideoItem) => {
+          const vHandle = v.channel?.handle?.replace(/^@/, "").toLowerCase();
+          const uHandle = user.handle?.replace(/^@/, "").toLowerCase();
+          const vName = v.channel?.displayName?.toLowerCase();
+          const uName = user.name?.toLowerCase();
+          return (
+            (vHandle && uHandle && vHandle === uHandle) ||
+            (vName && uName && vName === uName) ||
+            v.channel?.id === user.id ||
+            v.id.startsWith("v-user-")
+          );
+        });
         setVideos(userVideos);
       } else {
         setVideos([]);
@@ -140,6 +147,7 @@ export default function StudioVideosPage() {
 
   useEffect(() => {
     loadUserVideos();
+    fetchServerVideos().then(() => loadUserVideos());
     window.addEventListener("entropy_videos_updated", loadUserVideos);
     window.addEventListener("storage", loadUserVideos);
     return () => {

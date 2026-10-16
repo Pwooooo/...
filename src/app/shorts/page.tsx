@@ -15,7 +15,6 @@ import {
   ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
-import VerifiedBadge from "@/components/common/VerifiedBadge";
 
 export default function ShortsPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -106,7 +105,6 @@ export default function ShortsPage() {
                       className="font-semibold text-sm text-white flex items-center gap-1.5 hover:underline"
                     >
                       <span>@{currentShort.channel.handle}</span>
-                      <VerifiedBadge subscribersCount={currentShort.channel.subscribersCount} className="h-3.5 w-3.5" />
                     </Link>
                     <button
                       onClick={() => toggleSubscribe(currentShort.channel.handle)}

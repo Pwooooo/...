@@ -10,7 +10,6 @@ import { VideoItem } from "@/types";
 import Link from "next/link";
 import { formatDuration, formatViews } from "@/lib/utils";
 import { SlidersHorizontal } from "lucide-react";
-import VerifiedBadge from "@/components/common/VerifiedBadge";
 
 function SearchResultsContent() {
   const searchParams = useSearchParams();
@@ -101,7 +100,6 @@ function SearchResultsContent() {
                     />
                   </div>
                   <span>{video.channel.displayName}</span>
-                  <VerifiedBadge subscribersCount={video.channel.subscribersCount} className="h-3.5 w-3.5" />
                 </Link>
 
                 <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">

@@ -4,7 +4,6 @@ import { formatDuration, formatViews } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { VideoItem } from "@/types";
 import { MoreVertical } from "lucide-react";
-import VerifiedBadge from "@/components/common/VerifiedBadge";
 
 interface VideoCardProps {
   video: VideoItem;
@@ -82,7 +81,6 @@ export default function VideoCard({ video }: VideoCardProps) {
             className="mt-1 flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
           >
             <span>{video.channel.displayName}</span>
-            <VerifiedBadge subscribersCount={video.channel.subscribersCount} className="h-3.5 w-3.5" />
           </Link>
 
           <div className="flex items-center text-xs text-zinc-400 gap-1.5 mt-0.5">

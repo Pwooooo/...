@@ -30,7 +30,6 @@ import { VideoItem } from "@/types";
 import Link from "next/link";
 import CommunityTab from "@/components/channel/CommunityTab";
 import { getAllCombinedVideos, getUserVideos, fetchServerVideos } from "@/lib/video-storage";
-import VerifiedBadge from "@/components/common/VerifiedBadge";
 
 const CHANNEL_TABS = ["Videos", "Playlists", "Community", "About"];
 
@@ -82,9 +81,13 @@ export default function ChannelProfilePage({
       try {
         const allAvailable = getAllCombinedVideos();
         const filtered = allAvailable.filter(
-          (v: VideoItem) =>
-            v.channel?.handle?.replace(/^@/, "").toLowerCase() === cleanHandle.toLowerCase() ||
-            v.channel?.id?.toLowerCase() === cleanHandle.toLowerCase()
+          (v: VideoItem) => {
+            const h = v.channel?.handle?.replace(/^@/, "").toLowerCase();
+            const id = v.channel?.id?.toLowerCase();
+            const d = v.channel?.displayName?.toLowerCase();
+            const target = cleanHandle.toLowerCase();
+            return h === target || id === target || d === target;
+          }
         );
         setUserVideos(filtered);
       } catch {
@@ -265,9 +268,8 @@ export default function ChannelProfilePage({
                   {/* Name and Handle */}
                   <div className="pb-1 sm:pb-2">
                     <div className="flex items-center gap-2">
-                      <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white leading-tight flex items-center gap-1.5">
-                        <span>{channel.displayName}</span>
-                        <VerifiedBadge subscribersCount={channel.subscribersCount} className="h-5 w-5" />
+                      <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white leading-tight">
+                        {channel.displayName}
                       </h1>
                     </div>
                     <p className="text-xs sm:text-sm text-zinc-400 font-normal mt-0.5 flex flex-wrap items-center gap-1.5">

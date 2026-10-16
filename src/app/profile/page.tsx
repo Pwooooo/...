@@ -31,7 +31,6 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { VideoItem } from "@/types";
 import CommunityTab from "@/components/channel/CommunityTab";
-import VerifiedBadge from "@/components/common/VerifiedBadge";
 
 const PROFILE_TABS = ["Videos", "Playlists", "Community", "About"];
 
@@ -243,9 +242,8 @@ export default function ProfilePage() {
                   {/* Name and Handle */}
                   <div className="pb-1 sm:pb-2">
                     <div className="flex items-center gap-2">
-                      <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white leading-tight flex items-center gap-1.5">
-                        <span>{user.name}</span>
-                        <VerifiedBadge subscribersCount={0} className="h-5 w-5" />
+                      <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white leading-tight">
+                        {user.name}
                       </h1>
                     </div>
                     <p className="text-xs sm:text-sm text-zinc-400 font-normal mt-0.5 flex flex-wrap items-center gap-1.5">
