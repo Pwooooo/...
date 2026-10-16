@@ -245,7 +245,7 @@ export async function uploadVideoToServer(
     // Direct browser-to-blob upload on Vercel (bypasses 4.5MB serverless body limit)
     if (file && typeof window !== "undefined") {
       try {
-        if (onProgress) onProgress("Uploading directly to Vercel Blob cloud...", 45);
+        if (onProgress) onProgress("Uploading", 45);
         const { upload } = await import("@vercel/blob/client");
         let videoBlob;
         try {

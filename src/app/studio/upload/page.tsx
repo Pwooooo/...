@@ -145,7 +145,7 @@ export default function StudioUploadPage() {
 
     try {
       setUploadProgress(35);
-      setUploadStage("Uploading video to Entropy server...");
+      setUploadStage("Uploading");
 
       const formData = new FormData();
       formData.append("file", file);
