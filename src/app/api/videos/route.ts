@@ -29,16 +29,21 @@ function safeEnsureDirs() {
   }
 }
 
+const DEFAULT_SERVER_DELETED = ["v-srv-1792152077838"];
+
 function readDeletedVideoIds(): Set<string> {
   safeEnsureDirs();
+  const set = new Set<string>(DEFAULT_SERVER_DELETED);
   try {
     if (fs.existsSync(DELETED_VIDEOS_FILE)) {
       const raw = fs.readFileSync(DELETED_VIDEOS_FILE, "utf-8");
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return new Set(parsed);
+      if (Array.isArray(parsed)) {
+        parsed.forEach((id) => set.add(id));
+      }
     }
   } catch {}
-  return new Set();
+  return set;
 }
 
 function recordDeletedVideoId(id: string): void {

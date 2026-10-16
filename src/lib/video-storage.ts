@@ -167,15 +167,22 @@ export function extractVideoDetails(file: File): Promise<{
 }
 
 // ----------------- Deleted Videos Tracker -----------------
+const DEFAULT_DELETED_IDS = ["v-srv-1792152077838"];
+
 export function getDeletedVideoIds(): Set<string> {
-  if (typeof window === "undefined") return new Set();
+  const set = new Set<string>(DEFAULT_DELETED_IDS);
+  if (typeof window === "undefined") return set;
   try {
     const raw = localStorage.getItem("entropy_deleted_video_ids");
-    if (!raw) return new Set();
-    const parsed = JSON.parse(raw);
-    return new Set(Array.isArray(parsed) ? parsed : []);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        parsed.forEach((id) => set.add(id));
+      }
+    }
+    return set;
   } catch {
-    return new Set();
+    return set;
   }
 }
 
@@ -382,7 +389,24 @@ export function getAllCombinedVideos(): VideoItem[] {
   return Array.from(map.values());
 }
 
-// Auto-sync server videos on client load
+// Auto-sync server videos on client load and sanitize cached entries
 if (typeof window !== "undefined") {
+  try {
+    const raw = localStorage.getItem("entropy_user_videos");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        const cleaned = parsed.filter(
+          (v: VideoItem) =>
+            v.id !== "v-srv-1792152077838" &&
+            v.title?.toLowerCase() !== "next.js 16 deep dive"
+        );
+        if (cleaned.length !== parsed.length) {
+          localStorage.setItem("entropy_user_videos", JSON.stringify(cleaned));
+        }
+      }
+    }
+  } catch {}
   fetchServerVideos();
 }
+
