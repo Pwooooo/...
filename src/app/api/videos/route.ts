@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { put, del, list } from "@vercel/blob";
 import { VideoItem } from "@/types";
 import { ALL_VIDEOS } from "@/lib/mock-data";
 
@@ -146,7 +147,47 @@ function writeLocalVideos(videos: VideoItem[]): void {
   } catch {}
 }
 
-// Cloudflare R2 / S3 Configuration
+// ----------------- Vercel Blob Operations -----------------
+function hasVercelBlob(): boolean {
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+}
+
+async function fetchBlobVideosIndex(): Promise<VideoItem[]> {
+  if (!hasVercelBlob()) return [];
+  try {
+    const { blobs } = await list({ prefix: "metadata/videos.json" });
+    if (blobs.length > 0) {
+      const res = await fetch(`${blobs[0].url}?t=${Date.now()}`, { cache: "no-store" });
+      if (res.ok) {
+        const parsed = await res.json();
+        if (Array.isArray(parsed)) {
+          const deleted = readDeletedVideoIds();
+          return parsed.filter((v: VideoItem) => v && v.id && !deleted.has(v.id) && !isNextJsFillerVideo(v));
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("Could not fetch Blob videos index:", err);
+  }
+  return [];
+}
+
+async function saveBlobVideosIndex(videos: VideoItem[]): Promise<void> {
+  if (!hasVercelBlob()) return;
+  try {
+    const deleted = readDeletedVideoIds();
+    const filtered = videos.filter((v) => v && v.id && !deleted.has(v.id) && !isNextJsFillerVideo(v));
+    await put("metadata/videos.json", JSON.stringify(filtered, null, 2), {
+      access: "public",
+      addRandomSuffix: false,
+      cacheControlMaxAge: 0,
+    });
+  } catch (err) {
+    console.warn("Could not save Blob videos index:", err);
+  }
+}
+
+// ----------------- Cloudflare R2 / S3 Configuration -----------------
 function getR2Config() {
   const accountId =
     process.env.CLOUDFLARE_R2_ACCOUNT_ID ||
@@ -160,7 +201,6 @@ function getR2Config() {
     process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY ||
     process.env.R2_SECRET_ACCESS_KEY;
 
-  // Only initialize R2 if account ID and credentials are explicitly provided
   if (!accountId || !accessKeyId || !secretAccessKey) {
     return null;
   }
@@ -314,10 +354,11 @@ async function saveR2VideosIndex(videos: VideoItem[]): Promise<void> {
 export async function GET() {
   try {
     const deleted = readDeletedVideoIds();
+    const blobVideos = await fetchBlobVideosIndex();
     const r2Videos = await fetchR2VideosIndex();
     const localVideos = readLocalVideos();
 
-    // Merge unique by id (R2 cloud priority, fallback to local server disk)
+    // Priority merge: local disk -> R2 cloud -> Vercel Blob cloud
     const map = new Map<string, VideoItem>();
     localVideos.forEach((v) => {
       if (!deleted.has(v.id)) map.set(v.id, v);
@@ -325,11 +366,14 @@ export async function GET() {
     r2Videos.forEach((v) => {
       if (!deleted.has(v.id)) map.set(v.id, v);
     });
+    blobVideos.forEach((v) => {
+      if (!deleted.has(v.id)) map.set(v.id, v);
+    });
 
     const all = Array.from(map.values()).filter((v) => !deleted.has(v.id));
 
-    // If local was empty but R2 had videos, keep local cache warm
-    if (r2Videos.length > 0) {
+    // Keep local store warm if running locally and cloud had new items
+    if (r2Videos.length > 0 || blobVideos.length > 0) {
       writeLocalVideos(all);
     }
 
@@ -366,7 +410,7 @@ export async function POST(req: NextRequest) {
     const requestedId = (formData.get("id") as string) || "";
     const videoId = requestedId || `v-srv-${Date.now()}`;
 
-    // Block the Next.js filler video from ever being accepted or re-uploaded
+    // Block the Next.js filler video from ever being accepted or revived
     if (
       videoId === "v-srv-1792152077838" ||
       videoId === "v-user-1792152077838" ||
@@ -383,52 +427,82 @@ export async function POST(req: NextRequest) {
 
     let rawVideoUrl = (formData.get("rawVideoUrl") as string) || "";
 
-    // 1. Video file handling (Cloudflare R2 primary, local disk fallback)
+    // 1. Video file handling (Vercel Blob -> Cloudflare R2 -> local disk fallback)
     if (file) {
       const ext = file.name.split(".").pop()?.toLowerCase() || "mp4";
       const videoBuffer = Buffer.from(await file.arrayBuffer());
-      const r2VideoKey = `videos/${videoId}.${ext}`;
 
-      // Upload to Cloudflare R2
-      const r2VideoUrl = await uploadToCloudflareR2(
-        videoBuffer,
-        r2VideoKey,
-        file.type || "video/mp4"
-      );
+      // Try Vercel Blob
+      if (hasVercelBlob()) {
+        try {
+          const blob = await put(`videos/${videoId}.${ext}`, videoBuffer, {
+            access: "public",
+            contentType: file.type || "video/mp4",
+          });
+          rawVideoUrl = blob.url;
+        } catch (err) {
+          console.warn("Could not upload to Vercel Blob:", err);
+        }
+      }
 
-      // Always save locally to public/uploads/videos for reliable high-speed chunked streaming
+      // Try Cloudflare R2
+      if (!rawVideoUrl) {
+        const r2VideoKey = `videos/${videoId}.${ext}`;
+        const r2VideoUrl = await uploadToCloudflareR2(
+          videoBuffer,
+          r2VideoKey,
+          file.type || "video/mp4"
+        );
+        const r2Config = getR2Config();
+        if (r2Config?.publicUrl && r2VideoUrl) {
+          rawVideoUrl = r2VideoUrl;
+        }
+      }
+
+      // Local disk fallback
       try {
         const videoFileName = `${videoId}.${ext}`;
         const videoFilePath = path.join(VIDEOS_DIR, videoFileName);
         await fs.promises.writeFile(videoFilePath, videoBuffer);
+        if (!rawVideoUrl) {
+          rawVideoUrl = `/api/videos/${videoId}/stream`;
+        }
       } catch (err) {
         console.warn("Could not write video file locally:", err);
       }
-
-      const r2Config = getR2Config();
-      if (r2Config?.publicUrl && r2VideoUrl) {
-        rawVideoUrl = r2VideoUrl;
-      } else {
-        rawVideoUrl = `/api/videos/${videoId}/stream`;
-      }
     }
 
-    // 2. Thumbnail handling (Cloudflare R2 primary, local disk fallback)
+    if (!rawVideoUrl) {
+      rawVideoUrl = `/api/videos/${videoId}/stream`;
+    }
+
+    // 2. Thumbnail handling (Vercel Blob -> Cloudflare R2 -> local disk fallback)
     let thumbnailUrl = (formData.get("thumbnailUrl") as string) || "";
 
     if (thumbnailFile) {
       const thumbExt = thumbnailFile.name.split(".").pop()?.toLowerCase() || "jpg";
       const thumbBuffer = Buffer.from(await thumbnailFile.arrayBuffer());
-      const r2ThumbKey = `thumbnails/${videoId}.${thumbExt}`;
 
-      const r2ThumbUrl = await uploadToCloudflareR2(
-        thumbBuffer,
-        r2ThumbKey,
-        thumbnailFile.type || "image/jpeg"
-      );
+      if (hasVercelBlob()) {
+        try {
+          const blob = await put(`thumbnails/${videoId}.${thumbExt}`, thumbBuffer, {
+            access: "public",
+            contentType: thumbnailFile.type || "image/jpeg",
+          });
+          thumbnailUrl = blob.url;
+        } catch {}
+      }
 
-      if (r2ThumbUrl) {
-        thumbnailUrl = r2ThumbUrl;
+      if (!thumbnailUrl) {
+        const r2ThumbKey = `thumbnails/${videoId}.${thumbExt}`;
+        const r2ThumbUrl = await uploadToCloudflareR2(
+          thumbBuffer,
+          r2ThumbKey,
+          thumbnailFile.type || "image/jpeg"
+        );
+        if (r2ThumbUrl) {
+          thumbnailUrl = r2ThumbUrl;
+        }
       }
 
       try {
@@ -444,16 +518,27 @@ export async function POST(req: NextRequest) {
       if (matches && matches[2]) {
         try {
           const thumbBuffer = Buffer.from(matches[2], "base64");
-          const r2ThumbKey = `thumbnails/${videoId}.jpg`;
 
-          const r2ThumbUrl = await uploadToCloudflareR2(
-            thumbBuffer,
-            r2ThumbKey,
-            "image/jpeg"
-          );
+          if (hasVercelBlob()) {
+            try {
+              const blob = await put(`thumbnails/${videoId}.jpg`, thumbBuffer, {
+                access: "public",
+                contentType: "image/jpeg",
+              });
+              thumbnailUrl = blob.url;
+            } catch {}
+          }
 
-          if (r2ThumbUrl) {
-            thumbnailUrl = r2ThumbUrl;
+          if (!thumbnailUrl) {
+            const r2ThumbKey = `thumbnails/${videoId}.jpg`;
+            const r2ThumbUrl = await uploadToCloudflareR2(
+              thumbBuffer,
+              r2ThumbKey,
+              "image/jpeg"
+            );
+            if (r2ThumbUrl) {
+              thumbnailUrl = r2ThumbUrl;
+            }
           }
 
           const thumbFileName = `${videoId}.jpg`;
@@ -468,6 +553,10 @@ export async function POST(req: NextRequest) {
       } else {
         thumbnailUrl = thumbnailDataUrl;
       }
+    }
+
+    if (!thumbnailUrl) {
+      thumbnailUrl = "/placeholder-thumb.jpg";
     }
 
     let channel = {
@@ -491,27 +580,30 @@ export async function POST(req: NextRequest) {
       id: videoId,
       title: title.trim(),
       description: description.trim(),
-      thumbnailUrl: thumbnailUrl || null,
+      thumbnailUrl: thumbnailUrl || "/placeholder-thumb.jpg",
       masterPlaylistUrl: null,
       rawVideoUrl: rawVideoUrl || null,
       durationSeconds: Math.round(Number(durationRaw)) || 0,
       viewCount: 0,
       publishedAt: new Date().toISOString(),
       category,
-      tags,
+      tags: tags.length > 0 ? tags : [category],
       channel,
     };
 
-    // Merge into R2 and local disk stores
+    // Merge into Vercel Blob, R2, and local disk stores
+    const blobVideos = await fetchBlobVideosIndex();
     const r2Videos = await fetchR2VideosIndex();
     const localVideos = readLocalVideos();
     const map = new Map<string, VideoItem>();
     localVideos.forEach((v) => map.set(v.id, v));
     r2Videos.forEach((v) => map.set(v.id, v));
+    blobVideos.forEach((v) => map.set(v.id, v));
     map.set(newVideo.id, newVideo);
 
     const updatedVideos = [newVideo, ...Array.from(map.values()).filter((v) => v.id !== newVideo.id)];
 
+    await saveBlobVideosIndex(updatedVideos);
     await saveR2VideosIndex(updatedVideos);
     writeLocalVideos(updatedVideos);
 
@@ -531,17 +623,30 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ success: false, error: "ID required" }, { status: 400 });
     }
 
-    // 1. Immediately record tombstone so this video cannot be returned or revived
     recordDeletedVideoId(id);
 
+    const blobVideos = await fetchBlobVideosIndex();
     const r2Videos = await fetchR2VideosIndex();
     const localVideos = readLocalVideos();
     const map = new Map<string, VideoItem>();
     localVideos.forEach((v) => map.set(v.id, v));
     r2Videos.forEach((v) => map.set(v.id, v));
+    blobVideos.forEach((v) => map.set(v.id, v));
 
     const target = map.get(id);
     if (target) {
+      // Delete from Vercel Blob if applicable
+      if (hasVercelBlob()) {
+        try {
+          if (target.rawVideoUrl?.includes("blob.vercel-storage.com")) {
+            await del(target.rawVideoUrl);
+          }
+          if (target.thumbnailUrl?.includes("blob.vercel-storage.com")) {
+            await del(target.thumbnailUrl);
+          }
+        } catch {}
+      }
+
       // Delete from Cloudflare R2 if applicable
       if (target.rawVideoUrl) {
         await deleteFromCloudflareR2(target.rawVideoUrl);
@@ -573,7 +678,6 @@ export async function DELETE(req: NextRequest) {
       }
     }
 
-    // Delete common R2 key patterns for this video
     await deleteFromCloudflareR2(`videos/${id}.mp4`);
     await deleteFromCloudflareR2(`videos/${id}.webm`);
     await deleteFromCloudflareR2(`thumbnails/${id}.jpg`);
@@ -582,6 +686,7 @@ export async function DELETE(req: NextRequest) {
     map.delete(id);
     const updated = Array.from(map.values()).filter((v) => v.id !== id);
 
+    await saveBlobVideosIndex(updated);
     await saveR2VideosIndex(updated);
     writeLocalVideos(updated);
 
@@ -600,33 +705,36 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ success: false, error: "ID required" }, { status: 400 });
     }
 
+    const blobVideos = await fetchBlobVideosIndex();
     const r2Videos = await fetchR2VideosIndex();
     const localVideos = readLocalVideos();
     const map = new Map<string, VideoItem>();
     localVideos.forEach((v) => map.set(v.id, v));
     r2Videos.forEach((v) => map.set(v.id, v));
+    blobVideos.forEach((v) => map.set(v.id, v));
 
-    const target = map.get(id);
-    if (!target) {
+    const existing = map.get(id);
+    if (!existing) {
       return NextResponse.json({ success: false, error: "Video not found" }, { status: 404 });
     }
 
-    const updated: VideoItem = {
-      ...target,
-      title: title !== undefined ? title : target.title,
-      description: description !== undefined ? description : target.description,
-      category: category !== undefined ? category : target.category,
-      tags: tags !== undefined ? tags : target.tags,
-      thumbnailUrl: thumbnailUrl !== undefined ? thumbnailUrl : target.thumbnailUrl,
+    const updatedVideo: VideoItem = {
+      ...existing,
+      title: title !== undefined ? title : existing.title,
+      description: description !== undefined ? description : existing.description,
+      category: category !== undefined ? category : existing.category,
+      tags: tags !== undefined ? tags : existing.tags,
+      thumbnailUrl: thumbnailUrl !== undefined ? thumbnailUrl : existing.thumbnailUrl,
     };
 
-    map.set(id, updated);
-    const all = Array.from(map.values());
+    map.set(id, updatedVideo);
+    const updatedList = Array.from(map.values());
 
-    await saveR2VideosIndex(all);
-    writeLocalVideos(all);
+    await saveBlobVideosIndex(updatedList);
+    await saveR2VideosIndex(updatedList);
+    writeLocalVideos(updatedList);
 
-    return NextResponse.json({ success: true, video: updated });
+    return NextResponse.json({ success: true, video: updatedVideo });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Error updating video";
     return NextResponse.json({ success: false, error: message }, { status: 500 });

@@ -170,7 +170,10 @@ export default function StudioUploadPage() {
       setUploadProgress(70);
       setUploadStage("Saving media and finalizing stream indexing...");
 
-      const srvResult = await uploadVideoToServer(formData);
+      const srvResult = await uploadVideoToServer(formData, (stage, pct) => {
+        setUploadStage(stage);
+        setUploadProgress(pct);
+      });
       const videoId = srvResult.video?.id || `v-user-${Date.now()}`;
       setCreatedVideoId(videoId);
 

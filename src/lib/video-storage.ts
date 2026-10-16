@@ -215,8 +215,46 @@ export async function fetchServerVideos(): Promise<VideoItem[]> {
   return getAllCombinedVideos();
 }
 
-export async function uploadVideoToServer(formData: FormData): Promise<{ success: boolean; video?: VideoItem; error?: string }> {
+export async function uploadVideoToServer(
+  formData: FormData,
+  onProgress?: (stage: string, percent: number) => void
+): Promise<{ success: boolean; video?: VideoItem; error?: string }> {
   try {
+    const file = formData.get("file") as File | null;
+    const thumbFile = formData.get("thumbnailFile") as File | null;
+
+    // Direct browser-to-blob upload on Vercel (bypasses 4.5MB serverless body limit)
+    if (file && typeof window !== "undefined") {
+      try {
+        if (onProgress) onProgress("Uploading directly to Vercel Blob cloud...", 45);
+        const { upload } = await import("@vercel/blob/client");
+        const videoBlob = await upload(file.name, file, {
+          access: "public",
+          handleUploadUrl: "/api/blob/upload",
+        });
+
+        if (videoBlob?.url) {
+          formData.set("rawVideoUrl", videoBlob.url);
+          formData.delete("file"); // Already stored on Blob CDN!
+        }
+
+        if (thumbFile) {
+          const thumbBlob = await upload(thumbFile.name, thumbFile, {
+            access: "public",
+            handleUploadUrl: "/api/blob/upload",
+          });
+          if (thumbBlob?.url) {
+            formData.set("thumbnailUrl", thumbBlob.url);
+            formData.delete("thumbnailFile");
+          }
+        }
+      } catch (blobErr) {
+        // Blob token not configured on this environment; fall back to standard route upload
+        console.info("Direct Blob upload not active, falling back to standard upload:", blobErr);
+      }
+    }
+
+    if (onProgress) onProgress("Indexing and finalizing media stream...", 80);
     const res = await fetch("/api/videos", {
       method: "POST",
       body: formData,
