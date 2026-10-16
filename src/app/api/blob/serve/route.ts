@@ -4,19 +4,47 @@ import { type NextRequest, NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function getCandidates(raw: string): string[] {
+  const list: string[] = [raw];
+  try {
+    const decoded = decodeURIComponent(raw);
+    if (!list.includes(decoded)) list.push(decoded);
+    const noLeadingSlash = decoded.replace(/^\//, "");
+    if (!list.includes(noLeadingSlash)) list.push(noLeadingSlash);
+    const withLeadingSlash = `/${noLeadingSlash}`;
+    if (!list.includes(withLeadingSlash)) list.push(withLeadingSlash);
+  } catch {}
+  return list;
+}
+
+async function resolveBlob(raw: string) {
+  const candidates = getCandidates(raw);
+  for (const target of candidates) {
+    try {
+      const result = await get(target, { access: "private" });
+      if (result) return result;
+    } catch {}
+  }
+  for (const target of candidates) {
+    try {
+      const result = await get(target, { access: "public" });
+      if (result) return result;
+    } catch {}
+  }
+  return null;
+}
+
 export async function HEAD(request: NextRequest): Promise<NextResponse> {
-  const pathname =
+  const raw =
     request.nextUrl.searchParams.get("pathname") ||
     request.nextUrl.searchParams.get("url");
 
-  if (!pathname) {
+  if (!raw) {
     return new NextResponse(null, { status: 400 });
   }
 
   try {
-    const result = await get(pathname, {
-      access: "private",
-    });
+    const result = await resolveBlob(raw);
 
     if (result === null) {
       return new NextResponse(null, { status: 404 });
@@ -28,28 +56,26 @@ export async function HEAD(request: NextRequest): Promise<NextResponse> {
         "Accept-Ranges": "bytes",
         "Content-Length": result.blob.size ? result.blob.size.toString() : "0",
         "Content-Type": result.blob.contentType || "video/mp4",
-        "Cache-Control": "private, no-cache",
+        "Cache-Control": "public, max-age=3600",
       },
     });
   } catch (error) {
-    console.error("HEAD private blob error:", error);
+    console.error("HEAD blob error:", error);
     return new NextResponse(null, { status: 500 });
   }
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const pathname =
+  const raw =
     request.nextUrl.searchParams.get("pathname") ||
     request.nextUrl.searchParams.get("url");
 
-  if (!pathname) {
+  if (!raw) {
     return NextResponse.json({ error: "Missing pathname" }, { status: 400 });
   }
 
   try {
-    const result = await get(pathname, {
-      access: "private",
-    });
+    const result = await resolveBlob(raw);
 
     if (result === null) {
       return new NextResponse("Not found", { status: 404 });
@@ -60,8 +86,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     const headers: Record<string, string> = {
-      "Cache-Control": "private, no-cache",
-      "Content-Type": result.blob.contentType || "application/octet-stream",
+      "Cache-Control": "public, max-age=3600",
+      "Content-Type": result.blob.contentType || "video/mp4",
       "X-Content-Type-Options": "nosniff",
       "Accept-Ranges": "bytes",
     };

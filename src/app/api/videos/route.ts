@@ -158,19 +158,39 @@ async function putSafeBlob(pathname: string, body: Buffer | string, contentType?
       access: "private",
       contentType,
       addRandomSuffix: false,
+      allowOverwrite: true,
     });
   } catch {
-    return await put(pathname, body, {
-      access: "public",
-      contentType,
-      addRandomSuffix: false,
-    });
+    try {
+      return await put(pathname, body, {
+        access: "private",
+        contentType,
+        addRandomSuffix: true,
+      });
+    } catch {
+      try {
+        return await put(pathname, body, {
+          access: "public",
+          contentType,
+          addRandomSuffix: false,
+          allowOverwrite: true,
+        });
+      } catch {
+        return await put(pathname, body, {
+          access: "public",
+          contentType,
+          addRandomSuffix: true,
+        });
+      }
+    }
   }
 }
 
 async function fetchBlobVideosIndex(): Promise<VideoItem[]> {
   if (!hasVercelBlob()) return [];
-  // 1. Try private get
+  const map = new Map<string, VideoItem>();
+
+  // 1. Try reading the consolidated metadata/videos.json
   try {
     const result = await get("metadata/videos.json", { access: "private" });
     if (result && result.stream) {
@@ -178,36 +198,78 @@ async function fetchBlobVideosIndex(): Promise<VideoItem[]> {
       const text = await res.text();
       const parsed = JSON.parse(text);
       if (Array.isArray(parsed)) {
-        const deleted = readDeletedVideoIds();
-        return parsed.filter((v: VideoItem) => v && v.id && !deleted.has(v.id) && !isNextJsFillerVideo(v));
+        parsed.forEach((v: VideoItem) => {
+          if (v && v.id) map.set(v.id, v);
+        });
       }
     }
   } catch {}
 
-  // 2. Try public list/fetch
+  // 2. Discover all individual video metadata files from metadata/videos/
   try {
-    const { blobs } = await list({ prefix: "metadata/videos.json" });
-    if (blobs.length > 0) {
-      const res = await fetch(`${blobs[0].url}?t=${Date.now()}`, { cache: "no-store" });
-      if (res.ok) {
-        const parsed = await res.json();
-        if (Array.isArray(parsed)) {
-          const deleted = readDeletedVideoIds();
-          return parsed.filter((v: VideoItem) => v && v.id && !deleted.has(v.id) && !isNextJsFillerVideo(v));
+    const { blobs } = await list({ prefix: "metadata/videos/" });
+    for (const b of blobs) {
+      if (b.pathname.endsWith(".json")) {
+        const vidId = b.pathname.replace(/^metadata\/videos\//, "").replace(/\.json$/, "");
+        if (!map.has(vidId)) {
+          try {
+            const res = await get(b.pathname, { access: "private" });
+            if (res && res.stream) {
+              const text = await new Response(res.stream as unknown as BodyInit).text();
+              const v = JSON.parse(text);
+              if (v && v.id) map.set(v.id, v);
+            }
+          } catch {}
         }
       }
     }
   } catch (err) {
-    console.warn("Could not fetch Blob videos index:", err);
+    console.warn("Could not list metadata/videos/ folder:", err);
   }
-  return [];
+
+  // 3. Fallback: if metadata/videos.json has a random suffix
+  if (map.size === 0) {
+    try {
+      const { blobs } = await list({ prefix: "metadata/videos" });
+      for (const b of blobs) {
+        if (b.pathname.endsWith(".json")) {
+          try {
+            const res = await get(b.pathname, { access: "private" });
+            if (res && res.stream) {
+              const text = await new Response(res.stream as unknown as BodyInit).text();
+              const parsed = JSON.parse(text);
+              if (Array.isArray(parsed)) {
+                parsed.forEach((v: VideoItem) => {
+                  if (v && v.id) map.set(v.id, v);
+                });
+              } else if (parsed && parsed.id) {
+                map.set(parsed.id, parsed);
+              }
+            }
+          } catch {}
+        }
+      }
+    } catch {}
+  }
+
+  const deleted = readDeletedVideoIds();
+  return Array.from(map.values()).filter(
+    (v: VideoItem) => v && v.id && !deleted.has(v.id) && !isNextJsFillerVideo(v)
+  );
 }
 
-async function saveBlobVideosIndex(videos: VideoItem[]): Promise<void> {
+async function saveBlobVideosIndex(videos: VideoItem[], newVideo?: VideoItem): Promise<void> {
   if (!hasVercelBlob()) return;
   try {
     const deleted = readDeletedVideoIds();
     const filtered = videos.filter((v) => v && v.id && !deleted.has(v.id) && !isNextJsFillerVideo(v));
+
+    // 1. Immediately save the new video metadata individually so it can NEVER be lost
+    if (newVideo && newVideo.id) {
+      await putSafeBlob(`metadata/videos/${newVideo.id}.json`, JSON.stringify(newVideo, null, 2), "application/json");
+    }
+
+    // 2. Also save consolidated metadata/videos.json
     const content = JSON.stringify(filtered, null, 2);
     await putSafeBlob("metadata/videos.json", content, "application/json");
   } catch (err) {
@@ -646,7 +708,7 @@ export async function POST(req: NextRequest) {
 
     const updatedVideos = [newVideo, ...Array.from(map.values()).filter((v) => v.id !== newVideo.id)];
 
-    await saveBlobVideosIndex(updatedVideos);
+    await saveBlobVideosIndex(updatedVideos, newVideo);
     await saveR2VideosIndex(updatedVideos);
     writeLocalVideos(updatedVideos);
 
@@ -681,12 +743,20 @@ export async function DELETE(req: NextRequest) {
       // Delete from Vercel Blob if applicable
       if (hasVercelBlob()) {
         try {
-          if (target.rawVideoUrl?.includes("blob.vercel-storage.com")) {
-            await del(target.rawVideoUrl);
-          }
-          if (target.thumbnailUrl?.includes("blob.vercel-storage.com")) {
-            await del(target.thumbnailUrl);
-          }
+          const extractPath = (urlOrPath?: string | null) => {
+            if (!urlOrPath) return null;
+            if (urlOrPath.includes("pathname=")) {
+              const match = urlOrPath.match(/pathname=([^&]+)/);
+              if (match) return decodeURIComponent(match[1]);
+            }
+            if (urlOrPath.includes("blob.vercel-storage.com")) return urlOrPath;
+            return null;
+          };
+          const videoP = extractPath(target.rawVideoUrl);
+          const thumbP = extractPath(target.thumbnailUrl);
+          if (videoP) await del(videoP).catch(() => {});
+          if (thumbP) await del(thumbP).catch(() => {});
+          await del(`metadata/videos/${id}.json`).catch(() => {});
         } catch {}
       }
 
