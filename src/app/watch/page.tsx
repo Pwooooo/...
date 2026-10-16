@@ -114,11 +114,12 @@ function WatchContent() {
   const highlights = currentVideo.highlights || SAMPLE_HIGHLIGHTS;
 
   const { user, openAuthModal } = useAuth();
+  const uHandle = (user?.handle || user?.name || "").replace(/^@/, "").toLowerCase();
+  const vHandle = (currentVideo?.channel?.handle || currentVideo?.channel?.displayName || "").replace(/^@/, "").toLowerCase();
   const isOwnVideo = Boolean(
     user &&
-      ((currentVideo.channel?.handle &&
-        currentVideo.channel.handle.replace(/^@/, "").toLowerCase() === user.handle.replace(/^@/, "").toLowerCase()) ||
-        (currentVideo.channel?.id && currentVideo.channel.id === user.id))
+      ((vHandle && uHandle && vHandle === uHandle) ||
+        (currentVideo?.channel?.id && user?.id && currentVideo.channel.id === user.id))
   );
   const [currentPlaybackTime, setCurrentPlaybackTime] = useState(0);
   const [isChaptersPanelOpen, setIsChaptersPanelOpen] = useState(false);

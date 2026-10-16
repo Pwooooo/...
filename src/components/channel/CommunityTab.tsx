@@ -776,7 +776,7 @@ export default function CommunityTab({ channel, isOwnProfile }: CommunityTabProp
                               </div>
                             </div>
 
-                            {user && user.handle.toLowerCase() === comm.authorHandle.toLowerCase() && (
+                            {user && (user.handle || "").toLowerCase() === (comm.authorHandle || "").toLowerCase() && (
                               <button
                                 type="button"
                                 onClick={() => handleDeleteComment(post.id, comm.id)}

@@ -54,7 +54,7 @@ export default function ProfilePage() {
       try {
         if (user) {
           const all = getAllCombinedVideos();
-          const uHandle = user.handle.replace(/^@/, "").toLowerCase();
+          const uHandle = (user.handle || user.name || "").replace(/^@/, "").toLowerCase();
           const uName = user.name?.toLowerCase();
           const filtered = all.filter(
             (v: VideoItem) => {

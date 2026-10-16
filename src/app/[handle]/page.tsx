@@ -55,7 +55,9 @@ export default function ChannelProfilePage({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [userVideos, setUserVideos] = useState<VideoItem[]>([]);
 
-  const isOwnProfile = Boolean(user && user.handle.toLowerCase() === cleanHandle.toLowerCase());
+  const isOwnProfile = Boolean(
+    user && (user.handle || user.name || "").toLowerCase() === cleanHandle.toLowerCase()
+  );
 
   useEffect(() => {
     if (typeof window !== "undefined") {

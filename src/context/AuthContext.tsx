@@ -48,6 +48,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const saved = localStorage.getItem("entropy_user");
         if (saved) {
           const parsed: User = JSON.parse(saved);
+          if (!parsed.handle) {
+            parsed.handle = (parsed.name || "user").toLowerCase().replace(/[^a-z0-9]/g, "") || "user";
+          }
           if (!parsed.joinedAt) {
             let jAt = "";
             if (parsed.id?.startsWith("u-")) {
@@ -57,11 +60,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               }
             }
             parsed.joinedAt = jAt || formatJoinedDate();
-            try {
-              localStorage.setItem("entropy_user", JSON.stringify(parsed));
-            } catch {
-              // ignore
-            }
+          }
+          try {
+            localStorage.setItem("entropy_user", JSON.stringify(parsed));
+          } catch {
+            // ignore
           }
           setUser(parsed);
         }

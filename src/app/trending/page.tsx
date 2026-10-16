@@ -108,8 +108,8 @@ export default function TrendingPage() {
                   </Link>
 
                   <div className="flex items-center gap-2 text-xs text-zinc-400 mt-1">
-                    <Link href={`/@${video.channel.handle}`} className="hover:text-zinc-200">
-                      {video.channel.displayName}
+                    <Link href={`/@${(video.channel?.handle || "creator").replace(/^@/, "")}`} className="hover:text-zinc-200">
+                      {video.channel?.displayName || video.channel?.handle || "Creator"}
                     </Link>
                     <span>•</span>
                     <span>{formatViews(video.viewCount)}</span>

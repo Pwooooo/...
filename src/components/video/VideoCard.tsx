@@ -15,15 +15,38 @@ export default function VideoCard({ video }: VideoCardProps) {
   useEffect(() => {
     const timer = setTimeout(() => {
       try {
-        const publishedDate = new Date(video.publishedAt);
-        setTimeAgo(formatDistanceToNow(publishedDate, { addSuffix: true }));
+        if (video?.publishedAt) {
+          const publishedDate = new Date(video.publishedAt);
+          if (!isNaN(publishedDate.getTime())) {
+            setTimeAgo(formatDistanceToNow(publishedDate, { addSuffix: true }));
+            return;
+          }
+        }
+        setTimeAgo("Recently");
       } catch {
         setTimeAgo("Recently");
       }
     }, 0);
 
     return () => clearTimeout(timer);
-  }, [video.publishedAt]);
+  }, [video?.publishedAt]);
+
+  if (!video) return null;
+
+  const channel = video.channel || {
+    id: "creator",
+    handle: "creator",
+    displayName: "Creator",
+    avatarUrl: "",
+    subscribersCount: 0,
+  };
+
+  const rawHandle = channel.handle || channel.displayName || "creator";
+  const cleanHandle = rawHandle.replace(/^@/, "");
+  const displayName = channel.displayName || channel.handle || "Creator";
+  const initial = (displayName.charAt(0) || "C").toUpperCase();
+  const duration = Number(video.durationSeconds) || 0;
+  const views = Number(video.viewCount) || 0;
 
   return (
     <div className="group flex flex-col gap-3">
@@ -34,12 +57,12 @@ export default function VideoCard({ video }: VideoCardProps) {
       >
         <img
           src={video.thumbnailUrl || "/placeholder-thumb.jpg"}
-          alt={video.title}
+          alt={video.title || "Video thumbnail"}
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
-        {video.durationSeconds > 0 && (
+        {duration > 0 && (
           <span className="absolute bottom-2 right-2 rounded bg-black/80 px-1.5 py-0.5 text-xs font-semibold text-white tracking-wide">
-            {formatDuration(video.durationSeconds)}
+            {formatDuration(duration)}
           </span>
         )}
       </Link>
@@ -48,20 +71,20 @@ export default function VideoCard({ video }: VideoCardProps) {
       <div className="flex gap-3 px-1">
         {/* Channel Avatar */}
         <Link
-          href={`/@${video.channel.handle}`}
+          href={`/@${cleanHandle}`}
           className="flex-shrink-0"
-          title={video.channel.displayName}
+          title={displayName}
         >
           <div className="h-9 w-9 overflow-hidden rounded-full bg-[#181818]">
-            {video.channel.avatarUrl ? (
+            {channel.avatarUrl ? (
               <img
-                src={video.channel.avatarUrl}
-                alt={video.channel.displayName}
+                src={channel.avatarUrl}
+                alt={displayName}
                 className="h-full w-full object-cover"
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center font-bold text-xs text-zinc-300 bg-zinc-700">
-                {video.channel.displayName.slice(0, 1).toUpperCase()}
+                {initial}
               </div>
             )}
           </div>
@@ -73,18 +96,18 @@ export default function VideoCard({ video }: VideoCardProps) {
             href={`/watch?v=${video.id}`}
             className="line-clamp-2 text-sm font-semibold text-zinc-100 group-hover:text-white transition-colors"
           >
-            {video.title}
+            {video.title || "Untitled Video"}
           </Link>
 
           <Link
-            href={`/@${video.channel.handle}`}
+            href={`/@${cleanHandle}`}
             className="mt-1 flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
           >
-            <span>{video.channel.displayName}</span>
+            <span>{displayName}</span>
           </Link>
 
           <div className="flex items-center text-xs text-zinc-400 gap-1.5 mt-0.5">
-            <span>{formatViews(video.viewCount)}</span>
+            <span>{formatViews(views)}</span>
             <span>•</span>
             <span>{timeAgo}</span>
           </div>

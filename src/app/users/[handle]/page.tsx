@@ -57,8 +57,8 @@ export default function UserProfilePage({
 
   const isOwnProfile = Boolean(
     user &&
-      (user.handle.toLowerCase() === cleanHandle.toLowerCase() ||
-        user.id.toLowerCase() === cleanHandle.toLowerCase())
+      (((user.handle || user.name || "").toLowerCase() === cleanHandle.toLowerCase()) ||
+        ((user.id || "").toLowerCase() === cleanHandle.toLowerCase()))
   );
 
   useEffect(() => {

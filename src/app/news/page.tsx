@@ -963,7 +963,7 @@ export default function GlobalNewsPage() {
                             </div>
                           </Link>
 
-                          {user && user.handle.toLowerCase() === post.channelHandle.toLowerCase() && (
+                          {user && (user.handle || "").toLowerCase() === (post.channelHandle || "").toLowerCase() && (
                             <button
                               type="button"
                               onClick={() => handleDeletePost(post.id)}

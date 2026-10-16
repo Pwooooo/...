@@ -13,8 +13,8 @@ export default function HistoryPage() {
   const [searchHistory, setSearchHistory] = useState("");
 
   const filteredHistory = historyList.filter((video) =>
-    video.title.toLowerCase().includes(searchHistory.toLowerCase()) ||
-    video.channel.displayName.toLowerCase().includes(searchHistory.toLowerCase())
+    (video.title || "").toLowerCase().includes(searchHistory.toLowerCase()) ||
+    (video.channel?.displayName || video.channel?.handle || "").toLowerCase().includes(searchHistory.toLowerCase())
   );
 
   const removeItem = (id: string) => {
@@ -76,10 +76,10 @@ export default function HistoryPage() {
                           </button>
                         </div>
                         <Link
-                          href={`/@${video.channel.handle}`}
+                          href={`/@${(video.channel?.handle || "creator").replace(/^@/, "")}`}
                           className="text-xs text-zinc-400 hover:text-zinc-200 mt-1 inline-block"
                         >
-                          {video.channel.displayName}
+                          {video.channel?.displayName || video.channel?.handle || "Creator"}
                         </Link>
                       </div>
                       <p className="text-xs text-zinc-500 line-clamp-1">{video.description}</p>

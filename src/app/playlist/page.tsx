@@ -95,10 +95,10 @@ function PlaylistContent() {
                 {video.title}
               </Link>
               <Link
-                href={`/@${video.channel.handle}`}
+                href={`/@${(video.channel?.handle || "creator").replace(/^@/, "")}`}
                 className="text-xs text-zinc-400 hover:text-zinc-200 mt-1 inline-block"
               >
-                {video.channel.displayName}
+                {video.channel?.displayName || video.channel?.handle || "Creator"}
               </Link>
             </div>
 
