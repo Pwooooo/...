@@ -245,20 +245,20 @@ export async function uploadVideoToServer(
     // Direct browser-to-blob upload on Vercel (bypasses 4.5MB serverless body limit)
     if (file && typeof window !== "undefined") {
       try {
-        if (onProgress) onProgress("Uploading", 45);
+        if (onProgress) onProgress("Uploading", 10);
         const { upload } = await import("@vercel/blob/client");
-        let videoBlob;
-        try {
-          videoBlob = await upload(file.name, file, {
-            access: "private",
-            handleUploadUrl: "/api/blob/upload",
-          });
-        } catch {
-          videoBlob = await upload(file.name, file, {
-            access: "public",
-            handleUploadUrl: "/api/blob/upload",
-          });
-        }
+
+        // 1. Upload video file with real-time byte progress & multipart
+        const videoBlob = await upload(file.name, file, {
+          access: "public",
+          handleUploadUrl: "/api/blob/upload",
+          multipart: true,
+          onUploadProgress: (progress) => {
+            // progress.percentage is 0..100 -> map to 10% - 85%
+            const currentPct = Math.min(85, Math.max(10, Math.round(10 + progress.percentage * 0.75)));
+            if (onProgress) onProgress("Uploading", currentPct);
+          },
+        });
 
         if (videoBlob) {
           const serveUrl = videoBlob.pathname
@@ -268,61 +268,52 @@ export async function uploadVideoToServer(
           formData.delete("file"); // Already stored in Blob!
         }
 
+        // 2. Upload thumbnail
         if (thumbFile) {
-          let thumbBlob;
           try {
-            thumbBlob = await upload(thumbFile.name, thumbFile, {
-              access: "private",
-              handleUploadUrl: "/api/blob/upload",
-            });
-          } catch {
-            thumbBlob = await upload(thumbFile.name, thumbFile, {
+            const thumbBlob = await upload(thumbFile.name, thumbFile, {
               access: "public",
               handleUploadUrl: "/api/blob/upload",
             });
-          }
-          if (thumbBlob) {
-            const thumbUrl = thumbBlob.pathname
-              ? `/api/blob/serve?pathname=${encodeURIComponent(thumbBlob.pathname)}`
-              : thumbBlob.url;
-            formData.set("thumbnailUrl", thumbUrl);
-            formData.delete("thumbnailFile");
-          }
-        }
-
-        const thumbDataUrl = formData.get("thumbnailDataUrl") as string | null;
-        if (thumbDataUrl && thumbDataUrl.startsWith("data:image")) {
-          try {
-            const resBlob = await fetch(thumbDataUrl);
-            const imgBlob = await resBlob.blob();
-            let thumbBlob;
-            try {
-              thumbBlob = await upload(`thumb-${Date.now()}.jpg`, imgBlob, {
-                access: "private",
-                handleUploadUrl: "/api/blob/upload",
-              });
-            } catch {
-              thumbBlob = await upload(`thumb-${Date.now()}.jpg`, imgBlob, {
-                access: "public",
-                handleUploadUrl: "/api/blob/upload",
-              });
-            }
             if (thumbBlob) {
               const thumbUrl = thumbBlob.pathname
                 ? `/api/blob/serve?pathname=${encodeURIComponent(thumbBlob.pathname)}`
                 : thumbBlob.url;
               formData.set("thumbnailUrl", thumbUrl);
-              formData.delete("thumbnailDataUrl");
+              formData.delete("thumbnailFile");
             }
           } catch {}
+        } else {
+          const thumbDataUrl = formData.get("thumbnailDataUrl") as string | null;
+          if (thumbDataUrl && thumbDataUrl.startsWith("data:image")) {
+            try {
+              const resBlob = await fetch(thumbDataUrl);
+              const imgBlob = await resBlob.blob();
+              const thumbBlob = await upload(`thumb-${Date.now()}.jpg`, imgBlob, {
+                access: "public",
+                handleUploadUrl: "/api/blob/upload",
+              });
+              if (thumbBlob) {
+                const thumbUrl = thumbBlob.pathname
+                  ? `/api/blob/serve?pathname=${encodeURIComponent(thumbBlob.pathname)}`
+                  : thumbBlob.url;
+                formData.set("thumbnailUrl", thumbUrl);
+                formData.delete("thumbnailDataUrl");
+              }
+            } catch {}
+          }
         }
       } catch (blobErr) {
-        // Blob token not configured on this environment; fall back to standard route upload
-        console.info("Direct Blob upload not active, falling back to standard upload:", blobErr);
+        console.warn("Direct Blob upload error:", blobErr);
+        // If file is larger than 4.5MB and direct blob upload failed, cannot fallback to Vercel body
+        if (file.size > 4.5 * 1024 * 1024) {
+          const errMsg = blobErr instanceof Error ? blobErr.message : "Cloud upload failed. Please try again.";
+          return { success: false, error: errMsg };
+        }
       }
     }
 
-    if (onProgress) onProgress("Indexing and finalizing media stream...", 80);
+    if (onProgress) onProgress("Uploading", 90);
     const res = await fetch("/api/videos", {
       method: "POST",
       body: formData,

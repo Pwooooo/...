@@ -33,6 +33,7 @@ export async function POST(request: Request): Promise<NextResponse> {
             "image/webp",
             "image/gif",
           ],
+          maximumSizeInBytes: 500 * 1024 * 1024,
           addRandomSuffix: true,
           tokenPayload: JSON.stringify({ pathname }),
         };

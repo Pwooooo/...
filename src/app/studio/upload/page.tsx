@@ -135,8 +135,8 @@ export default function StudioUploadPage() {
     if (!file || !user) return;
 
     setIsUploading(true);
-    setUploadProgress(15);
-    setUploadStage("Encoding and preparing media stream...");
+    setUploadProgress(5);
+    setUploadStage("Uploading");
 
     const parsedTags = tagsInput
       .split(",")
@@ -144,9 +144,6 @@ export default function StudioUploadPage() {
       .filter(Boolean);
 
     try {
-      setUploadProgress(35);
-      setUploadStage("Uploading");
-
       const formData = new FormData();
       formData.append("file", file);
       formData.append("title", title.trim() || file.name);
@@ -169,9 +166,6 @@ export default function StudioUploadPage() {
       } else if (thumbnailUrl) {
         formData.append("thumbnailDataUrl", thumbnailUrl);
       }
-
-      setUploadProgress(70);
-      setUploadStage("Saving media and finalizing stream indexing...");
 
       const srvResult = await uploadVideoToServer(formData, (stage, pct) => {
         setUploadStage(stage);
