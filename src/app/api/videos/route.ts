@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { VideoItem } from "@/types";
 
 export const runtime = "nodejs";
@@ -13,9 +13,6 @@ const DELETED_VIDEOS_FILE = path.join(DATA_DIR, "deleted_videos.json");
 const UPLOADS_DIR = path.join(process.cwd(), "public", "uploads");
 const VIDEOS_DIR = path.join(UPLOADS_DIR, "videos");
 const THUMBNAILS_DIR = path.join(UPLOADS_DIR, "thumbnails");
-
-const CLOUD_DB_ID = "ff808181a09d98f701a1449311a87263";
-const CLOUD_DB_URL = `https://api.restful-api.dev/objects/${CLOUD_DB_ID}`;
 
 function safeEnsureDirs() {
   try {
@@ -87,47 +84,6 @@ function writeLocalVideos(videos: VideoItem[]): void {
   } catch {}
 }
 
-async function fetchCloudVideos(): Promise<VideoItem[]> {
-  try {
-    const res = await fetch(CLOUD_DB_URL, {
-      cache: "no-store",
-      headers: { Accept: "application/json" },
-    });
-    if (res.ok) {
-      const json = await res.json();
-      if (json && json.data && json.data.payload) {
-        const parsed = JSON.parse(json.data.payload);
-        if (Array.isArray(parsed)) {
-          const deleted = readDeletedVideoIds();
-          return parsed.filter((v: VideoItem) => !deleted.has(v.id));
-        }
-      }
-    }
-  } catch (err) {
-    console.warn("Could not fetch cloud videos:", err);
-  }
-  return [];
-}
-
-async function saveCloudVideos(videos: VideoItem[]): Promise<void> {
-  try {
-    const deleted = readDeletedVideoIds();
-    const filtered = videos.filter((v) => !deleted.has(v.id));
-    await fetch(CLOUD_DB_URL, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: "entropy_videos",
-        data: {
-          payload: JSON.stringify(filtered),
-        },
-      }),
-    });
-  } catch (err) {
-    console.warn("Could not save cloud videos:", err);
-  }
-}
-
 // Cloudflare R2 / S3 Configuration
 function getR2Config() {
   const accountId =
@@ -150,7 +106,7 @@ function getR2Config() {
     process.env.CLOUDFLARE_R2_BUCKET_NAME ||
     process.env.R2_BUCKET_NAME ||
     process.env.S3_BUCKET_NAME ||
-    "youtube-media";
+    "entropy-videos";
 
   let endpoint =
     process.env.CLOUDFLARE_R2_ENDPOINT ||
@@ -255,23 +211,73 @@ async function deleteFromCloudflareR2(keyOrUrl: string): Promise<boolean> {
   }
 }
 
+async function fetchR2VideosIndex(): Promise<VideoItem[]> {
+  const r2 = getR2Client();
+  if (!r2) return [];
+
+  try {
+    const command = new GetObjectCommand({
+      Bucket: r2.bucket,
+      Key: "metadata/videos.json",
+    });
+    const response = await r2.client.send(command);
+    const bodyStr = await response.Body?.transformToString();
+    if (bodyStr) {
+      const parsed = JSON.parse(bodyStr);
+      if (Array.isArray(parsed)) {
+        const deleted = readDeletedVideoIds();
+        return parsed.filter((v: VideoItem) => !deleted.has(v.id));
+      }
+    }
+  } catch (err: unknown) {
+    const name = (err as { name?: string })?.name;
+    if (name !== "NoSuchKey" && name !== "NotFound") {
+      console.warn("Could not fetch R2 videos index:", err);
+    }
+  }
+  return [];
+}
+
+async function saveR2VideosIndex(videos: VideoItem[]): Promise<void> {
+  const r2 = getR2Client();
+  if (!r2) return;
+
+  try {
+    const deleted = readDeletedVideoIds();
+    const filtered = videos.filter((v) => !deleted.has(v.id));
+    const command = new PutObjectCommand({
+      Bucket: r2.bucket,
+      Key: "metadata/videos.json",
+      Body: Buffer.from(JSON.stringify(filtered, null, 2)),
+      ContentType: "application/json",
+    });
+    await r2.client.send(command);
+  } catch (err) {
+    console.warn("Could not save R2 videos index:", err);
+  }
+}
+
 export async function GET() {
   try {
     const deleted = readDeletedVideoIds();
-    const cloudVideos = await fetchCloudVideos();
+    const r2Videos = await fetchR2VideosIndex();
     const localVideos = readLocalVideos();
 
-    // Merge by id (cloud priority, fallback to local)
+    // Merge unique by id (R2 cloud priority, fallback to local server disk)
     const map = new Map<string, VideoItem>();
     localVideos.forEach((v) => {
       if (!deleted.has(v.id)) map.set(v.id, v);
     });
-    cloudVideos.forEach((v) => {
+    r2Videos.forEach((v) => {
       if (!deleted.has(v.id)) map.set(v.id, v);
     });
 
     const all = Array.from(map.values()).filter((v) => !deleted.has(v.id));
-    writeLocalVideos(all);
+
+    // If local was empty but R2 had videos, keep local cache warm
+    if (r2Videos.length > 0) {
+      writeLocalVideos(all);
+    }
 
     return NextResponse.json({ success: true, videos: all });
   } catch (err: unknown) {
@@ -317,7 +323,7 @@ export async function POST(req: NextRequest) {
         rawVideoUrl = r2VideoUrl;
       }
 
-      // Also save locally if writable
+      // Also save locally to public/uploads/videos
       try {
         const videoFileName = `${videoId}.${ext}`;
         const videoFilePath = path.join(VIDEOS_DIR, videoFileName);
@@ -325,7 +331,9 @@ export async function POST(req: NextRequest) {
         if (!rawVideoUrl) {
           rawVideoUrl = `/uploads/videos/${videoFileName}`;
         }
-      } catch {}
+      } catch (err) {
+        console.warn("Could not write video file locally:", err);
+      }
     }
 
     // 2. Thumbnail handling (Cloudflare R2 primary, local disk fallback)
@@ -417,17 +425,17 @@ export async function POST(req: NextRequest) {
       channel,
     };
 
-    // Merge into cloud and local stores
-    const cloudVideos = await fetchCloudVideos();
+    // Merge into R2 and local disk stores
+    const r2Videos = await fetchR2VideosIndex();
     const localVideos = readLocalVideos();
     const map = new Map<string, VideoItem>();
     localVideos.forEach((v) => map.set(v.id, v));
-    cloudVideos.forEach((v) => map.set(v.id, v));
+    r2Videos.forEach((v) => map.set(v.id, v));
     map.set(newVideo.id, newVideo);
 
     const updatedVideos = [newVideo, ...Array.from(map.values()).filter((v) => v.id !== newVideo.id)];
 
-    await saveCloudVideos(updatedVideos);
+    await saveR2VideosIndex(updatedVideos);
     writeLocalVideos(updatedVideos);
 
     return NextResponse.json({ success: true, video: newVideo });
@@ -449,11 +457,11 @@ export async function DELETE(req: NextRequest) {
     // 1. Immediately record tombstone so this video cannot be returned or revived
     recordDeletedVideoId(id);
 
-    const cloudVideos = await fetchCloudVideos();
+    const r2Videos = await fetchR2VideosIndex();
     const localVideos = readLocalVideos();
     const map = new Map<string, VideoItem>();
     localVideos.forEach((v) => map.set(v.id, v));
-    cloudVideos.forEach((v) => map.set(v.id, v));
+    r2Videos.forEach((v) => map.set(v.id, v));
 
     const target = map.get(id);
     if (target) {
@@ -489,7 +497,7 @@ export async function DELETE(req: NextRequest) {
     map.delete(id);
     const updated = Array.from(map.values()).filter((v) => v.id !== id);
 
-    await saveCloudVideos(updated);
+    await saveR2VideosIndex(updated);
     writeLocalVideos(updated);
 
     return NextResponse.json({ success: true });
@@ -507,11 +515,11 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ success: false, error: "ID required" }, { status: 400 });
     }
 
-    const cloudVideos = await fetchCloudVideos();
+    const r2Videos = await fetchR2VideosIndex();
     const localVideos = readLocalVideos();
     const map = new Map<string, VideoItem>();
     localVideos.forEach((v) => map.set(v.id, v));
-    cloudVideos.forEach((v) => map.set(v.id, v));
+    r2Videos.forEach((v) => map.set(v.id, v));
 
     const target = map.get(id);
     if (!target) {
@@ -530,7 +538,7 @@ export async function PATCH(req: NextRequest) {
     map.set(id, updated);
     const all = Array.from(map.values());
 
-    await saveCloudVideos(all);
+    await saveR2VideosIndex(all);
     writeLocalVideos(all);
 
     return NextResponse.json({ success: true, video: updated });

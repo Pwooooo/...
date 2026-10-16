@@ -127,11 +127,12 @@ export default function StudioVideosPage() {
           const uHandle = user.handle?.replace(/^@/, "").toLowerCase();
           const vName = v.channel?.displayName?.toLowerCase();
           const uName = user.name?.toLowerCase();
+          const vChannelId = v.channel?.id?.toLowerCase();
+          const uId = user.id?.toLowerCase();
           return (
             (vHandle && uHandle && vHandle === uHandle) ||
             (vName && uName && vName === uName) ||
-            v.channel?.id === user.id ||
-            v.id.startsWith("v-user-")
+            (vChannelId && uId && vChannelId === uId)
           );
         });
         setVideos(userVideos);
