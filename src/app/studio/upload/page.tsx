@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Navbar from "@/components/navigation/Navbar";
 import Sidebar from "@/components/navigation/Sidebar";
 import {
@@ -15,6 +15,8 @@ import {
   Sparkles,
   Loader2,
   Layers,
+  Flame,
+  Music,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
@@ -31,6 +33,7 @@ import {
 import { formatDuration } from "@/lib/utils";
 
 const VIDEO_CATEGORIES = [
+  "Shorts",
   "Technology",
   "Web Development",
   "Gaming",
@@ -44,6 +47,9 @@ const VIDEO_CATEGORIES = [
 export default function StudioUploadPage() {
   const { user, openAuthModal } = useAuth();
   const { addNotification } = useNotifications();
+
+  const [uploadType, setUploadType] = useState<"video" | "short">("video");
+  const [songName, setSongName] = useState("Original Audio");
 
   const [file, setFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
@@ -65,6 +71,16 @@ export default function StudioUploadPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const thumbInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const typeParam = new URLSearchParams(window.location.search).get("type");
+      if (typeParam === "short") {
+        setUploadType("short");
+        setCategory("Shorts");
+      }
+    }
+  }, []);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -90,6 +106,11 @@ export default function StudioUploadPage() {
       setExtractedDuration(details.duration);
       if (details.thumbnailUrl) {
         setThumbnailUrl(details.thumbnailUrl);
+      }
+      if (details.height > details.width) {
+        setUploadType("short");
+        setCategory("Shorts");
+        showToast("Vertical video detected — set to Short format");
       }
     } catch (err) {
       console.warn("Could not extract frame details:", err);
@@ -148,9 +169,13 @@ export default function StudioUploadPage() {
       formData.append("file", file);
       formData.append("title", title.trim() || file.name);
       formData.append("description", description.trim() || "Uploaded to Entropy");
-      formData.append("category", category);
+      formData.append("category", uploadType === "short" ? "Shorts" : category);
       formData.append("tags", parsedTags.join(","));
       formData.append("duration", (extractedDuration || 0).toString());
+      formData.append("isShort", (uploadType === "short").toString());
+      if (uploadType === "short") {
+        formData.append("songName", songName.trim() || "Original Audio");
+      }
       formData.append(
         "channel",
         JSON.stringify({
@@ -187,19 +212,19 @@ export default function StudioUploadPage() {
       // Dispatch real-time notification
       addNotification({
         type: "upload",
-        title: "Video Published",
-        message: `${finalVideo.channel?.displayName || "You"} uploaded: ${finalVideo.title}`,
+        title: uploadType === "short" ? "Short Published" : "Video Published",
+        message: `${finalVideo.channel?.displayName || "You"} uploaded ${uploadType === "short" ? "a Short" : "a video"}: ${finalVideo.title}`,
         actorName: finalVideo.channel?.displayName || "Your Channel",
         actorAvatar: finalVideo.channel?.avatarUrl || user?.avatarUrl || "/default-avatar.png",
         thumbnailUrl: finalVideo.thumbnailUrl,
-        linkUrl: `/watch?v=${finalVideo.id}`,
+        linkUrl: uploadType === "short" ? `/shorts` : `/watch?v=${finalVideo.id}`,
       });
 
       setUploadProgress(100);
-      setUploadStage("Video published successfully to everyone!");
+      setUploadStage(uploadType === "short" ? "Short published successfully to feed!" : "Video published successfully to everyone!");
       setIsUploading(false);
       setIsCompleted(true);
-      showToast("Video uploaded and published!");
+      showToast(uploadType === "short" ? "Short uploaded and published!" : "Video uploaded and published!");
     } catch (err) {
       console.error("Upload error:", err);
       setIsUploading(false);
@@ -215,8 +240,9 @@ export default function StudioUploadPage() {
     }
     setTitle("");
     setDescription("");
-    setCategory("Technology");
+    setCategory(uploadType === "short" ? "Shorts" : "Technology");
     setTagsInput("");
+    setSongName("Original Audio");
     setExtractedDuration(0);
     setThumbnailUrl("");
     setUploadProgress(0);
@@ -260,14 +286,22 @@ export default function StudioUploadPage() {
             </div>
           ) : isCompleted ? (
             <div className="py-12 max-w-xl mx-auto text-center animate-in fade-in zoom-in-95 duration-200">
-              <h2 className="text-2xl font-bold text-white mb-2">Video Published!</h2>
+              <h2 className="text-2xl font-bold text-white mb-2">
+                {uploadType === "short" ? "Short Published!" : "Video Published!"}
+              </h2>
               <p className="text-xs text-zinc-400 mb-8 max-w-md mx-auto">
-                Your video has been processed and is ready for streaming on Entropy.
+                {uploadType === "short"
+                  ? "Your YouTube Short has been processed and is ready for streaming in the Shorts feed."
+                  : "Your video has been processed and is ready for streaming on Entropy."}
               </p>
 
               {/* Preview Card */}
               <div className="rounded-2xl bg-[#141414] border border-white/[0.08] overflow-hidden p-4 mb-8 text-left shadow-2xl flex flex-col sm:flex-row gap-4 items-center">
-                <div className="relative aspect-video w-full sm:w-48 flex-shrink-0 rounded-xl overflow-hidden bg-black border border-white/[0.08]">
+                <div
+                  className={`relative ${
+                    uploadType === "short" ? "aspect-[9/16] w-28" : "aspect-video w-full sm:w-48"
+                  } flex-shrink-0 rounded-xl overflow-hidden bg-black border border-white/[0.08]`}
+                >
                   {thumbnailUrl ? (
                     <img src={thumbnailUrl} alt={title} className="w-full h-full object-cover" />
                   ) : (
@@ -283,10 +317,17 @@ export default function StudioUploadPage() {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-sm font-bold text-white truncate mb-1">{title}</h3>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    {uploadType === "short" && (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 text-[10px] font-bold">
+                        <Flame className="h-3 w-3" /> Short
+                      </span>
+                    )}
+                    <h3 className="text-sm font-bold text-white truncate">{title}</h3>
+                  </div>
                   <p className="text-xs text-zinc-400 line-clamp-2 mb-2">{description || "No description provided."}</p>
                   <div className="flex items-center gap-2 text-[11px] text-zinc-500">
-                    <span>Category: {category}</span>
+                    <span>Category: {uploadType === "short" ? "Shorts" : category}</span>
                     <span>•</span>
                     <span>Ready to watch</span>
                   </div>
@@ -294,14 +335,24 @@ export default function StudioUploadPage() {
               </div>
 
               <div className="flex flex-wrap items-center justify-center gap-3">
-                {createdVideoId && (
+                {uploadType === "short" ? (
                   <Link
-                    href={`/watch?v=${createdVideoId}`}
-                    className="inline-flex items-center gap-2 rounded-xl bg-white hover:bg-zinc-200 text-black px-6 py-2.5 text-xs font-bold transition-all shadow-md"
+                    href="/shorts"
+                    className="inline-flex items-center gap-2 rounded-xl bg-red-600 hover:bg-red-500 text-white px-6 py-2.5 text-xs font-bold transition-all shadow-md"
                   >
-                    <Play className="h-4 w-4 fill-black" />
-                    <span>Watch Video</span>
+                    <Flame className="h-4 w-4" />
+                    <span>Watch in Shorts</span>
                   </Link>
+                ) : (
+                  createdVideoId && (
+                    <Link
+                      href={`/watch?v=${createdVideoId}`}
+                      className="inline-flex items-center gap-2 rounded-xl bg-white hover:bg-zinc-200 text-black px-6 py-2.5 text-xs font-bold transition-all shadow-md"
+                    >
+                      <Play className="h-4 w-4 fill-black" />
+                      <span>Watch Video</span>
+                    </Link>
+                  )
                 )}
                 <Link
                   href="/studio/videos"
@@ -321,11 +372,51 @@ export default function StudioUploadPage() {
             </div>
           ) : (
             <div className="space-y-6">
-              <div>
-                <h1 className="text-2xl font-bold text-white tracking-tight">Upload video</h1>
-                <p className="text-xs text-zinc-400 mt-1">
-                  Post and publish video content directly to your channel.
-                </p>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-bold text-white tracking-tight">
+                    {uploadType === "short" ? "Upload Short" : "Upload video"}
+                  </h1>
+                  <p className="text-xs text-zinc-400 mt-1">
+                    {uploadType === "short"
+                      ? "Publish vertical 9:16 short-form video to the Shorts feed."
+                      : "Post and publish video content directly to your channel."}
+                  </p>
+                </div>
+
+                {/* Format switcher tabs */}
+                <div className="flex items-center p-1 bg-[#141414] border border-white/[0.08] rounded-2xl w-fit">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUploadType("video");
+                      if (category === "Shorts") setCategory("Technology");
+                    }}
+                    className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      uploadType === "video"
+                        ? "bg-white text-black shadow"
+                        : "text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    <VideoIcon className="h-3.5 w-3.5" />
+                    <span>Video</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUploadType("short");
+                      setCategory("Shorts");
+                    }}
+                    className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      uploadType === "short"
+                        ? "bg-white text-black shadow"
+                        : "text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    <Flame className="h-3.5 w-3.5 text-red-500" />
+                    <span>Short (9:16)</span>
+                  </button>
+                </div>
               </div>
 
               {!file ? (
@@ -344,11 +435,21 @@ export default function StudioUploadPage() {
                     className="hidden"
                   />
                   <div className="h-20 w-20 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-white mb-5 shadow-xl group-hover:scale-105 transition-transform">
-                    <UploadCloud className="h-10 w-10 text-zinc-300" />
+                    {uploadType === "short" ? (
+                      <Flame className="h-10 w-10 text-red-500" />
+                    ) : (
+                      <UploadCloud className="h-10 w-10 text-zinc-300" />
+                    )}
                   </div>
-                  <h3 className="text-lg font-bold text-white mb-2">Drag and drop video files to upload</h3>
+                  <h3 className="text-lg font-bold text-white mb-2">
+                    {uploadType === "short"
+                      ? "Drag and drop vertical Short video to upload"
+                      : "Drag and drop video files to upload"}
+                  </h3>
                   <p className="text-xs text-zinc-400 mb-6 max-w-sm">
-                    MP4, WebM, MOV, or MKV. High definition resolution supported.
+                    {uploadType === "short"
+                      ? "MP4, WebM, MOV, or MKV. 9:16 vertical ratio recommended."
+                      : "MP4, WebM, MOV, or MKV. High definition resolution supported."}
                   </p>
                   <button
                     type="button"
@@ -371,10 +472,21 @@ export default function StudioUploadPage() {
                   <div className="flex items-center justify-between p-3.5 rounded-2xl bg-black border border-white/[0.08]">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="h-10 w-10 rounded-xl bg-white/[0.06] flex items-center justify-center text-zinc-300 flex-shrink-0">
-                        <FileVideo className="h-5 w-5" />
+                        {uploadType === "short" ? (
+                          <Flame className="h-5 w-5 text-red-400" />
+                        ) : (
+                          <FileVideo className="h-5 w-5" />
+                        )}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-bold text-white truncate">{file.name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs font-bold text-white truncate">{file.name}</p>
+                          {uploadType === "short" && (
+                            <span className="bg-red-500/20 text-red-400 text-[10px] font-bold px-1.5 py-0.5 rounded">
+                              Short
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[11px] text-zinc-500">
                           {(file.size / (1024 * 1024)).toFixed(1)} MB • {file.type || "Video"}
                         </p>
@@ -409,15 +521,35 @@ export default function StudioUploadPage() {
                         />
                       </div>
 
+                      {uploadType === "short" && (
+                        <div>
+                          <label className="block text-xs font-bold text-zinc-300 mb-1.5 flex items-center gap-1.5">
+                            <Music className="h-3.5 w-3.5 text-zinc-400" />
+                            <span>Audio / Sound Name</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={songName}
+                            onChange={(e) => setSongName(e.target.value)}
+                            placeholder="Original Audio or Sound Title"
+                            className="w-full rounded-xl bg-black border border-white/[0.08] px-3.5 py-2.5 text-xs sm:text-sm text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors"
+                          />
+                        </div>
+                      )}
+
                       <div>
                         <label className="block text-xs font-bold text-zinc-300 mb-1.5">
                           Description
                         </label>
                         <textarea
-                          rows={4}
+                          rows={uploadType === "short" ? 3 : 4}
                           value={description}
                           onChange={(e) => setDescription(e.target.value)}
-                          placeholder="Tell viewers about your video..."
+                          placeholder={
+                            uploadType === "short"
+                              ? "Brief description or #shorts tags..."
+                              : "Tell viewers about your video..."
+                          }
                           className="w-full rounded-xl bg-black border border-white/[0.08] p-3 text-xs sm:text-sm text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors resize-none leading-relaxed"
                         />
                       </div>
@@ -448,7 +580,7 @@ export default function StudioUploadPage() {
                             type="text"
                             value={tagsInput}
                             onChange={(e) => setTagsInput(e.target.value)}
-                            placeholder="gaming, gameplay, tips"
+                            placeholder={uploadType === "short" ? "shorts, viral, trending" : "gaming, gameplay, tips"}
                             className="w-full rounded-xl bg-black border border-white/[0.08] px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors"
                           />
                         </div>
@@ -459,15 +591,21 @@ export default function StudioUploadPage() {
                     <div className="lg:col-span-5 space-y-4">
                       <div>
                         <label className="block text-xs font-bold text-zinc-300 mb-1.5">
-                          Video Preview
+                          {uploadType === "short" ? "Short Preview (9:16)" : "Video Preview"}
                         </label>
-                        <div className="relative aspect-video rounded-2xl bg-black border border-white/[0.08] overflow-hidden flex items-center justify-center">
+                        <div
+                          className={`relative ${
+                            uploadType === "short"
+                              ? "aspect-[9/16] max-w-[260px] mx-auto shadow-2xl"
+                              : "aspect-video"
+                          } rounded-2xl bg-black border border-white/[0.08] overflow-hidden flex items-center justify-center`}
+                        >
                           {videoPreviewUrl ? (
                             <video
                               src={videoPreviewUrl}
                               controls
                               playsInline
-                              className="w-full h-full object-contain"
+                              className="w-full h-full object-cover"
                             />
                           ) : (
                             <div className="flex items-center gap-2 text-xs text-zinc-500">
@@ -481,7 +619,7 @@ export default function StudioUploadPage() {
                       <div>
                         <div className="flex items-center justify-between mb-1.5">
                           <label className="text-xs font-bold text-zinc-300">
-                            Thumbnail
+                            Cover Thumbnail
                           </label>
                           <input
                             type="file"
@@ -499,7 +637,13 @@ export default function StudioUploadPage() {
                           </button>
                         </div>
 
-                        <div className="relative aspect-video rounded-2xl bg-black border border-white/[0.08] overflow-hidden group">
+                        <div
+                          className={`relative ${
+                            uploadType === "short"
+                              ? "aspect-[9/16] max-w-[260px] mx-auto"
+                              : "aspect-video"
+                          } rounded-2xl bg-black border border-white/[0.08] overflow-hidden group`}
+                        >
                           {isExtracting ? (
                             <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-zinc-500">
                               <Loader2 className="h-5 w-5 animate-spin" />
@@ -577,7 +721,7 @@ export default function StudioUploadPage() {
                         </>
                       ) : (
                         <>
-                          <span>Publish Video</span>
+                          <span>{uploadType === "short" ? "Publish Short" : "Publish Video"}</span>
                           <ArrowRight className="h-3.5 w-3.5" />
                         </>
                       )}

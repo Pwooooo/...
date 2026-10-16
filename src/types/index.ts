@@ -39,6 +39,8 @@ export interface VideoItem {
   highlights?: VideoHighlight[];
   category?: string;
   tags?: string[];
+  isShort?: boolean;
+  songName?: string;
 }
 
 export interface NewsPost {

@@ -743,6 +743,10 @@ export async function POST(req: NextRequest) {
       .map((t) => t.trim().toLowerCase().replace(/^#/, ""))
       .filter(Boolean);
 
+    const isShortRaw = formData.get("isShort") as string | null;
+    const isShort = isShortRaw === "true" || category === "Shorts" || tags.includes("shorts");
+    const songName = (formData.get("songName") as string) || "Original Audio";
+
     const newVideo: VideoItem = {
       id: videoId,
       title: title.trim(),
@@ -753,9 +757,11 @@ export async function POST(req: NextRequest) {
       durationSeconds: Math.round(Number(durationRaw)) || 0,
       viewCount: 0,
       publishedAt: new Date().toISOString(),
-      category,
-      tags: tags.length > 0 ? tags : [category],
+      category: isShort && category === "Technology" ? "Shorts" : category,
+      tags: isShort && !tags.includes("shorts") ? [...tags, "shorts"] : tags.length > 0 ? tags : [category],
       channel,
+      isShort,
+      songName,
     };
 
     // Merge into Vercel Blob, R2, and local disk stores
