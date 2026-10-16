@@ -101,6 +101,17 @@ export default function ShortsPage() {
 
       setShortsList(mapped);
 
+      if (typeof window !== "undefined") {
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetId = urlParams.get("id");
+        if (targetId) {
+          const idx = mapped.findIndex((s) => s.id === targetId);
+          if (idx !== -1) {
+            setCurrentIndex(idx);
+          }
+        }
+      }
+
       // Restore saved vote states
       try {
         const storedLiked: Record<string, boolean> = {};
