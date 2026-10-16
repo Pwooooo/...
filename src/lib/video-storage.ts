@@ -228,23 +228,45 @@ export async function uploadVideoToServer(
       try {
         if (onProgress) onProgress("Uploading directly to Vercel Blob cloud...", 45);
         const { upload } = await import("@vercel/blob/client");
-        const videoBlob = await upload(file.name, file, {
-          access: "public",
-          handleUploadUrl: "/api/blob/upload",
-        });
-
-        if (videoBlob?.url) {
-          formData.set("rawVideoUrl", videoBlob.url);
-          formData.delete("file"); // Already stored on Blob CDN!
-        }
-
-        if (thumbFile) {
-          const thumbBlob = await upload(thumbFile.name, thumbFile, {
+        let videoBlob;
+        try {
+          videoBlob = await upload(file.name, file, {
+            access: "private",
+            handleUploadUrl: "/api/blob/upload",
+          });
+        } catch {
+          videoBlob = await upload(file.name, file, {
             access: "public",
             handleUploadUrl: "/api/blob/upload",
           });
-          if (thumbBlob?.url) {
-            formData.set("thumbnailUrl", thumbBlob.url);
+        }
+
+        if (videoBlob) {
+          const serveUrl = videoBlob.pathname
+            ? `/api/blob/serve?pathname=${encodeURIComponent(videoBlob.pathname)}`
+            : videoBlob.url;
+          formData.set("rawVideoUrl", serveUrl);
+          formData.delete("file"); // Already stored in Blob!
+        }
+
+        if (thumbFile) {
+          let thumbBlob;
+          try {
+            thumbBlob = await upload(thumbFile.name, thumbFile, {
+              access: "private",
+              handleUploadUrl: "/api/blob/upload",
+            });
+          } catch {
+            thumbBlob = await upload(thumbFile.name, thumbFile, {
+              access: "public",
+              handleUploadUrl: "/api/blob/upload",
+            });
+          }
+          if (thumbBlob) {
+            const thumbUrl = thumbBlob.pathname
+              ? `/api/blob/serve?pathname=${encodeURIComponent(thumbBlob.pathname)}`
+              : thumbBlob.url;
+            formData.set("thumbnailUrl", thumbUrl);
             formData.delete("thumbnailFile");
           }
         }

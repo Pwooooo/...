@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
-import { put, del, list } from "@vercel/blob";
+import { put, del, list, get } from "@vercel/blob";
 import { VideoItem } from "@/types";
 import { ALL_VIDEOS } from "@/lib/mock-data";
 
@@ -152,8 +152,39 @@ function hasVercelBlob(): boolean {
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
 }
 
+async function putSafeBlob(pathname: string, body: Buffer | string, contentType?: string) {
+  try {
+    return await put(pathname, body, {
+      access: "private",
+      contentType,
+      addRandomSuffix: false,
+    });
+  } catch {
+    return await put(pathname, body, {
+      access: "public",
+      contentType,
+      addRandomSuffix: false,
+    });
+  }
+}
+
 async function fetchBlobVideosIndex(): Promise<VideoItem[]> {
   if (!hasVercelBlob()) return [];
+  // 1. Try private get
+  try {
+    const result = await get("metadata/videos.json", { access: "private" });
+    if (result && result.stream) {
+      const res = new Response(result.stream as unknown as BodyInit);
+      const text = await res.text();
+      const parsed = JSON.parse(text);
+      if (Array.isArray(parsed)) {
+        const deleted = readDeletedVideoIds();
+        return parsed.filter((v: VideoItem) => v && v.id && !deleted.has(v.id) && !isNextJsFillerVideo(v));
+      }
+    }
+  } catch {}
+
+  // 2. Try public list/fetch
   try {
     const { blobs } = await list({ prefix: "metadata/videos.json" });
     if (blobs.length > 0) {
@@ -177,11 +208,8 @@ async function saveBlobVideosIndex(videos: VideoItem[]): Promise<void> {
   try {
     const deleted = readDeletedVideoIds();
     const filtered = videos.filter((v) => v && v.id && !deleted.has(v.id) && !isNextJsFillerVideo(v));
-    await put("metadata/videos.json", JSON.stringify(filtered, null, 2), {
-      access: "public",
-      addRandomSuffix: false,
-      cacheControlMaxAge: 0,
-    });
+    const content = JSON.stringify(filtered, null, 2);
+    await putSafeBlob("metadata/videos.json", content, "application/json");
   } catch (err) {
     console.warn("Could not save Blob videos index:", err);
   }
@@ -432,14 +460,19 @@ export async function POST(req: NextRequest) {
       const ext = file.name.split(".").pop()?.toLowerCase() || "mp4";
       const videoBuffer = Buffer.from(await file.arrayBuffer());
 
-      // Try Vercel Blob
+      // Try Vercel Blob (private or public)
       if (hasVercelBlob()) {
         try {
-          const blob = await put(`videos/${videoId}.${ext}`, videoBuffer, {
-            access: "public",
-            contentType: file.type || "video/mp4",
-          });
-          rawVideoUrl = blob.url;
+          const blob = await putSafeBlob(
+            `videos/${videoId}.${ext}`,
+            videoBuffer,
+            file.type || "video/mp4"
+          );
+          if (blob?.pathname) {
+            rawVideoUrl = `/api/blob/serve?pathname=${encodeURIComponent(blob.pathname)}`;
+          } else if (blob?.url) {
+            rawVideoUrl = blob.url;
+          }
         } catch (err) {
           console.warn("Could not upload to Vercel Blob:", err);
         }
@@ -485,11 +518,16 @@ export async function POST(req: NextRequest) {
 
       if (hasVercelBlob()) {
         try {
-          const blob = await put(`thumbnails/${videoId}.${thumbExt}`, thumbBuffer, {
-            access: "public",
-            contentType: thumbnailFile.type || "image/jpeg",
-          });
-          thumbnailUrl = blob.url;
+          const blob = await putSafeBlob(
+            `thumbnails/${videoId}.${thumbExt}`,
+            thumbBuffer,
+            thumbnailFile.type || "image/jpeg"
+          );
+          if (blob?.pathname) {
+            thumbnailUrl = `/api/blob/serve?pathname=${encodeURIComponent(blob.pathname)}`;
+          } else if (blob?.url) {
+            thumbnailUrl = blob.url;
+          }
         } catch {}
       }
 
@@ -521,11 +559,16 @@ export async function POST(req: NextRequest) {
 
           if (hasVercelBlob()) {
             try {
-              const blob = await put(`thumbnails/${videoId}.jpg`, thumbBuffer, {
-                access: "public",
-                contentType: "image/jpeg",
-              });
-              thumbnailUrl = blob.url;
+              const blob = await putSafeBlob(
+                `thumbnails/${videoId}.jpg`,
+                thumbBuffer,
+                "image/jpeg"
+              );
+              if (blob?.pathname) {
+                thumbnailUrl = `/api/blob/serve?pathname=${encodeURIComponent(blob.pathname)}`;
+              } else if (blob?.url) {
+                thumbnailUrl = blob.url;
+              }
             } catch {}
           }
 
