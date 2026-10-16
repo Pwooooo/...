@@ -1,16 +1,32 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Navbar from "@/components/navigation/Navbar";
 import Sidebar from "@/components/navigation/Sidebar";
 import VideoCard from "@/components/video/VideoCard";
-import { ALL_VIDEOS, MOCK_CHANNELS } from "@/lib/mock-data";
+import { MOCK_CHANNELS } from "@/lib/mock-data";
+import { getAllCombinedVideos, fetchServerVideos } from "@/lib/video-storage";
+import { VideoItem } from "@/types";
 import Link from "next/link";
 import { LayoutGrid, List } from "lucide-react";
 
 export default function SubscriptionsPage() {
   const [collapsedSidebar, setCollapsedSidebar] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [videos, setVideos] = useState<VideoItem[]>(() => getAllCombinedVideos());
+
+  useEffect(() => {
+    fetchServerVideos().then(() => {
+      setVideos(getAllCombinedVideos());
+    });
+    const update = () => setVideos(getAllCombinedVideos());
+    window.addEventListener("entropy_videos_updated", update);
+    window.addEventListener("storage", update);
+    return () => {
+      window.removeEventListener("entropy_videos_updated", update);
+      window.removeEventListener("storage", update);
+    };
+  }, []);
 
   const channelsList = Object.values(MOCK_CHANNELS);
 
@@ -73,7 +89,7 @@ export default function SubscriptionsPage() {
                 : "flex flex-col gap-4 max-w-4xl"
             }
           >
-            {ALL_VIDEOS.map((video) => (
+            {videos.map((video) => (
               <VideoCard key={video.id} video={video} />
             ))}
           </div>
@@ -82,3 +98,4 @@ export default function SubscriptionsPage() {
     </div>
   );
 }
+

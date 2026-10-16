@@ -31,6 +31,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { VideoItem } from "@/types";
 import CommunityTab from "@/components/channel/CommunityTab";
+import { fetchServerVideos, getAllCombinedVideos } from "@/lib/video-storage";
 
 const PROFILE_TABS = ["Videos", "Playlists", "Community", "About"];
 
@@ -52,11 +53,19 @@ export default function ProfilePage() {
     const loadUserVideos = () => {
       try {
         if (user) {
-          const stored = JSON.parse(localStorage.getItem("entropy_user_videos") || "[]");
-          const filtered = stored.filter(
-            (v: VideoItem) =>
-              v.channel?.handle?.toLowerCase() === user.handle.toLowerCase() ||
-              v.channel?.id === user.id
+          const all = getAllCombinedVideos();
+          const uHandle = user.handle.replace(/^@/, "").toLowerCase();
+          const uName = user.name?.toLowerCase();
+          const filtered = all.filter(
+            (v: VideoItem) => {
+              const vHandle = v.channel?.handle?.replace(/^@/, "").toLowerCase();
+              const vName = v.channel?.displayName?.toLowerCase();
+              return (
+                vHandle === uHandle ||
+                v.channel?.id === user.id ||
+                (vName && uName && vName === uName)
+              );
+            }
           );
           setUserVideos(filtered);
         }
@@ -66,6 +75,7 @@ export default function ProfilePage() {
     };
 
     loadUserVideos();
+    fetchServerVideos().then(() => loadUserVideos());
     window.addEventListener("entropy_videos_updated", loadUserVideos);
     window.addEventListener("storage", loadUserVideos);
     return () => {

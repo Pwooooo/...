@@ -3,47 +3,156 @@ import fs from "fs";
 import path from "path";
 import { VideoItem } from "@/types";
 
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 const DATA_DIR = path.join(process.cwd(), "data");
 const VIDEOS_FILE = path.join(DATA_DIR, "videos.json");
 const UPLOADS_DIR = path.join(process.cwd(), "public", "uploads");
 const VIDEOS_DIR = path.join(UPLOADS_DIR, "videos");
 const THUMBNAILS_DIR = path.join(UPLOADS_DIR, "thumbnails");
 
-function ensureDirs() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-  if (!fs.existsSync(VIDEOS_DIR)) {
-    fs.mkdirSync(VIDEOS_DIR, { recursive: true });
-  }
-  if (!fs.existsSync(THUMBNAILS_DIR)) {
-    fs.mkdirSync(THUMBNAILS_DIR, { recursive: true });
-  }
-  if (!fs.existsSync(VIDEOS_FILE)) {
-    fs.writeFileSync(VIDEOS_FILE, JSON.stringify([], null, 2), "utf-8");
-  }
-}
+const CLOUD_DB_ID = "ff808181a09d98f701a1449311a87263";
+const CLOUD_DB_URL = `https://api.restful-api.dev/objects/${CLOUD_DB_ID}`;
 
-function readVideos(): VideoItem[] {
-  ensureDirs();
+function safeEnsureDirs() {
   try {
-    const raw = fs.readFileSync(VIDEOS_FILE, "utf-8");
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    if (!fs.existsSync(VIDEOS_DIR)) {
+      fs.mkdirSync(VIDEOS_DIR, { recursive: true });
+    }
+    if (!fs.existsSync(THUMBNAILS_DIR)) {
+      fs.mkdirSync(THUMBNAILS_DIR, { recursive: true });
+    }
+    if (!fs.existsSync(VIDEOS_FILE)) {
+      fs.writeFileSync(VIDEOS_FILE, JSON.stringify([], null, 2), "utf-8");
+    }
   } catch {
-    return [];
+    // Read-only environment like Vercel serverless function
   }
 }
 
-function writeVideos(videos: VideoItem[]): void {
-  ensureDirs();
-  fs.writeFileSync(VIDEOS_FILE, JSON.stringify(videos, null, 2), "utf-8");
+function readLocalVideos(): VideoItem[] {
+  safeEnsureDirs();
+  try {
+    if (fs.existsSync(VIDEOS_FILE)) {
+      const raw = fs.readFileSync(VIDEOS_FILE, "utf-8");
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    }
+  } catch {
+    // ignore
+  }
+  return [];
+}
+
+function writeLocalVideos(videos: VideoItem[]): void {
+  safeEnsureDirs();
+  try {
+    fs.writeFileSync(VIDEOS_FILE, JSON.stringify(videos, null, 2), "utf-8");
+  } catch {
+    // Read-only filesystem on serverless
+  }
+}
+
+async function fetchCloudVideos(): Promise<VideoItem[]> {
+  try {
+    const res = await fetch(CLOUD_DB_URL, {
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.data && json.data.payload) {
+        const parsed = JSON.parse(json.data.payload);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    }
+  } catch (err) {
+    console.warn("Could not fetch cloud videos:", err);
+  }
+  return [];
+}
+
+async function saveCloudVideos(videos: VideoItem[]): Promise<void> {
+  try {
+    await fetch(CLOUD_DB_URL, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "entropy_videos",
+        data: {
+          payload: JSON.stringify(videos),
+        },
+      }),
+    });
+  } catch (err) {
+    console.warn("Could not save cloud videos:", err);
+  }
+}
+
+async function uploadToCatbox(file: File): Promise<string | null> {
+  try {
+    const form = new FormData();
+    form.append("reqtype", "fileupload");
+    form.append("userhash", "");
+    form.append("fileToUpload", file, file.name);
+
+    const res = await fetch("https://catbox.moe/user/api.php", {
+      method: "POST",
+      body: form,
+    });
+    if (res.ok) {
+      const text = await res.text();
+      if (text.startsWith("http")) {
+        return text.trim();
+      }
+    }
+  } catch (err) {
+    console.warn("Catbox video upload failed:", err);
+  }
+  return null;
+}
+
+async function uploadThumbnailToCatbox(fileOrBlob: File | Blob, filename: string): Promise<string | null> {
+  try {
+    const form = new FormData();
+    form.append("reqtype", "fileupload");
+    form.append("userhash", "");
+    form.append("fileToUpload", fileOrBlob, filename);
+
+    const res = await fetch("https://catbox.moe/user/api.php", {
+      method: "POST",
+      body: form,
+    });
+    if (res.ok) {
+      const text = await res.text();
+      if (text.startsWith("http")) {
+        return text.trim();
+      }
+    }
+  } catch (err) {
+    console.warn("Catbox thumb upload failed:", err);
+  }
+  return null;
 }
 
 export async function GET() {
   try {
-    const videos = readVideos();
-    return NextResponse.json({ success: true, videos });
+    const cloudVideos = await fetchCloudVideos();
+    const localVideos = readLocalVideos();
+
+    // Merge by id (cloud priority, fallback to local)
+    const map = new Map<string, VideoItem>();
+    localVideos.forEach((v) => map.set(v.id, v));
+    cloudVideos.forEach((v) => map.set(v.id, v));
+
+    const all = Array.from(map.values());
+    writeLocalVideos(all);
+
+    return NextResponse.json({ success: true, videos: all });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Error reading videos";
     return NextResponse.json({ success: false, error: message }, { status: 500 });
@@ -52,7 +161,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    ensureDirs();
+    safeEnsureDirs();
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
     const title = (formData.get("title") as string) || "Untitled Video";
@@ -68,32 +177,62 @@ export async function POST(req: NextRequest) {
     const videoId = requestedId || `v-srv-${Date.now()}`;
     let rawVideoUrl = (formData.get("rawVideoUrl") as string) || "";
 
+    // 1. Upload Video to Catbox for worldwide fast CDN streaming
     if (file) {
-      const ext = file.name.split(".").pop()?.toLowerCase() || "mp4";
-      const videoFileName = `${videoId}.${ext}`;
-      const videoFilePath = path.join(VIDEOS_DIR, videoFileName);
-      const videoBuffer = Buffer.from(await file.arrayBuffer());
-      await fs.promises.writeFile(videoFilePath, videoBuffer);
-      rawVideoUrl = `/uploads/videos/${videoFileName}`;
+      const catboxVideoUrl = await uploadToCatbox(file);
+      if (catboxVideoUrl) {
+        rawVideoUrl = catboxVideoUrl;
+      }
+
+      // Also save locally if filesystem is writable
+      try {
+        const ext = file.name.split(".").pop()?.toLowerCase() || "mp4";
+        const videoFileName = `${videoId}.${ext}`;
+        const videoFilePath = path.join(VIDEOS_DIR, videoFileName);
+        const videoBuffer = Buffer.from(await file.arrayBuffer());
+        await fs.promises.writeFile(videoFilePath, videoBuffer);
+        if (!rawVideoUrl) {
+          rawVideoUrl = `/uploads/videos/${videoFileName}`;
+        }
+      } catch {}
     }
 
-    // Handle Thumbnail
+    // 2. Handle Thumbnail
     let thumbnailUrl = (formData.get("thumbnailUrl") as string) || "";
     if (thumbnailFile) {
-      const thumbExt = thumbnailFile.name.split(".").pop()?.toLowerCase() || "jpg";
-      const thumbFileName = `${videoId}.${thumbExt}`;
-      const thumbFilePath = path.join(THUMBNAILS_DIR, thumbFileName);
-      const thumbBuffer = Buffer.from(await thumbnailFile.arrayBuffer());
-      await fs.promises.writeFile(thumbFilePath, thumbBuffer);
-      thumbnailUrl = `/uploads/thumbnails/${thumbFileName}`;
+      const catboxThumbUrl = await uploadThumbnailToCatbox(thumbnailFile, thumbnailFile.name);
+      if (catboxThumbUrl) {
+        thumbnailUrl = catboxThumbUrl;
+      }
+      try {
+        const thumbExt = thumbnailFile.name.split(".").pop()?.toLowerCase() || "jpg";
+        const thumbFileName = `${videoId}.${thumbExt}`;
+        const thumbFilePath = path.join(THUMBNAILS_DIR, thumbFileName);
+        const thumbBuffer = Buffer.from(await thumbnailFile.arrayBuffer());
+        await fs.promises.writeFile(thumbFilePath, thumbBuffer);
+        if (!thumbnailUrl) {
+          thumbnailUrl = `/uploads/thumbnails/${thumbFileName}`;
+        }
+      } catch {}
     } else if (thumbnailDataUrl && thumbnailDataUrl.startsWith("data:image")) {
       const matches = thumbnailDataUrl.match(/^data:image\/([a-zA-Z+]+);base64,(.+)$/);
       if (matches && matches[2]) {
-        const thumbBuffer = Buffer.from(matches[2], "base64");
-        const thumbFileName = `${videoId}.jpg`;
-        const thumbFilePath = path.join(THUMBNAILS_DIR, thumbFileName);
-        await fs.promises.writeFile(thumbFilePath, thumbBuffer);
-        thumbnailUrl = `/uploads/thumbnails/${thumbFileName}`;
+        try {
+          const thumbBuffer = Buffer.from(matches[2], "base64");
+          const thumbBlob = new Blob([thumbBuffer], { type: "image/jpeg" });
+          const catboxThumb = await uploadThumbnailToCatbox(thumbBlob, `${videoId}.jpg`);
+          if (catboxThumb) {
+            thumbnailUrl = catboxThumb;
+          }
+          const thumbFileName = `${videoId}.jpg`;
+          const thumbFilePath = path.join(THUMBNAILS_DIR, thumbFileName);
+          await fs.promises.writeFile(thumbFilePath, thumbBuffer);
+          if (!thumbnailUrl) {
+            thumbnailUrl = `/uploads/thumbnails/${thumbFileName}`;
+          }
+        } catch {
+          if (!thumbnailUrl) thumbnailUrl = thumbnailDataUrl;
+        }
       } else {
         thumbnailUrl = thumbnailDataUrl;
       }
@@ -131,9 +270,18 @@ export async function POST(req: NextRequest) {
       channel,
     };
 
-    const currentVideos = readVideos();
-    const updatedVideos = [newVideo, ...currentVideos.filter((v) => v.id !== videoId)];
-    writeVideos(updatedVideos);
+    // Merge into cloud and local stores
+    const cloudVideos = await fetchCloudVideos();
+    const localVideos = readLocalVideos();
+    const map = new Map<string, VideoItem>();
+    localVideos.forEach((v) => map.set(v.id, v));
+    cloudVideos.forEach((v) => map.set(v.id, v));
+    map.set(newVideo.id, newVideo);
+
+    const updatedVideos = [newVideo, ...Array.from(map.values()).filter((v) => v.id !== newVideo.id)];
+
+    await saveCloudVideos(updatedVideos);
+    writeLocalVideos(updatedVideos);
 
     return NextResponse.json({ success: true, video: newVideo });
   } catch (err: unknown) {
@@ -151,31 +299,33 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ success: false, error: "ID required" }, { status: 400 });
     }
 
-    const currentVideos = readVideos();
-    const target = currentVideos.find((v) => v.id === id);
+    const cloudVideos = await fetchCloudVideos();
+    const localVideos = readLocalVideos();
+    const map = new Map<string, VideoItem>();
+    localVideos.forEach((v) => map.set(v.id, v));
+    cloudVideos.forEach((v) => map.set(v.id, v));
+
+    const target = map.get(id);
     if (target) {
-      // Remove video file from disk if local
       if (target.rawVideoUrl && target.rawVideoUrl.startsWith("/uploads/videos/")) {
         const videoPath = path.join(process.cwd(), "public", target.rawVideoUrl);
-        if (fs.existsSync(videoPath)) {
-          try {
-            fs.unlinkSync(videoPath);
-          } catch {}
-        }
+        try {
+          if (fs.existsSync(videoPath)) fs.unlinkSync(videoPath);
+        } catch {}
       }
-      // Remove thumbnail file from disk if local
       if (target.thumbnailUrl && target.thumbnailUrl.startsWith("/uploads/thumbnails/")) {
         const thumbPath = path.join(process.cwd(), "public", target.thumbnailUrl);
-        if (fs.existsSync(thumbPath)) {
-          try {
-            fs.unlinkSync(thumbPath);
-          } catch {}
-        }
+        try {
+          if (fs.existsSync(thumbPath)) fs.unlinkSync(thumbPath);
+        } catch {}
       }
     }
 
-    const updated = currentVideos.filter((v) => v.id !== id);
-    writeVideos(updated);
+    map.delete(id);
+    const updated = Array.from(map.values());
+
+    await saveCloudVideos(updated);
+    writeLocalVideos(updated);
 
     return NextResponse.json({ success: true });
   } catch (err: unknown) {
@@ -192,13 +342,17 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ success: false, error: "ID required" }, { status: 400 });
     }
 
-    const currentVideos = readVideos();
-    const index = currentVideos.findIndex((v) => v.id === id);
-    if (index === -1) {
+    const cloudVideos = await fetchCloudVideos();
+    const localVideos = readLocalVideos();
+    const map = new Map<string, VideoItem>();
+    localVideos.forEach((v) => map.set(v.id, v));
+    cloudVideos.forEach((v) => map.set(v.id, v));
+
+    const target = map.get(id);
+    if (!target) {
       return NextResponse.json({ success: false, error: "Video not found" }, { status: 404 });
     }
 
-    const target = currentVideos[index];
     const updated: VideoItem = {
       ...target,
       title: title !== undefined ? title : target.title,
@@ -208,8 +362,11 @@ export async function PATCH(req: NextRequest) {
       thumbnailUrl: thumbnailUrl !== undefined ? thumbnailUrl : target.thumbnailUrl,
     };
 
-    currentVideos[index] = updated;
-    writeVideos(currentVideos);
+    map.set(id, updated);
+    const all = Array.from(map.values());
+
+    await saveCloudVideos(all);
+    writeLocalVideos(all);
 
     return NextResponse.json({ success: true, video: updated });
   } catch (err: unknown) {
