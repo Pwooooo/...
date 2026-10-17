@@ -180,6 +180,7 @@ function WatchContent() {
     avatar: string;
     content: string;
     timeAgo: string;
+    createdAt?: number;
     likes: number;
     dislikes?: number;
     isEdited?: boolean;
@@ -195,6 +196,7 @@ function WatchContent() {
     avatar: string;
     content: string;
     timeAgo: string;
+    createdAt?: number;
     likes: number;
     dislikes: number;
     isPinned?: boolean;
@@ -326,6 +328,25 @@ function WatchContent() {
     }
 
     return user?.avatarUrl || user?.avatar || currentVideo?.channel?.avatarUrl || "/default-avatar.png";
+  };
+
+  const getCommentDisplayTime = (timeAgo?: string, createdAt?: number | string, id?: string): string => {
+    if (createdAt) {
+      return formatTimeAgo(createdAt);
+    }
+    if (id) {
+      const match = id.match(/^(?:c|r)-(\d{13,})/);
+      if (match && match[1]) {
+        const ts = parseInt(match[1], 10);
+        if (!isNaN(ts) && ts > 1600000000000) {
+          return formatTimeAgo(ts);
+        }
+      }
+    }
+    if (timeAgo && timeAgo !== "Just now") {
+      return timeAgo;
+    }
+    return "Just now";
   };
 
   useEffect(() => {
@@ -706,12 +727,14 @@ function WatchContent() {
       : user?.name
       ? user.name.toLowerCase().replace(/\s+/g, "_")
       : "guest";
+    const now = Date.now();
     const newReply: CommentReply = {
-      id: `r-${Date.now()}`,
+      id: `r-${now}`,
       user: user ? user.name : "Guest User",
       userHandle,
       avatar: user?.avatarUrl || user?.avatar || "/default-avatar.png",
       content: replyText.trim(),
+      createdAt: now,
       timeAgo: "Just now",
       likes: 0,
       dislikes: 0,
@@ -884,12 +907,14 @@ function WatchContent() {
       : user?.name
       ? user.name.toLowerCase().replace(/\s+/g, "_")
       : "guest";
+    const now = Date.now();
     const newComment: CommentItem = {
-      id: `c-${Date.now()}`,
+      id: `c-${now}`,
       user: user ? user.name : "Guest User",
       userHandle,
       avatar: user?.avatarUrl || user?.avatar || "/default-avatar.png",
       content: commentText.trim(),
+      createdAt: now,
       timeAgo: "Just now",
       likes: 0,
       dislikes: 0,
@@ -1272,7 +1297,7 @@ function WatchContent() {
                                 Creator
                               </span>
                             )}
-                            <span className="text-zinc-500">{comment.timeAgo}</span>
+                            <span className="text-zinc-500">{getCommentDisplayTime(comment.timeAgo, comment.createdAt, comment.id)}</span>
                           </div>
 
                           {/* 3-Dots Action Menu (Pin, Heart, Edit, Delete) */}
@@ -1581,7 +1606,7 @@ function WatchContent() {
                                               Creator
                                             </span>
                                           )}
-                                          <span className="text-zinc-500 text-[11px]">{reply.timeAgo}</span>
+                                          <span className="text-zinc-500 text-[11px]">{getCommentDisplayTime(reply.timeAgo, reply.createdAt, reply.id)}</span>
                                         </div>
 
                                         {/* 3-Dots Action Menu for Reply */}

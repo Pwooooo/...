@@ -27,10 +27,10 @@ export function formatViews(views: number): string {
   return `${views} ${views === 1 ? "view" : "views"}`;
 }
 
-export function formatTimeAgo(dateInput?: string | Date): string {
+export function formatTimeAgo(dateInput?: string | Date | number): string {
   if (!dateInput) return "Just now";
   try {
-    const date = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
+    const date = typeof dateInput === "number" || typeof dateInput === "string" ? new Date(dateInput) : dateInput;
     if (isNaN(date.getTime())) return "Just now";
     const diffSeconds = Math.floor((Date.now() - date.getTime()) / 1000);
     if (diffSeconds < 60) return "Just now";

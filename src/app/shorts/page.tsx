@@ -8,6 +8,7 @@ import { getAllCombinedVideos, fetchServerVideos, isShortVideo, getVideoBlob } f
 import { VideoItem } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import { findUserByHandle } from "@/lib/user-validation";
+import { formatTimeAgo } from "@/lib/utils";
 import {
   ThumbsUp,
   ThumbsDown,
@@ -39,6 +40,7 @@ interface ShortComment {
   avatar: string;
   content: string;
   timeAgo: string;
+  createdAt?: number;
   likes: number;
   dislikes: number;
 }
@@ -98,6 +100,25 @@ export default function ShortsPage() {
     }
 
     return rawAvatar || "/default-avatar.png";
+  };
+
+  const getCommentDisplayTime = (timeAgo?: string, createdAt?: number | string, id?: string): string => {
+    if (createdAt) {
+      return formatTimeAgo(createdAt);
+    }
+    if (id) {
+      const match = id.match(/^(?:c|r)-(\d{13,})/);
+      if (match && match[1]) {
+        const ts = parseInt(match[1], 10);
+        if (!isNaN(ts) && ts > 1600000000000) {
+          return formatTimeAgo(ts);
+        }
+      }
+    }
+    if (timeAgo && timeAgo !== "Just now") {
+      return timeAgo;
+    }
+    return "Just now";
   };
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -369,13 +390,15 @@ export default function ShortsPage() {
     e.preventDefault();
     if (!commentInput.trim() || !currentShort) return;
 
+    const now = Date.now();
     const newComment: ShortComment = {
-      id: `c-${Date.now()}`,
+      id: `c-${now}`,
       author: user?.name || user?.handle || "Viewer",
       authorId: user?.id,
       authorHandle: user?.handle,
       avatar: user?.avatarUrl || user?.avatar || "/default-avatar.png",
       content: commentInput.trim(),
+      createdAt: now,
       timeAgo: "Just now",
       likes: 0,
       dislikes: 0,
@@ -782,7 +805,7 @@ export default function ShortsPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 mb-1">
                               <span className="font-semibold text-zinc-200 truncate">@{comment.author}</span>
-                              <span className="text-[11px] text-zinc-500">{comment.timeAgo}</span>
+                              <span className="text-[11px] text-zinc-500">{getCommentDisplayTime(comment.timeAgo, comment.createdAt, comment.id)}</span>
                               {canDeleteComment(comment) && (
                                 <button
                                   type="button"
@@ -900,7 +923,7 @@ export default function ShortsPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 mb-0.5">
                               <span className="font-semibold text-zinc-200 truncate">@{comment.author}</span>
-                              <span className="text-[10px] text-zinc-500">{comment.timeAgo}</span>
+                              <span className="text-[10px] text-zinc-500">{getCommentDisplayTime(comment.timeAgo, comment.createdAt, comment.id)}</span>
                               {canDeleteComment(comment) && (
                                 <button
                                   type="button"
