@@ -36,6 +36,21 @@ export default function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
 
+  const isItemActive = (href: string) => {
+    if (href === "/") {
+      return pathname === "/";
+    }
+    if (href.includes("?")) {
+      const [targetPath, query] = href.split("?");
+      if (pathname !== targetPath) return false;
+      if (typeof window !== "undefined") {
+        return window.location.search.includes(query);
+      }
+      return true;
+    }
+    return pathname === href || pathname.startsWith(href + "/");
+  };
+
   const mainLinks = [
     { label: "Home", href: "/", icon: Home },
     { label: "Shorts", href: "/shorts", icon: Flame },
@@ -95,7 +110,7 @@ export default function Sidebar({
           <div className="space-y-1 pb-3 border-b border-white/[0.08]">
             {mainLinks.map((item) => {
               const Icon = item.icon;
-              const isActive = pathname === item.href;
+              const isActive = isItemActive(item.href);
               return (
                 <Link
                   key={item.href}
@@ -108,7 +123,10 @@ export default function Sidebar({
                       : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
                   )}
                 >
-                  <Icon className="h-5 w-5" />
+                  <Icon
+                    className="h-5 w-5"
+                    fill={isActive ? "currentColor" : "none"}
+                  />
                   <span>{item.label}</span>
                 </Link>
               );
@@ -122,7 +140,7 @@ export default function Sidebar({
             </h3>
             {libraryLinks.map((item) => {
               const Icon = item.icon;
-              const isActive = pathname === item.href;
+              const isActive = isItemActive(item.href);
               return (
                 <Link
                   key={item.href}
@@ -135,7 +153,10 @@ export default function Sidebar({
                       : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
                   )}
                 >
-                  <Icon className="h-5 w-5" />
+                  <Icon
+                    className="h-5 w-5"
+                    fill={isActive ? "currentColor" : "none"}
+                  />
                   <span>{item.label}</span>
                 </Link>
               );
@@ -149,7 +170,7 @@ export default function Sidebar({
             </h3>
             {exploreLinks.map((item) => {
               const Icon = item.icon;
-              const isActive = pathname === item.href;
+              const isActive = isItemActive(item.href);
               return (
                 <Link
                   key={item.href}
@@ -162,7 +183,10 @@ export default function Sidebar({
                       : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
                   )}
                 >
-                  <Icon className="h-5 w-5" />
+                  <Icon
+                    className="h-5 w-5"
+                    fill={isActive ? "currentColor" : "none"}
+                  />
                   <span>{item.label}</span>
                 </Link>
               );
@@ -178,7 +202,7 @@ export default function Sidebar({
       <aside className="sticky top-14 flex h-[calc(100vh-3.5rem)] w-18 flex-col items-center py-2 bg-black text-zinc-300 border-r border-white/[0.08]">
         {mainLinks.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href;
+          const isActive = isItemActive(item.href);
           return (
             <Link
               key={item.href}
@@ -190,7 +214,10 @@ export default function Sidebar({
                   : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
               )}
             >
-              <Icon className="h-5 w-5" />
+              <Icon
+                className="h-5 w-5"
+                fill={isActive ? "currentColor" : "none"}
+              />
               <span>{item.label}</span>
             </Link>
           );
@@ -205,7 +232,7 @@ export default function Sidebar({
       <div className="space-y-1 pb-3 border-b border-white/[0.08]">
         {mainLinks.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href;
+          const isActive = isItemActive(item.href);
           return (
             <Link
               key={item.href}
@@ -217,7 +244,10 @@ export default function Sidebar({
                   : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
               )}
             >
-              <Icon className="h-5 w-5" />
+              <Icon
+                className="h-5 w-5"
+                fill={isActive ? "currentColor" : "none"}
+              />
               <span>{item.label}</span>
             </Link>
           );
@@ -231,7 +261,7 @@ export default function Sidebar({
         </h3>
         {libraryLinks.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href;
+          const isActive = isItemActive(item.href);
           return (
             <Link
               key={item.href}
@@ -243,7 +273,10 @@ export default function Sidebar({
                   : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
               )}
             >
-              <Icon className="h-5 w-5" />
+              <Icon
+                className="h-5 w-5"
+                fill={isActive ? "currentColor" : "none"}
+              />
               <span>{item.label}</span>
             </Link>
           );
@@ -257,7 +290,7 @@ export default function Sidebar({
         </h3>
         {exploreLinks.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href;
+          const isActive = isItemActive(item.href);
           return (
             <Link
               key={item.href}
@@ -269,7 +302,10 @@ export default function Sidebar({
                   : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
               )}
             >
-              <Icon className="h-5 w-5" />
+              <Icon
+                className="h-5 w-5"
+                fill={isActive ? "currentColor" : "none"}
+              />
               <span>{item.label}</span>
             </Link>
           );
