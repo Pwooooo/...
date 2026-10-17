@@ -1241,12 +1241,7 @@ function WatchContent() {
                 .map((comment) => (
                   <div
                     key={comment.id}
-                    className={cn(
-                      "relative flex flex-col p-3.5 rounded-2xl transition-all duration-200 group",
-                      comment.isPinned
-                        ? "border border-white/[0.08] bg-white/[0.02]"
-                        : "hover:bg-white/[0.02]"
-                    )}
+                    className="relative flex flex-col p-3.5 rounded-2xl transition-all duration-200 group hover:bg-white/[0.02]"
                   >
                     {/* Pinned by Channel Owner Banner */}
                     {comment.isPinned && (
