@@ -182,6 +182,7 @@ function WatchContent() {
     timeAgo: string;
     likes: number;
     dislikes?: number;
+    isEdited?: boolean;
   }
 
   interface CommentItem {
@@ -210,6 +211,9 @@ function WatchContent() {
   const [activeMenuCommentId, setActiveMenuCommentId] = useState<string | null>(null);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState("");
+  const [activeMenuReplyId, setActiveMenuReplyId] = useState<string | null>(null);
+  const [editingReplyId, setEditingReplyId] = useState<string | null>(null);
+  const [editingReplyContent, setEditingReplyContent] = useState("");
 
   useEffect(() => {
     if (!currentVideo) {
@@ -517,6 +521,50 @@ function WatchContent() {
     setEditingCommentId(null);
     setEditingContent("");
     showToast("Comment edited");
+  };
+
+  const handleDeleteReply = (commentId: string, replyId: string) => {
+    if (!currentVideo) return;
+    const vidId = currentVideo.id;
+    const updated = comments.map((c) => {
+      if (c.id === commentId && c.replies) {
+        return {
+          ...c,
+          replies: c.replies.filter((r) => r.id !== replyId),
+        };
+      }
+      return c;
+    });
+    setComments(updated);
+    try {
+      localStorage.setItem(`entropy_comments_${vidId}`, JSON.stringify(updated));
+    } catch {}
+    showToast("Reply deleted");
+  };
+
+  const handleSaveReplyEdit = (commentId: string, replyId: string) => {
+    if (!currentVideo || !editingReplyContent.trim()) return;
+    const vidId = currentVideo.id;
+    const updated = comments.map((c) => {
+      if (c.id === commentId && c.replies) {
+        return {
+          ...c,
+          replies: c.replies.map((r) =>
+            r.id === replyId
+              ? { ...r, content: editingReplyContent.trim(), isEdited: true }
+              : r
+          ),
+        };
+      }
+      return c;
+    });
+    setComments(updated);
+    try {
+      localStorage.setItem(`entropy_comments_${vidId}`, JSON.stringify(updated));
+    } catch {}
+    setEditingReplyId(null);
+    setEditingReplyContent("");
+    showToast("Reply edited");
   };
 
   const handleToggleReply = (commentId: string) => {
@@ -1225,8 +1273,8 @@ function WatchContent() {
                             <span>{comment.dislikes ?? 0}</span>
                           </button>
 
-                          {/* Creator Heart Badge (only shown when hearted, no heart outline when unhearted) */}
-                          {comment.isHearted && (
+                          {/* Heart icon button directly in action bar matching screenshot */}
+                          {comment.isHearted ? (
                             <button
                               type="button"
                               onClick={() => handleToggleHeart(comment.id)}
@@ -1244,6 +1292,15 @@ function WatchContent() {
                                 />
                                 <Heart className="h-2.5 w-2.5 fill-rose-500 text-rose-500 absolute -bottom-0.5 -right-1 drop-shadow-sm" />
                               </div>
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleToggleHeart(comment.id)}
+                              className="p-1 rounded-full text-zinc-400 hover:text-rose-400 transition-colors cursor-pointer"
+                              title="Award creator heart"
+                            >
+                              <Heart className="h-4 w-4" />
                             </button>
                           )}
 
@@ -1315,16 +1372,16 @@ function WatchContent() {
                             <button
                               type="button"
                               onClick={() => toggleExpandReplies(comment.id)}
-                              className="flex items-center gap-1.5 text-xs font-semibold text-sky-400 hover:text-sky-300 hover:bg-sky-500/10 px-2.5 py-1 rounded-full transition-colors cursor-pointer w-fit"
+                              className="flex items-center gap-1.5 text-xs font-semibold text-white hover:text-zinc-200 hover:bg-white/[0.08] px-2.5 py-1 rounded-full transition-colors cursor-pointer w-fit"
                             >
                               {expandedReplies[comment.id] ? (
                                 <>
-                                  <ChevronUp className="h-3.5 w-3.5" />
+                                  <ChevronUp className="h-3.5 w-3.5 text-white" />
                                   <span>Hide {comment.replies.length === 1 ? "reply" : `${comment.replies.length} replies`}</span>
                                 </>
                               ) : (
                                 <>
-                                  <ChevronDown className="h-3.5 w-3.5" />
+                                  <ChevronDown className="h-3.5 w-3.5 text-white" />
                                   <span>{comment.replies.length} {comment.replies.length === 1 ? "reply" : "replies"}</span>
                                 </>
                               )}
@@ -1333,7 +1390,7 @@ function WatchContent() {
                             {expandedReplies[comment.id] && (
                               <div className="mt-2.5 pl-3 space-y-3 border-l-2 border-zinc-800 ml-2 animate-in fade-in duration-200">
                                 {comment.replies.map((reply) => (
-                                  <div key={reply.id} className="flex gap-2.5 pt-1">
+                                  <div key={reply.id} className="flex gap-2.5 pt-1 group/reply">
                                     <div className="h-6 w-6 overflow-hidden rounded-full bg-[#181818] border border-white/[0.08] flex-shrink-0">
                                       <img
                                         src={reply.avatar || "/default-avatar.png"}
@@ -1345,17 +1402,115 @@ function WatchContent() {
                                       />
                                     </div>
                                     <div className="flex-1 text-xs">
-                                      <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                                        <span className="font-semibold text-zinc-200">@{reply.user}</span>
-                                        {(reply.user === currentVideo.channel?.displayName ||
-                                          reply.user === currentVideo.channel?.handle?.replace(/^@/, "")) && (
-                                          <span className="bg-white/10 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full">
-                                            Creator
-                                          </span>
-                                        )}
-                                        <span className="text-zinc-500 text-[11px]">{reply.timeAgo}</span>
+                                      <div className="flex items-center justify-between mb-0.5">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <span className="font-semibold text-zinc-200">@{reply.user}</span>
+                                          {(reply.user === currentVideo.channel?.displayName ||
+                                            reply.user === currentVideo.channel?.handle?.replace(/^@/, "")) && (
+                                            <span className="bg-white/10 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full">
+                                              Creator
+                                            </span>
+                                          )}
+                                          <span className="text-zinc-500 text-[11px]">{reply.timeAgo}</span>
+                                        </div>
+
+                                        {/* 3-Dots Action Menu for Reply */}
+                                        <div className="relative flex-shrink-0">
+                                          <button
+                                            type="button"
+                                            onClick={() => setActiveMenuReplyId(activeMenuReplyId === reply.id ? null : reply.id)}
+                                            className="p-1 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer flex items-center justify-center"
+                                            title="Action menu"
+                                            aria-label="Reply options"
+                                          >
+                                            <MoreVertical className="h-3.5 w-3.5" />
+                                          </button>
+
+                                          {activeMenuReplyId === reply.id && (
+                                            <>
+                                              <div
+                                                className="fixed inset-0 z-40"
+                                                onClick={() => setActiveMenuReplyId(null)}
+                                              />
+                                              <div className="absolute right-0 top-6 z-50 w-32 rounded-xl bg-[#212121] border border-white/[0.12] py-1 shadow-2xl animate-in fade-in zoom-in-95 duration-150 select-none">
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    setEditingReplyId(reply.id);
+                                                    setEditingReplyContent(reply.content);
+                                                    setActiveMenuReplyId(null);
+                                                  }}
+                                                  className="w-full flex items-center gap-2.5 px-3 py-1.5 text-xs font-medium text-zinc-200 hover:bg-white/[0.08] hover:text-white transition-colors cursor-pointer text-left"
+                                                >
+                                                  <Pencil className="h-3.5 w-3.5" />
+                                                  <span>Edit</span>
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    handleDeleteReply(comment.id, reply.id);
+                                                    setActiveMenuReplyId(null);
+                                                  }}
+                                                  className="w-full flex items-center gap-2.5 px-3 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors cursor-pointer text-left"
+                                                >
+                                                  <Trash2 className="h-3.5 w-3.5" />
+                                                  <span>Delete</span>
+                                                </button>
+                                              </div>
+                                            </>
+                                          )}
+                                        </div>
                                       </div>
-                                      <p className="text-zinc-300 text-xs leading-relaxed">{reply.content}</p>
+
+                                      {/* Reply Content or Edit Area */}
+                                      {editingReplyId === reply.id ? (
+                                        <div className="mt-1 space-y-1.5">
+                                          <textarea
+                                            value={editingReplyContent}
+                                            onChange={(e) => setEditingReplyContent(e.target.value)}
+                                            className="w-full bg-[#181818] border border-white/[0.15] focus:border-white rounded-lg p-2 text-xs text-zinc-100 placeholder-zinc-500 outline-none transition-colors resize-none min-h-[50px]"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                              if (e.key === "Enter" && !e.shiftKey) {
+                                                e.preventDefault();
+                                                handleSaveReplyEdit(comment.id, reply.id);
+                                              }
+                                              if (e.key === "Escape") {
+                                                setEditingReplyId(null);
+                                                setEditingReplyContent("");
+                                              }
+                                            }}
+                                          />
+                                          <div className="flex items-center justify-end gap-1.5">
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setEditingReplyId(null);
+                                                setEditingReplyContent("");
+                                              }}
+                                              className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+                                            >
+                                              Cancel
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => handleSaveReplyEdit(comment.id, reply.id)}
+                                              disabled={!editingReplyContent.trim()}
+                                              className="px-3 py-0.5 rounded-full text-[11px] font-semibold bg-white text-black hover:bg-zinc-200 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                                            >
+                                              Save
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <p className="text-zinc-300 text-xs leading-relaxed">
+                                          {reply.content}
+                                          {reply.isEdited && (
+                                            <span className="text-[10px] text-zinc-500 ml-1.5">(edited)</span>
+                                          )}
+                                        </p>
+                                      )}
+
                                       <div className="flex items-center gap-3 mt-1.5 text-zinc-400">
                                         <button
                                           type="button"
