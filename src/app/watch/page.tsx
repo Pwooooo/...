@@ -1143,7 +1143,7 @@ function WatchContent() {
                                   className="fixed inset-0 z-40"
                                   onClick={() => setActiveMenuCommentId(null)}
                                 />
-                                <div className="absolute right-0 top-8 z-50 w-36 rounded-xl bg-[#212121] border border-white/[0.12] py-1.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 select-none">
+                                <div className="absolute right-0 top-8 z-50 w-36 rounded-2xl bg-[#212121] border border-white/[0.12] p-1.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 select-none">
                                   {/* Pin option */}
                                   <button
                                     type="button"
@@ -1151,23 +1151,10 @@ function WatchContent() {
                                       handleTogglePin(comment.id);
                                       setActiveMenuCommentId(null);
                                     }}
-                                    className="w-full flex items-center gap-3 px-3.5 py-2 text-xs font-medium text-zinc-200 hover:bg-white/[0.08] hover:text-white transition-colors cursor-pointer text-left"
+                                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:bg-[#272727] hover:text-white transition-colors cursor-pointer text-left"
                                   >
                                     <Pin className={cn("h-4 w-4 rotate-45", comment.isPinned ? "fill-sky-400 text-sky-400" : "")} />
                                     <span>{comment.isPinned ? "Unpin" : "Pin"}</span>
-                                  </button>
-
-                                  {/* Heart option */}
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      handleToggleHeart(comment.id);
-                                      setActiveMenuCommentId(null);
-                                    }}
-                                    className="w-full flex items-center gap-3 px-3.5 py-2 text-xs font-medium text-zinc-200 hover:bg-white/[0.08] hover:text-white transition-colors cursor-pointer text-left"
-                                  >
-                                    <Heart className={cn("h-4 w-4", comment.isHearted ? "fill-rose-500 text-rose-500" : "")} />
-                                    <span>{comment.isHearted ? "Remove heart" : "Heart"}</span>
                                   </button>
 
                                   {/* Edit option */}
@@ -1178,7 +1165,7 @@ function WatchContent() {
                                       setEditingContent(comment.content);
                                       setActiveMenuCommentId(null);
                                     }}
-                                    className="w-full flex items-center gap-3 px-3.5 py-2 text-xs font-medium text-zinc-200 hover:bg-white/[0.08] hover:text-white transition-colors cursor-pointer text-left"
+                                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:bg-[#272727] hover:text-white transition-colors cursor-pointer text-left"
                                   >
                                     <Pencil className="h-4 w-4" />
                                     <span>Edit</span>
@@ -1191,7 +1178,7 @@ function WatchContent() {
                                       handleDeleteComment(comment.id);
                                       setActiveMenuCommentId(null);
                                     }}
-                                    className="w-full flex items-center gap-3 px-3.5 py-2 text-xs font-medium text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors cursor-pointer text-left"
+                                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors cursor-pointer text-left"
                                   >
                                     <Trash2 className="h-4 w-4" />
                                     <span>Delete</span>
@@ -1432,7 +1419,7 @@ function WatchContent() {
                                                 className="fixed inset-0 z-40"
                                                 onClick={() => setActiveMenuReplyId(null)}
                                               />
-                                              <div className="absolute right-0 top-6 z-50 w-32 rounded-xl bg-[#212121] border border-white/[0.12] py-1 shadow-2xl animate-in fade-in zoom-in-95 duration-150 select-none">
+                                              <div className="absolute right-0 top-6 z-50 w-32 rounded-2xl bg-[#212121] border border-white/[0.12] p-1.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 select-none">
                                                 <button
                                                   type="button"
                                                   onClick={() => {
@@ -1440,7 +1427,7 @@ function WatchContent() {
                                                     setEditingReplyContent(reply.content);
                                                     setActiveMenuReplyId(null);
                                                   }}
-                                                  className="w-full flex items-center gap-2.5 px-3 py-1.5 text-xs font-medium text-zinc-200 hover:bg-white/[0.08] hover:text-white transition-colors cursor-pointer text-left"
+                                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:bg-[#272727] hover:text-white transition-colors cursor-pointer text-left"
                                                 >
                                                   <Pencil className="h-3.5 w-3.5" />
                                                   <span>Edit</span>
@@ -1451,7 +1438,7 @@ function WatchContent() {
                                                     handleDeleteReply(comment.id, reply.id);
                                                     setActiveMenuReplyId(null);
                                                   }}
-                                                  className="w-full flex items-center gap-2.5 px-3 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors cursor-pointer text-left"
+                                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors cursor-pointer text-left"
                                                 >
                                                   <Trash2 className="h-3.5 w-3.5" />
                                                   <span>Delete</span>
