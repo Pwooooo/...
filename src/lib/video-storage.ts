@@ -613,6 +613,71 @@ export function updateUserVideo(videoId: string, updates: Partial<VideoItem>): v
   }).catch(() => {});
 }
 
+/**
+ * Synchronizes user's updated profile picture, name, and handle across all
+ * stored videos in localStorage cache so channel avatars update instantly.
+ */
+export function syncUserChannelInfo(user: { id?: string | null; handle?: string | null; name?: string | null; avatarUrl?: string | null; avatar?: string | null }): void {
+  if (typeof window === "undefined" || !user) return;
+  const targetAvatar = user.avatarUrl || user.avatar || "";
+  const targetHandle = (user.handle || "").replace(/^@/, "").trim().toLowerCase();
+  const targetName = (user.name || "").trim();
+  const targetId = (user.id || "").trim().toLowerCase();
+
+  const updateList = (videos: VideoItem[]): { updated: VideoItem[]; changed: boolean } => {
+    let changed = false;
+    const updated = videos.map((v) => {
+      if (!v) return v;
+      const vChan = v.channel || { id: "", handle: "", displayName: "", avatarUrl: "" };
+      const vChanHandle = (vChan.handle || "").replace(/^@/, "").trim().toLowerCase();
+      const vChanName = (vChan.displayName || "").trim().toLowerCase();
+      const vChanId = (vChan.id || "").trim().toLowerCase();
+      const isUserVideo =
+        (targetId && vChanId && targetId === vChanId) ||
+        (targetHandle && vChanHandle === targetHandle) ||
+        (targetName && (vChanName === targetName.toLowerCase() || vChanName === targetHandle)) ||
+        (v.id && (v.id.startsWith("v-user-") || v.id.startsWith("v-custom-")));
+
+      if (isUserVideo) {
+        changed = true;
+        return {
+          ...v,
+          channel: {
+            ...vChan,
+            id: vChan.id || user.id || "u-user",
+            handle: user.handle || vChan.handle,
+            displayName: user.name || vChan.displayName,
+            avatarUrl: targetAvatar || vChan.avatarUrl,
+          },
+        };
+      }
+      return v;
+    });
+    return { updated, changed };
+  };
+
+  try {
+    const uploads = getUserUploadedVideos();
+    const res1 = updateList(uploads);
+    if (res1.changed) {
+      localStorage.setItem(USER_UPLOADS_KEY, JSON.stringify(res1.updated));
+    }
+
+    const cachedRaw = localStorage.getItem(SERVER_CACHE_KEY);
+    if (cachedRaw) {
+      const parsed = JSON.parse(cachedRaw);
+      if (Array.isArray(parsed)) {
+        const res2 = updateList(parsed);
+        if (res2.changed) {
+          localStorage.setItem(SERVER_CACHE_KEY, JSON.stringify(res2.updated));
+        }
+      }
+    }
+  } catch {}
+
+  window.dispatchEvent(new Event("entropy_videos_updated"));
+}
+
 // ----------------- Client-Side IndexedDB Storage (High-Capacity Local Media) -----------------
 const DB_NAME = "entropy_video_store";
 const STORE_NAME = "videos";

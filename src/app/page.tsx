@@ -44,9 +44,11 @@ export default function HomePage() {
     };
 
     window.addEventListener("entropy_videos_updated", loadVideos);
+    window.addEventListener("entropy_user_updated", loadVideos);
     window.addEventListener("storage", loadVideos);
     return () => {
       window.removeEventListener("entropy_videos_updated", loadVideos);
+      window.removeEventListener("entropy_user_updated", loadVideos);
       window.removeEventListener("storage", loadVideos);
     };
   }, []);

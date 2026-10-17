@@ -4,6 +4,8 @@ import { formatDuration, formatViews } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { VideoItem } from "@/types";
 import { isShortVideo } from "@/lib/video-storage";
+import { useAuth } from "@/context/AuthContext";
+import { resolveChannelAvatar } from "@/lib/user-validation";
 import { MoreVertical } from "lucide-react";
 
 interface VideoCardProps {
@@ -11,6 +13,7 @@ interface VideoCardProps {
 }
 
 export default function VideoCard({ video }: VideoCardProps) {
+  const { user } = useAuth();
   const [timeAgo, setTimeAgo] = useState<string>("Recently");
 
   useEffect(() => {
@@ -50,6 +53,7 @@ export default function VideoCard({ video }: VideoCardProps) {
   const views = Number(video.viewCount) || 0;
   const isShort = isShortVideo(video);
   const targetUrl = isShort ? `/shorts?id=${video.id}` : `/watch?v=${video.id}`;
+  const resolvedAvatar = resolveChannelAvatar(channel, video, user);
 
   return (
     <div className="group flex flex-col gap-3">
@@ -83,7 +87,7 @@ export default function VideoCard({ video }: VideoCardProps) {
         >
           <div className="h-9 w-9 overflow-hidden rounded-full bg-[#181818]">
             <img
-              src={channel.avatarUrl || "/default-avatar.png"}
+              src={resolvedAvatar}
               alt={displayName}
               className="h-full w-full object-cover"
               onError={(e) => {

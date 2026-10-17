@@ -7,7 +7,7 @@ import { ShortItem } from "@/lib/mock-data";
 import { getAllCombinedVideos, fetchServerVideos, isShortVideo, getVideoBlob } from "@/lib/video-storage";
 import { VideoItem } from "@/types";
 import { useAuth } from "@/context/AuthContext";
-import { findUserByHandle } from "@/lib/user-validation";
+import { findUserByHandle, resolveChannelAvatar } from "@/lib/user-validation";
 import { formatTimeAgo } from "@/lib/utils";
 import {
   ThumbsUp,
@@ -563,7 +563,7 @@ export default function ShortsPage() {
                           className="h-9 w-9 rounded-full overflow-hidden bg-zinc-800 flex-shrink-0"
                         >
                           <img
-                            src={currentShort.channel.avatarUrl || "/default-avatar.png"}
+                            src={resolveChannelAvatar(currentShort.channel, currentShort, user)}
                             alt={currentShort.channel.displayName}
                             className="h-full w-full object-cover"
                             onError={(e) => {

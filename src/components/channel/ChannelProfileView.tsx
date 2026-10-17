@@ -30,7 +30,7 @@ import { VideoItem } from "@/types";
 import Link from "next/link";
 import CommunityTab from "@/components/channel/CommunityTab";
 import { getAllCombinedVideos, getUserVideos, fetchServerVideos } from "@/lib/video-storage";
-import { findUserByHandle, validateDisplayName, validateHandle } from "@/lib/user-validation";
+import { findUserByHandle, validateDisplayName, validateHandle, resolveChannelAvatar } from "@/lib/user-validation";
 
 const CHANNEL_TABS = ["Videos", "Playlists", "Community", "About"];
 
@@ -58,8 +58,11 @@ export default function ChannelProfileView({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [userVideos, setUserVideos] = useState<VideoItem[]>([]);
 
+  const userHandle = (user?.handle || "").replace(/^@/, "").trim().toLowerCase();
+  const userName = (user?.name || "").trim().toLowerCase();
+  const targetClean = cleanHandle.trim().toLowerCase();
   const isOwnProfile = Boolean(
-    user && (user.handle || user.name || "").toLowerCase().replace(/^@/, "") === cleanHandle.toLowerCase()
+    user && (userHandle === targetClean || userName === targetClean)
   );
 
   useEffect(() => {
@@ -105,9 +108,11 @@ export default function ChannelProfileView({
     loadVideos();
     fetchServerVideos().then(() => loadVideos());
     window.addEventListener("entropy_videos_updated", loadVideos);
+    window.addEventListener("entropy_user_updated", loadVideos);
     window.addEventListener("storage", loadVideos);
     return () => {
       window.removeEventListener("entropy_videos_updated", loadVideos);
+      window.removeEventListener("entropy_user_updated", loadVideos);
       window.removeEventListener("storage", loadVideos);
     };
   }, [cleanHandle]);
@@ -268,7 +273,7 @@ export default function ChannelProfileView({
                     <div className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-full border-4 border-black bg-zinc-900 text-white shadow-2xl overflow-hidden flex items-center justify-center font-bold text-3xl sm:text-4xl">
                       {channel.avatarUrl ? (
                         <img
-                          src={channel.avatarUrl}
+                          src={resolveChannelAvatar(channel, undefined, isOwnProfile ? user : null)}
                           alt={channel.displayName}
                           className="h-full w-full object-cover"
                           onError={(e) => {

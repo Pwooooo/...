@@ -9,6 +9,7 @@ import { getAllCombinedVideos, getBaseVideos, fetchServerVideos, isShortVideo } 
 import { VideoItem } from "@/types";
 import Link from "next/link";
 import { formatDuration, formatViews } from "@/lib/utils";
+import { resolveChannelAvatar } from "@/lib/user-validation";
 import { SlidersHorizontal } from "lucide-react";
 
 function SearchResultsContent() {
@@ -27,7 +28,13 @@ function SearchResultsContent() {
     };
 
     window.addEventListener("entropy_videos_updated", handleUpdate);
-    return () => window.removeEventListener("entropy_videos_updated", handleUpdate);
+    window.addEventListener("entropy_user_updated", handleUpdate);
+    window.addEventListener("storage", handleUpdate);
+    return () => {
+      window.removeEventListener("entropy_videos_updated", handleUpdate);
+      window.removeEventListener("entropy_user_updated", handleUpdate);
+      window.removeEventListener("storage", handleUpdate);
+    };
   }, []);
 
   const results = useMemo(() => {
@@ -106,7 +113,7 @@ function SearchResultsContent() {
                 >
                   <div className="h-6 w-6 rounded-full overflow-hidden bg-zinc-800">
                     <img
-                      src={video.channel?.avatarUrl || "/default-avatar.png"}
+                      src={resolveChannelAvatar(video.channel, video)}
                       alt={video.channel?.displayName || "Channel"}
                       className="h-full w-full object-cover"
                       onError={(e) => {

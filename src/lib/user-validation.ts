@@ -241,3 +241,74 @@ export function suggestHandleFromName(name: string): string {
 
   return cleaned.slice(0, 30);
 }
+
+/**
+ * Resolves the latest avatar for a channel or video dynamically,
+ * checking currently logged-in user, registered users, and channel fallback.
+ */
+export function resolveChannelAvatar(
+  channel?: { id?: string | null; handle?: string | null; displayName?: string | null; avatarUrl?: string | null } | null,
+  videoOrId?: { id?: string | null } | string | null,
+  currentUser?: { id?: string | null; handle?: string | null; name?: string | null; avatarUrl?: string | null; avatar?: string | null } | null
+): string {
+  const cleanHandle = (channel?.handle || "").replace(/^@/, "").trim().toLowerCase();
+  const cleanName = (channel?.displayName || "").trim().toLowerCase();
+  const channelId = (channel?.id || "").trim().toLowerCase();
+  const vidId = typeof videoOrId === "string" ? videoOrId : videoOrId?.id || "";
+
+  // 1. Current logged in user (passed in or from localStorage)
+  let user = currentUser;
+  if (!user && typeof window !== "undefined") {
+    try {
+      const rawUser = localStorage.getItem("entropy_user");
+      if (rawUser) {
+        user = JSON.parse(rawUser);
+      }
+    } catch {}
+  }
+
+  if (user) {
+    const uHandle = (user.handle || "").replace(/^@/, "").trim().toLowerCase();
+    const uName = (user.name || "").trim().toLowerCase();
+    const uId = (user.id || "").trim().toLowerCase();
+
+    const isOwn =
+      (uId && channelId && uId === channelId) ||
+      (cleanHandle && uHandle && cleanHandle === uHandle) ||
+      (cleanName && uName && (cleanName === uName || cleanName === uHandle)) ||
+      (cleanName && uHandle && cleanName === uHandle) ||
+      (vidId && (vidId.startsWith("v-user-") || vidId.startsWith("v-custom-")));
+
+    if (isOwn) {
+      if (user.avatarUrl && user.avatarUrl !== "/default-avatar.png") return user.avatarUrl;
+      if (user.avatar && user.avatar !== "/default-avatar.png") return user.avatar;
+    }
+  }
+
+  // 2. Check registered users
+  if (cleanHandle || cleanName || channelId) {
+    const registered = getRegisteredUsers();
+    const match = registered.find((u) => {
+      const rHandle = (u.handle || "").replace(/^@/, "").trim().toLowerCase();
+      const rName = (u.name || "").trim().toLowerCase();
+      const rId = (u.id || "").trim().toLowerCase();
+      return (
+        (channelId && rId && channelId === rId) ||
+        (cleanHandle && rHandle && cleanHandle === rHandle) ||
+        (cleanName && rName && cleanName === rName) ||
+        (cleanName && rHandle && cleanName === rHandle)
+      );
+    });
+    if (match) {
+      if (match.avatarUrl && match.avatarUrl !== "/default-avatar.png") return match.avatarUrl;
+      if (match.avatar && match.avatar !== "/default-avatar.png") return match.avatar;
+    }
+  }
+
+  // 3. Fallback to channel avatar
+  if (channel?.avatarUrl && channel.avatarUrl !== "/default-avatar.png") {
+    return channel.avatarUrl;
+  }
+
+  return channel?.avatarUrl || "/default-avatar.png";
+}

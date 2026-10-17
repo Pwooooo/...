@@ -35,7 +35,7 @@ import { cn, formatDuration, formatViews, formatTimeAgo, formatSubscribers } fro
 import { ALL_VIDEOS, SAMPLE_CHAPTERS, SAMPLE_HIGHLIGHTS } from "@/lib/mock-data";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { findUserByHandle } from "@/lib/user-validation";
+import { findUserByHandle, resolveChannelAvatar } from "@/lib/user-validation";
 import { getUserVideos, getVideoBlob, getAllCombinedVideos, getBaseVideos, fetchServerVideos, isShortVideo } from "@/lib/video-storage";
 import { VideoItem } from "@/types";
 
@@ -985,7 +985,7 @@ function WatchContent() {
             <Link href={`/@${(currentVideo.channel.handle || currentVideo.channel.displayName).replace(/^@/, "")}`}>
               <div className="h-10 w-10 overflow-hidden rounded-full bg-[#181818] border border-white/[0.08] hover:opacity-85 transition-opacity cursor-pointer">
                 <img
-                  src={currentVideo.channel.avatarUrl || "/default-avatar.png"}
+                  src={resolveChannelAvatar(currentVideo.channel, currentVideo, user)}
                   alt={currentVideo.channel.displayName}
                   className="h-full w-full object-cover"
                   onError={(e) => {

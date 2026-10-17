@@ -85,9 +85,11 @@ export default function ProfilePage() {
     loadUserVideos();
     fetchServerVideos().then(() => loadUserVideos());
     window.addEventListener("entropy_videos_updated", loadUserVideos);
+    window.addEventListener("entropy_user_updated", loadUserVideos);
     window.addEventListener("storage", loadUserVideos);
     return () => {
       window.removeEventListener("entropy_videos_updated", loadUserVideos);
+      window.removeEventListener("entropy_user_updated", loadUserVideos);
       window.removeEventListener("storage", loadUserVideos);
     };
   }, [user]);

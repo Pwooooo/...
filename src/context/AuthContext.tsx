@@ -9,6 +9,7 @@ import {
   suggestHandleFromName,
   getRegisteredUsers,
 } from "@/lib/user-validation";
+import { syncUserChannelInfo } from "@/lib/video-storage";
 
 export interface User {
   id: string;
@@ -79,6 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
             setUser(parsed as User);
             saveRegisteredUser(parsed as User);
+            syncUserChannelInfo(parsed as User);
           }
         }
       } catch {
@@ -144,6 +146,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // ignore
     }
+    syncUserChannelInfo(newUser);
     setIsAuthModalOpen(false);
     showToast(`Welcome, ${newUser.name}!`);
   };
@@ -175,6 +178,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch {
         // ignore
       }
+      syncUserChannelInfo(updated);
       return updated;
     });
     showToast("Profile updated");

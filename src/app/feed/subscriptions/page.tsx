@@ -9,6 +9,7 @@ import { getAllCombinedVideos, getBaseVideos, fetchServerVideos, isShortVideo } 
 import { VideoItem } from "@/types";
 import Link from "next/link";
 import { LayoutGrid, List, PlaySquare } from "lucide-react";
+import { resolveChannelAvatar } from "@/lib/user-validation";
 
 export default function SubscriptionsPage() {
   const [collapsedSidebar, setCollapsedSidebar] = useState(false);
@@ -22,9 +23,11 @@ export default function SubscriptionsPage() {
     });
     const update = () => setVideos(getAllCombinedVideos().filter((v) => !isShortVideo(v)));
     window.addEventListener("entropy_videos_updated", update);
+    window.addEventListener("entropy_user_updated", update);
     window.addEventListener("storage", update);
     return () => {
       window.removeEventListener("entropy_videos_updated", update);
+      window.removeEventListener("entropy_user_updated", update);
       window.removeEventListener("storage", update);
     };
   }, []);
@@ -50,7 +53,7 @@ export default function SubscriptionsPage() {
                 >
                   <div className="relative h-14 w-14 rounded-full overflow-hidden bg-zinc-900 border-2 border-white group-hover:border-zinc-300 transition-colors">
                     <img
-                      src={channel.avatarUrl || "/default-avatar.png"}
+                      src={resolveChannelAvatar(channel)}
                       alt={channel.displayName}
                       className="h-full w-full object-cover"
                       onError={(e) => {
