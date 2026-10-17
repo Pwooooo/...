@@ -18,6 +18,8 @@ import {
   Play,
   Check,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   X,
   Scissors,
   ListPlus,
@@ -169,6 +171,16 @@ function WatchContent() {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  interface CommentReply {
+    id: string;
+    user: string;
+    avatar: string;
+    content: string;
+    timeAgo: string;
+    likes: number;
+    dislikes?: number;
+  }
+
   interface CommentItem {
     id: string;
     user: string;
@@ -181,11 +193,16 @@ function WatchContent() {
     isHearted?: boolean;
     pinnedBy?: string;
     heartedBy?: string;
+    replies?: CommentReply[];
   }
 
   const [commentText, setCommentText] = useState("");
   const [commentVotes, setCommentVotes] = useState<Record<string, "like" | "dislike">>({});
   const [comments, setComments] = useState<CommentItem[]>([]);
+  const [replyingToId, setReplyingToId] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const [expandedReplies, setExpandedReplies] = useState<Record<string, boolean>>({});
+  const [replyVotes, setReplyVotes] = useState<Record<string, "like" | "dislike">>({});
 
   useEffect(() => {
     if (!currentVideo) {
@@ -224,6 +241,17 @@ function WatchContent() {
             isHearted: true,
             pinnedBy: creatorName,
             heartedBy: creatorName,
+            replies: [
+              {
+                id: `r-1-${currentVideo.id}`,
+                user: "Entropy Fan",
+                avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop",
+                content: "The workflow breakdowns around 4:20 are pure gold! Thanks for pinning this.",
+                timeAgo: "1 hour ago",
+                likes: 4,
+                dislikes: 0,
+              },
+            ],
           },
           {
             id: `c-2-${currentVideo.id}`,
@@ -449,6 +477,155 @@ function WatchContent() {
       localStorage.setItem(`entropy_comments_${vidId}`, JSON.stringify(updated));
     } catch {}
     showToast(willBeHearted ? "❤️ Awarded creator heart" : "Removed creator heart");
+  };
+
+  const handleToggleReply = (commentId: string) => {
+    if (replyingToId === commentId) {
+      setReplyingToId(null);
+      setReplyText("");
+    } else {
+      setReplyingToId(commentId);
+      setReplyText("");
+    }
+  };
+
+  const handleAddReply = (commentId: string) => {
+    if (!currentVideo || !replyText.trim()) return;
+    const vidId = currentVideo.id;
+    const newReply: CommentReply = {
+      id: `r-${Date.now()}`,
+      user: user ? user.name : "Guest User",
+      avatar: user?.avatarUrl || user?.avatar || "/default-avatar.png",
+      content: replyText.trim(),
+      timeAgo: "Just now",
+      likes: 0,
+      dislikes: 0,
+    };
+
+    const updated = comments.map((c) => {
+      if (c.id === commentId) {
+        return {
+          ...c,
+          replies: [...(c.replies || []), newReply],
+        };
+      }
+      return c;
+    });
+
+    setComments(updated);
+    try {
+      localStorage.setItem(`entropy_comments_${vidId}`, JSON.stringify(updated));
+    } catch {}
+    setReplyText("");
+    setReplyingToId(null);
+    setExpandedReplies((prev) => ({ ...prev, [commentId]: true }));
+    showToast("Reply published");
+  };
+
+  const toggleExpandReplies = (commentId: string) => {
+    setExpandedReplies((prev) => ({ ...prev, [commentId]: !prev[commentId] }));
+  };
+
+  const handleReplyLike = (commentId: string, replyId: string) => {
+    if (!currentVideo) return;
+    const vidId = currentVideo.id;
+    setReplyVotes((prev) => {
+      const current = prev[replyId];
+      const newVotes = { ...prev };
+      let updatedComments: CommentItem[];
+
+      if (current === "like") {
+        delete newVotes[replyId];
+        updatedComments = comments.map((c) => {
+          if (c.id === commentId && c.replies) {
+            return {
+              ...c,
+              replies: c.replies.map((r) =>
+                r.id === replyId ? { ...r, likes: Math.max(0, r.likes - 1) } : r
+              ),
+            };
+          }
+          return c;
+        });
+      } else {
+        newVotes[replyId] = "like";
+        updatedComments = comments.map((c) => {
+          if (c.id === commentId && c.replies) {
+            return {
+              ...c,
+              replies: c.replies.map((r) => {
+                if (r.id === replyId) {
+                  return {
+                    ...r,
+                    likes: r.likes + 1,
+                    dislikes: current === "dislike" ? Math.max(0, (r.dislikes || 0) - 1) : r.dislikes,
+                  };
+                }
+                return r;
+              }),
+            };
+          }
+          return c;
+        });
+      }
+
+      setComments(updatedComments);
+      try {
+        localStorage.setItem(`entropy_comments_${vidId}`, JSON.stringify(updatedComments));
+      } catch {}
+      return newVotes;
+    });
+  };
+
+  const handleReplyDislike = (commentId: string, replyId: string) => {
+    if (!currentVideo) return;
+    const vidId = currentVideo.id;
+    setReplyVotes((prev) => {
+      const current = prev[replyId];
+      const newVotes = { ...prev };
+      let updatedComments: CommentItem[];
+
+      if (current === "dislike") {
+        delete newVotes[replyId];
+        updatedComments = comments.map((c) => {
+          if (c.id === commentId && c.replies) {
+            return {
+              ...c,
+              replies: c.replies.map((r) =>
+                r.id === replyId ? { ...r, dislikes: Math.max(0, (r.dislikes || 0) - 1) } : r
+              ),
+            };
+          }
+          return c;
+        });
+      } else {
+        newVotes[replyId] = "dislike";
+        updatedComments = comments.map((c) => {
+          if (c.id === commentId && c.replies) {
+            return {
+              ...c,
+              replies: c.replies.map((r) => {
+                if (r.id === replyId) {
+                  return {
+                    ...r,
+                    dislikes: (r.dislikes || 0) + 1,
+                    likes: current === "like" ? Math.max(0, r.likes - 1) : r.likes,
+                  };
+                }
+                return r;
+              }),
+            };
+          }
+          return c;
+        });
+      }
+
+      setComments(updatedComments);
+      try {
+        localStorage.setItem(`entropy_comments_${vidId}`, JSON.stringify(updatedComments));
+      } catch {}
+      return newVotes;
+    });
   };
 
   const handleShare = () => {
@@ -881,35 +1058,50 @@ function WatchContent() {
                             <ThumbsDown className={`h-3.5 w-3.5 ${commentVotes[comment.id] === "dislike" ? "fill-white" : ""}`} />
                             <span>{comment.dislikes ?? 0}</span>
                           </button>
-                          <button type="button" className="font-semibold hover:text-white transition-colors cursor-pointer">
-                            Reply
-                          </button>
 
-                          {/* Special Creator Heart Badge */}
-                          {comment.isHearted && (
-                            <div
-                              className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/25 text-rose-300 text-[11px] font-medium shadow-xs"
-                              title={`Hearted by @${comment.heartedBy || currentVideo.channel?.displayName || "Creator"}`}
+                          {/* Heart icon button directly in action bar matching screenshot */}
+                          {comment.isHearted ? (
+                            <button
+                              type="button"
+                              onClick={() => handleToggleHeart(comment.id)}
+                              className="flex items-center cursor-pointer group transition-transform hover:scale-110"
+                              title={`Hearted by @${comment.heartedBy || currentVideo.channel?.displayName || "Creator"}${isChannelOwner ? " (click to remove)" : ""}`}
                             >
                               <div className="relative flex items-center justify-center">
                                 <img
                                   src={currentVideo.channel?.avatarUrl || "/entropy-icon.png"}
                                   alt="Creator"
-                                  className="h-4 w-4 rounded-full object-cover border border-rose-500/50"
+                                  className="h-4 w-4 rounded-full object-cover border border-white/20"
                                   onError={(e) => {
                                     (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
                                   }}
                                 />
                                 <Heart className="h-2.5 w-2.5 fill-rose-500 text-rose-500 absolute -bottom-0.5 -right-1 drop-shadow-sm" />
                               </div>
-                              <span className="text-[11px] font-semibold text-rose-300">Creator Heart</span>
-                            </div>
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleToggleHeart(comment.id)}
+                              className="p-1 rounded-full text-zinc-400 hover:text-rose-400 transition-colors cursor-pointer"
+                              title="Award creator heart"
+                            >
+                              <Heart className="h-4 w-4" />
+                            </button>
                           )}
 
-                          {/* Channel Owner Pin & Heart Controls */}
+                          {/* Reply Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleReply(comment.id)}
+                            className="font-semibold text-zinc-400 hover:text-white transition-colors cursor-pointer text-xs"
+                          >
+                            Reply
+                          </button>
+
+                          {/* Channel Owner Pin Control */}
                           {isChannelOwner && (
                             <div className="flex items-center gap-1.5 sm:ml-auto">
-                              {/* Pin Toggle */}
                               <button
                                 type="button"
                                 onClick={() => handleTogglePin(comment.id)}
@@ -924,29 +1116,141 @@ function WatchContent() {
                                 <Pin className={cn("h-3 w-3 rotate-45", comment.isPinned ? "fill-sky-400 text-sky-400" : "")} />
                                 <span>{comment.isPinned ? "Pinned" : "Pin"}</span>
                               </button>
-
-                              {/* Heart Toggle */}
-                              <button
-                                type="button"
-                                onClick={() => handleToggleHeart(comment.id)}
-                                className={cn(
-                                  "flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg border transition-all cursor-pointer font-medium",
-                                  comment.isHearted
-                                    ? "bg-rose-500/15 border-rose-500/30 text-rose-400 font-semibold"
-                                    : "border-white/[0.08] text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/20"
-                                )}
-                                title={comment.isHearted ? "Remove creator heart" : "Award creator heart to this comment"}
-                              >
-                                <Heart className={cn("h-3 w-3", comment.isHearted ? "fill-rose-500 text-rose-500" : "")} />
-                                <span>{comment.isHearted ? "Hearted" : "Heart"}</span>
-                              </button>
                             </div>
                           )}
                         </div>
+
+                        {/* Inline Reply Input Box */}
+                        {replyingToId === comment.id && (
+                          <div className="mt-3 flex gap-3 pl-2 border-l-2 border-zinc-700/60 animate-in fade-in duration-200">
+                            <div className="h-7 w-7 rounded-full overflow-hidden bg-[#181818] border border-white/[0.08] flex-shrink-0 mt-0.5">
+                              <img
+                                src={user?.avatarUrl || user?.avatar || "/default-avatar.png"}
+                                alt="You"
+                                className="h-full w-full object-cover"
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
+                                }}
+                              />
+                            </div>
+                            <div className="flex-1 space-y-2">
+                              <input
+                                type="text"
+                                value={replyText}
+                                onChange={(e) => setReplyText(e.target.value)}
+                                placeholder={`Reply to @${comment.user}...`}
+                                className="w-full bg-transparent border-b border-zinc-700 focus:border-white text-xs text-zinc-100 placeholder-zinc-500 pb-1.5 outline-none transition-colors"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleAddReply(comment.id);
+                                  }
+                                }}
+                              />
+                              <div className="flex items-center justify-end gap-2 pt-1">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setReplyingToId(null);
+                                    setReplyText("");
+                                  }}
+                                  className="px-3 py-1 rounded-full text-xs font-semibold text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleAddReply(comment.id)}
+                                  disabled={!replyText.trim()}
+                                  className="px-3.5 py-1 rounded-full text-xs font-semibold bg-white text-black hover:bg-zinc-200 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                  Reply
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Replies Thread Section */}
+                        {comment.replies && comment.replies.length > 0 && (
+                          <div className="mt-2.5">
+                            <button
+                              type="button"
+                              onClick={() => toggleExpandReplies(comment.id)}
+                              className="flex items-center gap-1.5 text-xs font-semibold text-sky-400 hover:text-sky-300 hover:bg-sky-500/10 px-2.5 py-1 rounded-full transition-colors cursor-pointer w-fit"
+                            >
+                              {expandedReplies[comment.id] ? (
+                                <>
+                                  <ChevronUp className="h-3.5 w-3.5" />
+                                  <span>Hide {comment.replies.length === 1 ? "reply" : `${comment.replies.length} replies`}</span>
+                                </>
+                              ) : (
+                                <>
+                                  <ChevronDown className="h-3.5 w-3.5" />
+                                  <span>{comment.replies.length} {comment.replies.length === 1 ? "reply" : "replies"}</span>
+                                </>
+                              )}
+                            </button>
+
+                            {expandedReplies[comment.id] && (
+                              <div className="mt-2.5 pl-3 space-y-3 border-l-2 border-zinc-800 ml-2 animate-in fade-in duration-200">
+                                {comment.replies.map((reply) => (
+                                  <div key={reply.id} className="flex gap-2.5 pt-1">
+                                    <div className="h-6 w-6 overflow-hidden rounded-full bg-[#181818] border border-white/[0.08] flex-shrink-0">
+                                      <img
+                                        src={reply.avatar || "/default-avatar.png"}
+                                        alt={reply.user}
+                                        className="h-full w-full object-cover"
+                                        onError={(e) => {
+                                          (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
+                                        }}
+                                      />
+                                    </div>
+                                    <div className="flex-1 text-xs">
+                                      <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                                        <span className="font-semibold text-zinc-200">@{reply.user}</span>
+                                        {(reply.user === currentVideo.channel?.displayName ||
+                                          reply.user === currentVideo.channel?.handle?.replace(/^@/, "")) && (
+                                          <span className="bg-white/10 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full">
+                                            Creator
+                                          </span>
+                                        )}
+                                        <span className="text-zinc-500 text-[11px]">{reply.timeAgo}</span>
+                                      </div>
+                                      <p className="text-zinc-300 text-xs leading-relaxed">{reply.content}</p>
+                                      <div className="flex items-center gap-3 mt-1.5 text-zinc-400">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleReplyLike(comment.id, reply.id)}
+                                          className={`flex items-center gap-1 transition-colors cursor-pointer ${
+                                            replyVotes[reply.id] === "like" ? "text-white font-semibold" : "hover:text-white"
+                                          }`}
+                                        >
+                                          <ThumbsUp className={`h-3 w-3 ${replyVotes[reply.id] === "like" ? "fill-white text-white" : ""}`} />
+                                          {reply.likes > 0 && <span>{reply.likes}</span>}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleReplyDislike(comment.id, reply.id)}
+                                          className={`flex items-center gap-1 transition-colors cursor-pointer ${
+                                            replyVotes[reply.id] === "dislike" ? "text-white font-semibold" : "hover:text-white"
+                                          }`}
+                                        >
+                                          <ThumbsDown className={`h-3 w-3 ${replyVotes[reply.id] === "dislike" ? "fill-white text-white" : ""}`} />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
             </div>
           )}
         </div>
