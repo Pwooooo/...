@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Navbar from "@/components/navigation/Navbar";
 import Sidebar from "@/components/navigation/Sidebar";
 import { ShortItem } from "@/lib/mock-data";
-import { getAllCombinedVideos, fetchServerVideos, isShortVideo } from "@/lib/video-storage";
+import { getAllCombinedVideos, fetchServerVideos, isShortVideo, getVideoBlob } from "@/lib/video-storage";
 import { VideoItem } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -175,6 +175,28 @@ export default function ShortsPage() {
       };
     });
   }, [currentShort?.id]);
+
+  const [resolvedShortUrl, setResolvedShortUrl] = useState<string>("");
+
+  useEffect(() => {
+    let isCancelled = false;
+    let objectUrl = "";
+    if (currentShort?.id) {
+      getVideoBlob(currentShort.id).then((blob) => {
+        if (isCancelled) return;
+        if (blob) {
+          objectUrl = URL.createObjectURL(blob);
+          setResolvedShortUrl(objectUrl);
+        } else {
+          setResolvedShortUrl(currentShort.videoUrl || "");
+        }
+      });
+    }
+    return () => {
+      isCancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [currentShort?.id, currentShort?.videoUrl]);
 
   // When switching shorts, keep playback rate & reset playing state
   useEffect(() => {
@@ -446,7 +468,7 @@ export default function ShortsPage() {
                   <video
                     ref={videoRef}
                     key={currentShort.id}
-                    src={currentShort.videoUrl}
+                    src={resolvedShortUrl || currentShort.videoUrl}
                     autoPlay
                     loop={isLooping}
                     muted={isMuted}

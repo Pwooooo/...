@@ -310,11 +310,21 @@ export async function uploadVideoToServer(
   try {
     const file = formData.get("file") as File | null;
     const thumbFile = formData.get("thumbnailFile") as File | null;
+    const requestedId = (formData.get("id") as string) || "";
+    const videoId = requestedId || `v-user-${Date.now()}`;
+    formData.set("id", videoId);
 
-    // Direct browser-to-blob upload on Vercel (bypasses 4.5MB serverless body limit)
+    // Save full original video into local IndexedDB immediately (instant playability & zero bandwidth cost)
+    if (file) {
+      await saveVideoBlob(videoId, file);
+    }
+
+    let isCloudUploaded = false;
+
+    // Direct browser-to-blob upload on Vercel
     if (file && typeof window !== "undefined") {
       try {
-        if (onProgress) onProgress("Uploading", 10);
+        if (onProgress) onProgress("Uploading to cloud", 10);
         const { upload } = await import("@vercel/blob/client");
 
         // 1. Upload video file with real-time byte progress & multipart
@@ -323,9 +333,8 @@ export async function uploadVideoToServer(
           handleUploadUrl: "/api/blob/upload",
           multipart: true,
           onUploadProgress: (progress) => {
-            // progress.percentage is 0..100 -> map to 10% - 85%
             const currentPct = Math.min(85, Math.max(10, Math.round(10 + progress.percentage * 0.75)));
-            if (onProgress) onProgress("Uploading", currentPct);
+            if (onProgress) onProgress("Uploading to cloud", currentPct);
           },
         });
 
@@ -334,7 +343,8 @@ export async function uploadVideoToServer(
             ? `/api/blob/serve?pathname=${encodeURIComponent(videoBlob.pathname)}`
             : videoBlob.url;
           formData.set("rawVideoUrl", serveUrl);
-          formData.delete("file"); // Already stored in Blob!
+          formData.delete("file"); // Stored in Blob
+          isCloudUploaded = true;
         }
 
         // 2. Upload thumbnail
@@ -372,28 +382,61 @@ export async function uploadVideoToServer(
             } catch {}
           }
         }
-      } catch (blobErr) {
-        console.warn("Direct Blob upload error:", blobErr);
-        // If file is larger than 4.5MB and direct blob upload failed, cannot fallback to Vercel body
-        if (file.size > 4.5 * 1024 * 1024) {
-          const errMsg = blobErr instanceof Error ? blobErr.message : "Cloud upload failed. Please try again.";
-          return { success: false, error: errMsg };
+      } catch (blobErr: any) {
+        const errorMsg = blobErr?.message || String(blobErr);
+        console.warn("Direct Blob upload error (store suspended/maxed out, saving locally):", errorMsg);
+        // Avoid 413 Payload Too Large on Vercel serverless function body
+        if (file && file.size > 4.5 * 1024 * 1024) {
+          formData.delete("file");
         }
       }
     }
 
-    if (onProgress) onProgress("Uploading", 90);
-    const res = await fetch("/api/videos", {
-      method: "POST",
-      body: formData,
-    });
-    const data = await res.json();
-    if (data.success && data.video) {
-      saveUserUploadedVideo(data.video);
-      await fetchServerVideos();
-      return { success: true, video: data.video };
+    if (onProgress) onProgress("Publishing video", 90);
+
+    try {
+      const res = await fetch("/api/videos", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success && data.video) {
+        saveUserUploadedVideo(data.video);
+        await fetchServerVideos();
+        return { success: true, video: data.video };
+      }
+    } catch (netErr) {
+      console.warn("Server API error, using client-side video entry:", netErr);
     }
-    return { success: false, error: data.error || "Upload failed" };
+
+    // Client fallback: register video locally if server API or Vercel Blob is maxed out
+    if (file) {
+      const rawTitle = (formData.get("title") as string) || file.name.replace(/\.[^/.]+$/, "") || "Uploaded Video";
+      const channelRaw = (formData.get("channel") as string) || "{}";
+      let channel = { id: "creator", handle: "creator", displayName: "You", avatarUrl: "/default-avatar.png" };
+      try { channel = JSON.parse(channelRaw); } catch {}
+
+      const localVideo: VideoItem = {
+        id: videoId,
+        title: rawTitle,
+        description: (formData.get("description") as string) || "",
+        thumbnailUrl: (formData.get("thumbnailDataUrl") as string) || (formData.get("thumbnailUrl") as string) || "/placeholder-thumb.jpg",
+        masterPlaylistUrl: null,
+        rawVideoUrl: (formData.get("rawVideoUrl") as string) || null,
+        durationSeconds: Number(formData.get("duration")) || 0,
+        viewCount: 0,
+        publishedAt: new Date().toISOString(),
+        category: (formData.get("category") as string) || "Technology",
+        tags: ((formData.get("tags") as string) || "").split(",").map((t) => t.trim()).filter(Boolean),
+        channel,
+        isShort: (formData.get("category") as string) === "Shorts",
+      };
+
+      saveUserUploadedVideo(localVideo);
+      return { success: true, video: localVideo };
+    }
+
+    return { success: false, error: "Upload failed" };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Network error during upload";
     return { success: false, error: msg };
@@ -445,9 +488,73 @@ export function updateUserVideo(videoId: string, updates: Partial<VideoItem>): v
   }).catch(() => {});
 }
 
-// ----------------- Legacy Stubs for Compatibility -----------------
-export async function saveVideoBlob(videoId: string, blob: Blob): Promise<void> {}
-export async function getVideoBlob(videoId: string): Promise<Blob | null> { return null; }
-export async function deleteVideoBlob(videoId: string): Promise<void> {}
+// ----------------- Client-Side IndexedDB Storage (High-Capacity Local Media) -----------------
+const DB_NAME = "entropy_video_store";
+const STORE_NAME = "videos";
+
+function getIndexedDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    if (typeof window === "undefined" || !window.indexedDB) {
+      reject(new Error("IndexedDB not available"));
+      return;
+    }
+    const request = window.indexedDB.open(DB_NAME, 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function saveVideoBlob(videoId: string, blob: Blob): Promise<void> {
+  if (typeof window === "undefined") return;
+  try {
+    const db = await getIndexedDB();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.put(blob, videoId);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  } catch (err) {
+    console.warn("Could not save video blob to IndexedDB:", err);
+  }
+}
+
+export async function getVideoBlob(videoId: string): Promise<Blob | null> {
+  if (typeof window === "undefined") return null;
+  try {
+    const db = await getIndexedDB();
+    return await new Promise<Blob | null>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readonly");
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.get(videoId);
+      req.onsuccess = () => resolve((req.result as Blob) || null);
+      req.onerror = () => reject(req.error);
+    });
+  } catch {
+    return null;
+  }
+}
+
+export async function deleteVideoBlob(videoId: string): Promise<void> {
+  if (typeof window === "undefined") return;
+  try {
+    const db = await getIndexedDB();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.delete(videoId);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  } catch {}
+}
+
 export function getDeletedVideoIds(): Set<string> { return new Set(["v-srv-1792152077838", "v-user-1792152077838", "sample-2"]); }
 export function markVideoAsDeleted(videoId: string): void {}

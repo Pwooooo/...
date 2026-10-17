@@ -64,22 +64,20 @@ function WatchContent() {
     const applyVideo = async (video: VideoItem) => {
       if (isCancelled) return;
       setCurrentVideo(video);
-      if (video.id.startsWith("v-user-") || video.id.startsWith("v-srv-") || video.rawVideoUrl) {
-        if (video.rawVideoUrl) {
-          setResolvedVideoUrl(video.rawVideoUrl);
-        } else if (video.id.startsWith("v-srv-") || video.id.startsWith("v-user-")) {
-          setResolvedVideoUrl(`/api/videos/${video.id}/stream`);
-        } else {
-          const blob = await getVideoBlob(video.id);
-          if (isCancelled) return;
-          if (blob) {
-            const url = URL.createObjectURL(blob);
-            activeBlobUrl = url;
-            setResolvedVideoUrl(url);
-          } else {
-            setResolvedVideoUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4");
-          }
-        }
+
+      // Check local IndexedDB first for instant zero-latency playback
+      const localBlob = await getVideoBlob(video.id);
+      if (!isCancelled && localBlob) {
+        const url = URL.createObjectURL(localBlob);
+        activeBlobUrl = url;
+        setResolvedVideoUrl(url);
+        return;
+      }
+
+      if (video.rawVideoUrl) {
+        setResolvedVideoUrl(video.rawVideoUrl);
+      } else if (video.id.startsWith("v-srv-") || video.id.startsWith("v-user-")) {
+        setResolvedVideoUrl(`/api/videos/${video.id}/stream`);
       } else {
         setResolvedVideoUrl(
           video.masterPlaylistUrl || video.rawVideoUrl || "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
