@@ -303,6 +303,69 @@ export async function fetchServerVideos(): Promise<VideoItem[]> {
   return getAllCombinedVideos();
 }
 
+async function uploadToR2Presigned(
+  file: File | Blob,
+  filename: string,
+  contentType: string,
+  type: "video" | "thumbnail",
+  videoId: string,
+  onProgress?: (percent: number) => void
+): Promise<{ success: boolean; fileUrl?: string; key?: string; configured?: boolean }> {
+  try {
+    const res = await fetch("/api/r2/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ filename, contentType, type, videoId }),
+    });
+    const data = await res.json();
+    if (!data.configured) {
+      return { success: false, configured: false };
+    }
+    if (!data.success || !data.uploadUrl) {
+      return { success: false, configured: true };
+    }
+
+    const uploaded = await new Promise<boolean>((resolve) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("PUT", data.uploadUrl);
+      xhr.setRequestHeader("Content-Type", contentType);
+
+      if (xhr.upload && onProgress) {
+        xhr.upload.onprogress = (evt) => {
+          if (evt.lengthComputable) {
+            const pct = Math.round((evt.loaded / evt.total) * 100);
+            onProgress(pct);
+          }
+        };
+      }
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(true);
+        } else {
+          console.warn("Direct R2 upload failed with status:", xhr.status);
+          resolve(false);
+        }
+      };
+
+      xhr.onerror = () => {
+        console.warn("Direct R2 upload network error");
+        resolve(false);
+      };
+
+      xhr.send(file);
+    });
+
+    if (uploaded) {
+      return { success: true, fileUrl: data.fileUrl, key: data.key, configured: true };
+    }
+    return { success: false, configured: true };
+  } catch (err) {
+    console.warn("R2 presigned upload error:", err);
+    return { success: false };
+  }
+}
+
 export async function uploadVideoToServer(
   formData: FormData,
   onProgress?: (stage: string, percent: number) => void
@@ -321,13 +384,75 @@ export async function uploadVideoToServer(
 
     let isCloudUploaded = false;
 
-    // Direct browser-to-blob upload on Vercel
+    // 1. Try Cloudflare R2 direct browser upload first (highest capacity, zero egress fees)
     if (file && typeof window !== "undefined") {
+      try {
+        if (onProgress) onProgress("Uploading to Cloudflare R2", 10);
+        const r2Res = await uploadToR2Presigned(
+          file,
+          file.name,
+          file.type || "video/mp4",
+          "video",
+          videoId,
+          (pct) => {
+            const currentPct = Math.min(85, Math.max(10, Math.round(10 + pct * 0.75)));
+            if (onProgress) onProgress("Uploading to Cloudflare R2", currentPct);
+          }
+        );
+
+        if (r2Res.success && r2Res.fileUrl) {
+          formData.set("rawVideoUrl", r2Res.fileUrl);
+          formData.delete("file");
+          isCloudUploaded = true;
+
+          // Also upload thumbnail to Cloudflare R2
+          if (thumbFile) {
+            try {
+              const thumbR2 = await uploadToR2Presigned(
+                thumbFile,
+                thumbFile.name,
+                thumbFile.type || "image/jpeg",
+                "thumbnail",
+                videoId
+              );
+              if (thumbR2.success && thumbR2.fileUrl) {
+                formData.set("thumbnailUrl", thumbR2.fileUrl);
+                formData.delete("thumbnailFile");
+              }
+            } catch {}
+          } else {
+            const thumbDataUrl = formData.get("thumbnailDataUrl") as string | null;
+            if (thumbDataUrl && thumbDataUrl.startsWith("data:image")) {
+              try {
+                const resBlob = await fetch(thumbDataUrl);
+                const imgBlob = await resBlob.blob();
+                const thumbR2 = await uploadToR2Presigned(
+                  imgBlob,
+                  `thumb-${videoId}.jpg`,
+                  "image/jpeg",
+                  "thumbnail",
+                  videoId
+                );
+                if (thumbR2.success && thumbR2.fileUrl) {
+                  formData.set("thumbnailUrl", thumbR2.fileUrl);
+                  formData.delete("thumbnailDataUrl");
+                }
+              } catch {}
+            }
+          }
+        }
+      } catch (r2Err) {
+        console.warn("Cloudflare R2 upload attempt error:", r2Err);
+      }
+    }
+
+    // 2. Fallback to Vercel Blob if R2 was not configured or direct upload was bypassed
+    if (!isCloudUploaded && file && typeof window !== "undefined") {
       try {
         if (onProgress) onProgress("Uploading to cloud", 10);
         const { upload } = await import("@vercel/blob/client");
 
-        // 1. Upload video file with real-time byte progress & multipart
+        // Upload video file with real-time byte progress & multipart
         const videoBlob = await upload(file.name, file, {
           access: "private",
           handleUploadUrl: "/api/blob/upload",
@@ -347,7 +472,7 @@ export async function uploadVideoToServer(
           isCloudUploaded = true;
         }
 
-        // 2. Upload thumbnail
+        // Upload thumbnail
         if (thumbFile) {
           try {
             const thumbBlob = await upload(thumbFile.name, thumbFile, {

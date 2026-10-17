@@ -404,7 +404,7 @@ async function uploadToCloudflareR2(
     if (r2.publicUrl) {
       return `${r2.publicUrl}/${key}`;
     }
-    return `${r2.endpoint}/${r2.bucket}/${key}`;
+    return `/api/r2/serve?key=${encodeURIComponent(key)}`;
   } catch (err) {
     console.error(`Failed to upload ${key} to Cloudflare R2:`, err);
     return null;
@@ -612,8 +612,7 @@ export async function POST(req: NextRequest) {
           r2VideoKey,
           file.type || "video/mp4"
         );
-        const r2Config = getR2Config();
-        if (r2Config?.publicUrl && r2VideoUrl) {
+        if (r2VideoUrl) {
           rawVideoUrl = r2VideoUrl;
         }
       }
