@@ -1032,7 +1032,7 @@ function WatchContent() {
                   <div
                     key={comment.id}
                     className={cn(
-                      "relative flex flex-col p-3.5 rounded-2xl transition-all duration-200",
+                      "relative flex flex-col p-3.5 rounded-2xl transition-all duration-200 group",
                       comment.isHearted
                         ? "border border-rose-500/30 bg-rose-500/[0.04] shadow-[0_0_20px_rgba(244,63,94,0.08)] ring-1 ring-rose-500/15"
                         : comment.isPinned
@@ -1077,13 +1077,14 @@ function WatchContent() {
                             <span className="text-zinc-500">{comment.timeAgo}</span>
                           </div>
 
-                          {/* 3-Dots Action Menu (Pin, Edit, Delete) matching user's screenshot */}
-                          <div className="relative">
+                          {/* 3-Dots Action Menu (Pin, Heart, Edit, Delete) */}
+                          <div className="relative flex-shrink-0">
                             <button
                               type="button"
                               onClick={() => setActiveMenuCommentId(activeMenuCommentId === comment.id ? null : comment.id)}
-                              className="p-1 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer opacity-80 md:opacity-0 group-hover:opacity-100"
+                              className="p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer flex items-center justify-center"
                               title="Action menu"
+                              aria-label="Comment options"
                             >
                               <MoreVertical className="h-4 w-4" />
                             </button>
@@ -1094,7 +1095,7 @@ function WatchContent() {
                                   className="fixed inset-0 z-40"
                                   onClick={() => setActiveMenuCommentId(null)}
                                 />
-                                <div className="absolute right-0 top-7 z-50 w-32 rounded-xl bg-[#212121] border border-white/[0.1] py-1.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 select-none">
+                                <div className="absolute right-0 top-8 z-50 w-36 rounded-xl bg-[#212121] border border-white/[0.12] py-1.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 select-none">
                                   {/* Pin option */}
                                   <button
                                     type="button"
@@ -1106,6 +1107,19 @@ function WatchContent() {
                                   >
                                     <Pin className={cn("h-4 w-4 rotate-45", comment.isPinned ? "fill-sky-400 text-sky-400" : "")} />
                                     <span>{comment.isPinned ? "Unpin" : "Pin"}</span>
+                                  </button>
+
+                                  {/* Heart option */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      handleToggleHeart(comment.id);
+                                      setActiveMenuCommentId(null);
+                                    }}
+                                    className="w-full flex items-center gap-3 px-3.5 py-2 text-xs font-medium text-zinc-200 hover:bg-white/[0.08] hover:text-white transition-colors cursor-pointer text-left"
+                                  >
+                                    <Heart className={cn("h-4 w-4", comment.isHearted ? "fill-rose-500 text-rose-500" : "")} />
+                                    <span>{comment.isHearted ? "Remove heart" : "Heart"}</span>
                                   </button>
 
                                   {/* Edit option */}
@@ -1211,8 +1225,8 @@ function WatchContent() {
                             <span>{comment.dislikes ?? 0}</span>
                           </button>
 
-                          {/* Heart icon button directly in action bar matching screenshot */}
-                          {comment.isHearted ? (
+                          {/* Creator Heart Badge (only shown when hearted, no heart outline when unhearted) */}
+                          {comment.isHearted && (
                             <button
                               type="button"
                               onClick={() => handleToggleHeart(comment.id)}
@@ -1231,22 +1245,13 @@ function WatchContent() {
                                 <Heart className="h-2.5 w-2.5 fill-rose-500 text-rose-500 absolute -bottom-0.5 -right-1 drop-shadow-sm" />
                               </div>
                             </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => handleToggleHeart(comment.id)}
-                              className="p-1 rounded-full text-zinc-400 hover:text-rose-400 transition-colors cursor-pointer"
-                              title="Award creator heart"
-                            >
-                              <Heart className="h-4 w-4" />
-                            </button>
                           )}
 
-                          {/* Reply Button */}
+                          {/* Reply Button (Colored white like the icons and count) */}
                           <button
                             type="button"
                             onClick={() => handleToggleReply(comment.id)}
-                            className="font-semibold text-zinc-400 hover:text-white transition-colors cursor-pointer text-xs"
+                            className="font-medium text-white hover:text-zinc-300 transition-colors cursor-pointer text-xs"
                           >
                             Reply
                           </button>
