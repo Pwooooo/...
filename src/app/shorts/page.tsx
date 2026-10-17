@@ -7,6 +7,7 @@ import { ShortItem } from "@/lib/mock-data";
 import { getAllCombinedVideos, fetchServerVideos, isShortVideo, getVideoBlob } from "@/lib/video-storage";
 import { VideoItem } from "@/types";
 import { useAuth } from "@/context/AuthContext";
+import { findUserByHandle } from "@/lib/user-validation";
 import {
   ThumbsUp,
   ThumbsDown,
@@ -68,6 +69,36 @@ export default function ShortsPage() {
   // Settings menu state
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const getLatestAvatar = (
+    rawAvatar?: string,
+    userHandle?: string,
+    userName?: string,
+    userId?: string
+  ): string => {
+    const cleanHandle = (userHandle || "").replace(/^@/, "").trim().toLowerCase();
+    const cleanName = (userName || "").trim().toLowerCase();
+    const currentCleanHandle = (user?.handle || "").replace(/^@/, "").trim().toLowerCase();
+    const currentCleanName = (user?.name || "").trim().toLowerCase();
+
+    if (
+      user &&
+      ((userId && user.id === userId) ||
+        (cleanHandle && cleanHandle === currentCleanHandle) ||
+        (cleanName && (cleanName === currentCleanName || cleanName === currentCleanHandle)))
+    ) {
+      if (user.avatarUrl && user.avatarUrl !== "/default-avatar.png") return user.avatarUrl;
+      if (user.avatar && user.avatar !== "/default-avatar.png") return user.avatar;
+    }
+
+    if (cleanHandle || cleanName) {
+      const found = findUserByHandle(cleanHandle || cleanName);
+      if (found?.avatarUrl && found.avatarUrl !== "/default-avatar.png") return found.avatarUrl;
+      if (found?.avatar && found.avatar !== "/default-avatar.png") return found.avatar;
+    }
+
+    return rawAvatar || "/default-avatar.png";
+  };
 
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -741,7 +772,7 @@ export default function ShortsPage() {
                       commentsMap[currentShort.id].map((comment) => (
                         <div key={comment.id} className="flex gap-3 text-xs">
                           <img
-                            src={comment.avatar || "/default-avatar.png"}
+                            src={getLatestAvatar(comment.avatar, comment.authorHandle, comment.author, comment.authorId)}
                             alt={comment.author}
                             className="h-8 w-8 rounded-full object-cover flex-shrink-0"
                             onError={(e) => {
@@ -862,7 +893,7 @@ export default function ShortsPage() {
                       commentsMap[currentShort.id].map((comment) => (
                         <div key={comment.id} className="flex gap-2.5 text-xs">
                           <img
-                            src={comment.avatar || "/default-avatar.png"}
+                            src={getLatestAvatar(comment.avatar, comment.authorHandle, comment.author, comment.authorId)}
                             alt={comment.author}
                             className="h-7 w-7 rounded-full object-cover flex-shrink-0"
                           />

@@ -35,6 +35,7 @@ import { cn, formatDuration, formatViews, formatTimeAgo, formatSubscribers } fro
 import { ALL_VIDEOS, SAMPLE_CHAPTERS, SAMPLE_HIGHLIGHTS } from "@/lib/mock-data";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { findUserByHandle } from "@/lib/user-validation";
 import { getUserVideos, getVideoBlob, getAllCombinedVideos, getBaseVideos, fetchServerVideos, isShortVideo } from "@/lib/video-storage";
 import { VideoItem } from "@/types";
 
@@ -234,6 +235,97 @@ function WatchContent() {
       return `/@${(currentVideo.channel.handle || currentVideo.channel.displayName || clean).replace(/^@/, "")}`;
     }
     return `/@${encodeURIComponent(clean)}`;
+  };
+
+  const getLatestAvatar = (
+    rawAvatar?: string,
+    userHandle?: string,
+    userName?: string,
+    userId?: string
+  ): string => {
+    const cleanHandle = (userHandle || "").replace(/^@/, "").trim().toLowerCase();
+    const cleanName = (userName || "").trim().toLowerCase();
+    const currentCleanHandle = (user?.handle || "").replace(/^@/, "").trim().toLowerCase();
+    const currentCleanName = (user?.name || "").trim().toLowerCase();
+
+    // 1. If it's the currently logged-in user, always use their latest avatar!
+    if (
+      user &&
+      ((userId && user.id === userId) ||
+        (cleanHandle && cleanHandle === currentCleanHandle) ||
+        (cleanName && (cleanName === currentCleanName || cleanName === currentCleanHandle)))
+    ) {
+      if (user.avatarUrl && user.avatarUrl !== "/default-avatar.png") return user.avatarUrl;
+      if (user.avatar && user.avatar !== "/default-avatar.png") return user.avatar;
+    }
+
+    // 2. Check registered users by handle or name
+    if (cleanHandle || cleanName) {
+      const found = findUserByHandle(cleanHandle || cleanName);
+      if (found?.avatarUrl && found.avatarUrl !== "/default-avatar.png") return found.avatarUrl;
+      if (found?.avatar && found.avatar !== "/default-avatar.png") return found.avatar;
+    }
+
+    // 3. Fallback to stored avatar on comment if valid
+    if (rawAvatar && rawAvatar !== "/default-avatar.png") {
+      return rawAvatar;
+    }
+
+    // 4. If matches current video channel
+    if (currentVideo?.channel) {
+      const chHandle = (currentVideo.channel.handle || "").replace(/^@/, "").trim().toLowerCase();
+      const chName = (currentVideo.channel.displayName || "").trim().toLowerCase();
+      if (
+        (cleanHandle && cleanHandle === chHandle) ||
+        (cleanName && (cleanName === chName || cleanName === chHandle))
+      ) {
+        if (currentVideo.channel.avatarUrl && currentVideo.channel.avatarUrl !== "/default-avatar.png") {
+          return currentVideo.channel.avatarUrl;
+        }
+      }
+    }
+
+    return rawAvatar || "/default-avatar.png";
+  };
+
+  const getHeartAvatar = (heartedBy?: string, heartedByHandle?: string): string => {
+    const cleanHearterHandle = (heartedByHandle || "").replace(/^@/, "").trim().toLowerCase();
+    const cleanHearterName = (heartedBy || "").trim().toLowerCase();
+    const userHandle = (user?.handle || "").replace(/^@/, "").trim().toLowerCase();
+    const userName = (user?.name || "").trim().toLowerCase();
+    const channelHandle = (currentVideo?.channel?.handle || "").replace(/^@/, "").trim().toLowerCase();
+    const channelName = (currentVideo?.channel?.displayName || "").trim().toLowerCase();
+
+    const isUserTheCreator =
+      isChannelOwner ||
+      (user && channelHandle && userHandle === channelHandle) ||
+      (user && channelName && userName === channelName);
+
+    // 1. If user is the creator or matches hearter, use their avatar!
+    if (
+      user &&
+      (isUserTheCreator ||
+        (cleanHearterHandle && cleanHearterHandle === userHandle) ||
+        (cleanHearterName && (cleanHearterName === userName || cleanHearterName === userHandle)))
+    ) {
+      if (user.avatarUrl && user.avatarUrl !== "/default-avatar.png") return user.avatarUrl;
+      if (user.avatar && user.avatar !== "/default-avatar.png") return user.avatar;
+    }
+
+    // 2. If the current video channel has an avatar
+    if (currentVideo?.channel?.avatarUrl && currentVideo.channel.avatarUrl !== "/default-avatar.png") {
+      return currentVideo.channel.avatarUrl;
+    }
+
+    // 3. Check registered users by channel handle or hearter handle
+    const handleToLookup = cleanHearterHandle || channelHandle || cleanHearterName || channelName;
+    if (handleToLookup) {
+      const found = findUserByHandle(handleToLookup);
+      if (found?.avatarUrl && found.avatarUrl !== "/default-avatar.png") return found.avatarUrl;
+      if (found?.avatar && found.avatar !== "/default-avatar.png") return found.avatar;
+    }
+
+    return user?.avatarUrl || user?.avatar || currentVideo?.channel?.avatarUrl || "/default-avatar.png";
   };
 
   useEffect(() => {
@@ -455,7 +547,8 @@ function WatchContent() {
   const handleToggleHeart = (commentId: string) => {
     if (!currentVideo) return;
     const vidId = currentVideo.id;
-    const creatorName = currentVideo.channel?.displayName || currentVideo.channel?.handle || "Creator";
+    const creatorName = (isChannelOwner && user?.name) ? user.name : (currentVideo.channel?.displayName || currentVideo.channel?.handle || "Creator");
+    const creatorHandle = (isChannelOwner && user?.handle) ? user.handle : (currentVideo.channel?.handle || creatorName);
 
     setComments((prevComments) => {
       const target = prevComments.find((c) => c.id === commentId);
@@ -468,6 +561,7 @@ function WatchContent() {
             ...c,
             isHearted: willBeHearted,
             heartedBy: willBeHearted ? creatorName : undefined,
+            heartedByHandle: willBeHearted ? creatorHandle : undefined,
           };
         }
         return c;
@@ -484,8 +578,8 @@ function WatchContent() {
   const handleToggleReplyHeart = (commentId: string, replyId: string) => {
     if (!currentVideo) return;
     const vidId = currentVideo.id;
-    const creatorName = currentVideo.channel?.displayName || currentVideo.channel?.handle || "Creator";
-    const creatorHandle = currentVideo.channel?.handle || creatorName;
+    const creatorName = (isChannelOwner && user?.name) ? user.name : (currentVideo.channel?.displayName || currentVideo.channel?.handle || "Creator");
+    const creatorHandle = (isChannelOwner && user?.handle) ? user.handle : (currentVideo.channel?.handle || creatorName);
 
     setComments((prevComments) => {
       const targetComment = prevComments.find((c) => c.id === commentId);
@@ -1155,7 +1249,7 @@ function WatchContent() {
                         title={`View @${comment.user}'s channel`}
                       >
                         <img
-                          src={comment.avatar || "/default-avatar.png"}
+                          src={getLatestAvatar(comment.avatar, comment.userHandle, comment.user)}
                           alt={comment.user}
                           className="h-full w-full object-cover"
                           onError={(e) => {
@@ -1342,7 +1436,7 @@ function WatchContent() {
                                   className="h-4 w-4 rounded-full overflow-hidden object-cover border border-white/20 block pointer-events-none"
                                 >
                                   <img
-                                    src={currentVideo.channel?.avatarUrl || "/entropy-icon.png"}
+                                    src={getHeartAvatar(comment.heartedBy, comment.heartedByHandle)}
                                     alt="Creator"
                                     className="h-full w-full object-cover"
                                     onError={(e) => {
@@ -1464,7 +1558,7 @@ function WatchContent() {
                                       title={`View @${reply.user}'s channel`}
                                     >
                                       <img
-                                        src={reply.avatar || "/default-avatar.png"}
+                                        src={getLatestAvatar(reply.avatar, reply.userHandle, reply.user)}
                                         alt={reply.user}
                                         className="h-full w-full object-cover"
                                         onError={(e) => {
@@ -1635,7 +1729,7 @@ function WatchContent() {
                                                 className="h-3.5 w-3.5 rounded-full overflow-hidden object-cover border border-white/20 block pointer-events-none"
                                               >
                                                 <img
-                                                  src={currentVideo.channel?.avatarUrl || "/entropy-icon.png"}
+                                                  src={getHeartAvatar(reply.heartedBy, reply.heartedByHandle)}
                                                   alt="Creator"
                                                   className="h-full w-full object-cover"
                                                   onError={(e) => {
