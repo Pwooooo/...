@@ -99,6 +99,7 @@ export function isFillerVideo(video?: { id?: string; title?: string; channel?: {
 
   return (
     id.startsWith("sample-") ||
+    id.startsWith("short-") ||
     id.startsWith("v-blob-") ||
     id === "v-srv-1792152077838" ||
     id === "v-user-1792152077838" ||
@@ -112,7 +113,11 @@ export function isFillerVideo(video?: { id?: string; title?: string; channel?: {
     title.includes("operating systems are so complex") ||
     title.includes("shaders & webgl") ||
     title.includes("synthwave coding session") ||
-    title.includes("pro league championship")
+    title.includes("pro league championship") ||
+    title.includes("1 css property") ||
+    title.includes("redis handles") ||
+    title.includes("insane 3d shader") ||
+    title.includes("big buck bunny")
   );
 }
 
@@ -128,6 +133,63 @@ export function getBaseVideos(): VideoItem[] {
 // ----------------- Central Client Video Cache -----------------
 const SERVER_CACHE_KEY = "entropy_server_videos_cache";
 const USER_UPLOADS_KEY = "entropy_user_uploaded_videos";
+const CACHE_PURGE_VERSION = "entropy_purge_v5";
+
+if (typeof window !== "undefined") {
+  try {
+    if (localStorage.getItem(CACHE_PURGE_VERSION) !== "done") {
+      localStorage.setItem(CACHE_PURGE_VERSION, "done");
+      // Clean out any cached filler videos across all devices
+      const cached = localStorage.getItem(SERVER_CACHE_KEY);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed)) {
+            const cleaned = parsed.filter((v: VideoItem) => v && typeof v.id === "string" && !isFillerVideo(v));
+            localStorage.setItem(SERVER_CACHE_KEY, JSON.stringify(cleaned));
+          }
+        } catch {}
+      }
+      const uploads = localStorage.getItem(USER_UPLOADS_KEY);
+      if (uploads) {
+        try {
+          const parsed = JSON.parse(uploads);
+          if (Array.isArray(parsed)) {
+            const cleaned = parsed.filter((v: VideoItem) => v && typeof v.id === "string" && !isFillerVideo(v));
+            localStorage.setItem(USER_UPLOADS_KEY, JSON.stringify(cleaned));
+          }
+        } catch {}
+      }
+      // Purge any entropy_comments_* with filler comments
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith("entropy_comments_")) {
+          try {
+            const raw = localStorage.getItem(key);
+            if (raw && (raw.includes("Welcome to the video") || raw.includes("alex_dev") || raw.includes("design_lead") || raw.includes("Entropy Fan"))) {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed)) {
+                const cleaned = parsed.filter((c: any) => {
+                  if (!c || typeof c !== "object") return false;
+                  if (c.id?.startsWith("c-pinned-") && c.content?.includes("Welcome to the video")) return false;
+                  if (c.user === "alex_dev" || c.userHandle === "alex_dev") return false;
+                  if (c.user === "design_lead" || c.userHandle === "design_lead") return false;
+                  if (c.user === "Entropy Fan" || c.userHandle === "entropy_fan") return false;
+                  return true;
+                });
+                if (cleaned.length > 0) {
+                  localStorage.setItem(key, JSON.stringify(cleaned));
+                } else {
+                  localStorage.removeItem(key);
+                }
+              }
+            }
+          } catch {}
+        }
+      }
+    }
+  } catch {}
+}
 
 export function getUserUploadedVideos(): VideoItem[] {
   if (typeof window === "undefined") return [];
@@ -229,13 +291,11 @@ export async function fetchServerVideos(): Promise<VideoItem[]> {
       const cleanVideos: VideoItem[] = data.videos.filter(
         (v: VideoItem) => v && typeof v.id === "string" && !isNextJsFillerVideo(v)
       );
-      if (cleanVideos.length > 0) {
-        try {
-          localStorage.setItem(SERVER_CACHE_KEY, JSON.stringify(cleanVideos));
-        } catch {}
-        window.dispatchEvent(new Event("entropy_videos_updated"));
-        return getAllCombinedVideos();
-      }
+      try {
+        localStorage.setItem(SERVER_CACHE_KEY, JSON.stringify(cleanVideos));
+      } catch {}
+      window.dispatchEvent(new Event("entropy_videos_updated"));
+      return getAllCombinedVideos();
     }
   } catch (err) {
     console.warn("Could not fetch server videos:", err);

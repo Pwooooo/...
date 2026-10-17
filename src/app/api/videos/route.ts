@@ -29,6 +29,7 @@ function isNextJsFillerVideo(video?: { id?: string; title?: string; channel?: { 
 
   return (
     id.startsWith("sample-") ||
+    id.startsWith("short-") ||
     id.startsWith("v-blob-") ||
     id === "v-srv-1792152077838" ||
     id === "v-user-1792152077838" ||
@@ -42,7 +43,11 @@ function isNextJsFillerVideo(video?: { id?: string; title?: string; channel?: { 
     title.includes("operating systems are so complex") ||
     title.includes("shaders & webgl") ||
     title.includes("synthwave coding session") ||
-    title.includes("pro league championship")
+    title.includes("pro league championship") ||
+    title.includes("1 css property") ||
+    title.includes("redis handles") ||
+    title.includes("insane 3d shader") ||
+    title.includes("big buck bunny")
   );
 }
 

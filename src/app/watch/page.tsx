@@ -259,60 +259,27 @@ function WatchContent() {
 
       const stored = localStorage.getItem(`entropy_comments_${currentVideo.id}`);
       if (stored) {
-        setComments(JSON.parse(stored));
-      } else {
-        const creatorName = currentVideo.channel?.displayName || currentVideo.channel?.handle || "Entropy Official";
-        const defaultComments: CommentItem[] = [
-          {
-            id: `c-pinned-${currentVideo.id}`,
-            user: creatorName,
-            avatar: currentVideo.channel?.avatarUrl || "/entropy-icon.png",
-            content: "Welcome to the video! What was your favorite moment? Pinning the best insights and discussions below! ✨",
-            timeAgo: "2 hours ago",
-            likes: 42,
-            dislikes: 0,
-            isPinned: true,
-            isHearted: true,
-            pinnedBy: creatorName,
-            heartedBy: creatorName,
-            replies: [
-              {
-                id: `r-1-${currentVideo.id}`,
-                user: "Entropy Fan",
-                avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop",
-                content: "The workflow breakdowns around 4:20 are pure gold! Thanks for pinning this.",
-                timeAgo: "1 hour ago",
-                likes: 4,
-                dislikes: 0,
-              },
-            ],
-          },
-          {
-            id: `c-2-${currentVideo.id}`,
-            user: "alex_dev",
-            avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop",
-            content: "The Next.js 15 Turbopack speed and adaptive HLS video streaming is insanely fast. Loving the modern UI!",
-            timeAgo: "1 hour ago",
-            likes: 19,
-            dislikes: 0,
-            isHearted: true,
-            heartedBy: creatorName,
-          },
-          {
-            id: `c-3-${currentVideo.id}`,
-            user: "design_lead",
-            avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop",
-            content: "The multi-window layout and creator studio constraints make this feel like a native desktop app.",
-            timeAgo: "35 minutes ago",
-            likes: 7,
-            dislikes: 0,
-          },
-        ];
-        setComments(defaultComments);
         try {
-          localStorage.setItem(`entropy_comments_${currentVideo.id}`, JSON.stringify(defaultComments));
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            // Remove any legacy seeded filler comments
+            const cleaned = parsed.filter((c: CommentItem) => {
+              if (!c || typeof c !== "object") return false;
+              if (c.id?.startsWith("c-pinned-") && c.content?.includes("Welcome to the video")) return false;
+              if (c.user === "alex_dev" || c.userHandle === "alex_dev") return false;
+              if (c.user === "design_lead" || c.userHandle === "design_lead") return false;
+              if (c.user === "Entropy Fan" || c.userHandle === "entropy_fan") return false;
+              return true;
+            });
+            setComments(cleaned);
+            try {
+              localStorage.setItem(`entropy_comments_${currentVideo.id}`, JSON.stringify(cleaned));
+            } catch {}
+            return;
+          }
         } catch {}
       }
+      setComments([]);
     } catch {
       setLikes(0);
       setDislikes(0);
@@ -1369,14 +1336,8 @@ function WatchContent() {
                               title={`Hearted by @${comment.heartedBy || currentVideo.channel?.displayName || "Creator"}${isChannelOwner ? " (click to remove)" : ""}`}
                             >
                               <div className="relative flex items-center justify-center">
-                                <Link
-                                  href={getProfileLink(
-                                    comment.heartedBy || currentVideo.channel?.displayName,
-                                    comment.heartedByHandle || currentVideo.channel?.handle
-                                  )}
-                                  className="h-4 w-4 rounded-full overflow-hidden object-cover border border-white/20 block hover:opacity-80 transition-opacity"
-                                  title={`Hearted by @${comment.heartedBy || currentVideo.channel?.displayName || "Creator"}`}
-                                  onClick={(e) => e.stopPropagation()}
+                                <div
+                                  className="h-4 w-4 rounded-full overflow-hidden object-cover border border-white/20 block pointer-events-none"
                                 >
                                   <img
                                     src={currentVideo.channel?.avatarUrl || "/entropy-icon.png"}
@@ -1386,7 +1347,7 @@ function WatchContent() {
                                       (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
                                     }}
                                   />
-                                </Link>
+                                </div>
                                 <Heart className="h-2.5 w-2.5 fill-rose-500 text-rose-500 absolute -bottom-0.5 -right-1 drop-shadow-sm" />
                               </div>
                             </button>
@@ -1671,14 +1632,8 @@ function WatchContent() {
                                             title={`Hearted by @${reply.heartedBy || currentVideo.channel?.displayName || "Creator"}${isChannelOwner ? " (click to remove)" : ""}`}
                                           >
                                             <div className="relative flex items-center justify-center">
-                                              <Link
-                                                href={getProfileLink(
-                                                  reply.heartedBy || currentVideo.channel?.displayName,
-                                                  reply.heartedByHandle || currentVideo.channel?.handle
-                                                )}
-                                                className="h-3.5 w-3.5 rounded-full overflow-hidden object-cover border border-white/20 block hover:opacity-80 transition-opacity"
-                                                title={`Hearted by @${reply.heartedBy || currentVideo.channel?.displayName || "Creator"}`}
-                                                onClick={(e) => e.stopPropagation()}
+                                              <div
+                                                className="h-3.5 w-3.5 rounded-full overflow-hidden object-cover border border-white/20 block pointer-events-none"
                                               >
                                                 <img
                                                   src={currentVideo.channel?.avatarUrl || "/entropy-icon.png"}
@@ -1688,7 +1643,7 @@ function WatchContent() {
                                                     (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
                                                   }}
                                                 />
-                                              </Link>
+                                              </div>
                                               <Heart className="h-2 w-2 fill-rose-500 text-rose-500 absolute -bottom-0.5 -right-0.5 drop-shadow-sm" />
                                             </div>
                                           </button>
