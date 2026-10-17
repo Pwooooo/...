@@ -184,6 +184,9 @@ function WatchContent() {
     likes: number;
     dislikes?: number;
     isEdited?: boolean;
+    isHearted?: boolean;
+    heartedBy?: string;
+    heartedByHandle?: string;
   }
 
   interface CommentItem {
@@ -508,6 +511,39 @@ function WatchContent() {
       localStorage.setItem(`entropy_comments_${vidId}`, JSON.stringify(updated));
     } catch {}
     showToast(willBeHearted ? "❤️ Awarded creator heart" : "Removed creator heart");
+  };
+
+  const handleToggleReplyHeart = (commentId: string, replyId: string) => {
+    if (!currentVideo) return;
+    const vidId = currentVideo.id;
+    const targetComment = comments.find((c) => c.id === commentId);
+    if (!targetComment) return;
+    const targetReply = (targetComment.replies || []).find((r) => r.id === replyId);
+    if (!targetReply) return;
+
+    const willBeHearted = !targetReply.isHearted;
+    const creatorName = currentVideo.channel?.displayName || currentVideo.channel?.handle || "Creator";
+    const creatorHandle = currentVideo.channel?.handle || creatorName;
+
+    const updated = comments.map((c) => {
+      if (c.id !== commentId) return c;
+      const updatedReplies = (c.replies || []).map((r) => {
+        if (r.id !== replyId) return r;
+        return {
+          ...r,
+          isHearted: willBeHearted,
+          heartedBy: willBeHearted ? creatorName : undefined,
+          heartedByHandle: willBeHearted ? creatorHandle : undefined,
+        };
+      });
+      return { ...c, replies: updatedReplies };
+    });
+
+    setComments(updated);
+    try {
+      localStorage.setItem(`entropy_comments_${vidId}`, JSON.stringify(updated));
+    } catch {}
+    showToast(willBeHearted ? "❤️ Awarded creator heart to reply" : "Removed creator heart from reply");
   };
 
   const handleDeleteComment = (commentId: string) => {
@@ -1208,6 +1244,19 @@ function WatchContent() {
                                     <span>{comment.isPinned ? "Unpin" : "Pin"}</span>
                                   </button>
 
+                                  {/* Heart option */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      handleToggleHeart(comment.id);
+                                      setActiveMenuCommentId(null);
+                                    }}
+                                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:bg-[#272727] hover:text-white transition-colors cursor-pointer text-left"
+                                  >
+                                    <Heart className={cn("h-4 w-4", comment.isHearted ? "fill-rose-500 text-rose-500" : "")} />
+                                    <span>{comment.isHearted ? "Remove heart" : "Heart"}</span>
+                                  </button>
+
                                   {/* Edit option */}
                                   <button
                                     type="button"
@@ -1442,7 +1491,13 @@ function WatchContent() {
                             {expandedReplies[comment.id] && (
                               <div className="mt-2.5 pl-3 space-y-3 border-l-2 border-zinc-800 ml-2 animate-in fade-in duration-200">
                                 {comment.replies.map((reply) => (
-                                  <div key={reply.id} className="flex gap-2.5 pt-1 group/reply">
+                                  <div
+                                    key={reply.id}
+                                    className={cn(
+                                      "flex gap-2.5 pt-1.5 p-2 rounded-xl transition-all duration-200 group/reply",
+                                      reply.isHearted && "border border-rose-500/20 bg-rose-500/[0.03] ring-1 ring-rose-500/10"
+                                    )}
+                                  >
                                     <Link
                                       href={getProfileLink(reply.user, reply.userHandle)}
                                       className="h-6 w-6 overflow-hidden rounded-full bg-[#181818] border border-white/[0.08] flex-shrink-0 hover:opacity-85 transition-opacity cursor-pointer"
@@ -1493,7 +1548,20 @@ function WatchContent() {
                                                 className="fixed inset-0 z-40"
                                                 onClick={() => setActiveMenuReplyId(null)}
                                               />
-                                              <div className="absolute right-0 top-6 z-50 w-32 rounded-2xl bg-[#212121] border border-white/[0.12] p-1.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 select-none">
+                                              <div className="absolute right-0 top-6 z-50 w-36 rounded-2xl bg-[#212121] border border-white/[0.12] p-1.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 select-none">
+                                                {/* Heart option */}
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    handleToggleReplyHeart(comment.id, reply.id);
+                                                    setActiveMenuReplyId(null);
+                                                  }}
+                                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:bg-[#272727] hover:text-white transition-colors cursor-pointer text-left"
+                                                >
+                                                  <Heart className={cn("h-3.5 w-3.5", reply.isHearted ? "fill-rose-500 text-rose-500" : "")} />
+                                                  <span>{reply.isHearted ? "Remove heart" : "Heart"}</span>
+                                                </button>
+                                                {/* Edit option */}
                                                 <button
                                                   type="button"
                                                   onClick={() => {
@@ -1506,6 +1574,7 @@ function WatchContent() {
                                                   <Pencil className="h-3.5 w-3.5" />
                                                   <span>Edit</span>
                                                 </button>
+                                                {/* Delete option */}
                                                 <button
                                                   type="button"
                                                   onClick={() => {
@@ -1592,6 +1661,47 @@ function WatchContent() {
                                         >
                                           <ThumbsDown className={`h-3 w-3 ${replyVotes[reply.id] === "dislike" ? "fill-white text-white" : ""}`} />
                                         </button>
+
+                                        {/* Heart icon button directly in reply action bar */}
+                                        {reply.isHearted ? (
+                                          <button
+                                            type="button"
+                                            onClick={() => handleToggleReplyHeart(comment.id, reply.id)}
+                                            className="flex items-center cursor-pointer group transition-transform hover:scale-110 ml-0.5"
+                                            title={`Hearted by @${reply.heartedBy || currentVideo.channel?.displayName || "Creator"}${isChannelOwner ? " (click to remove)" : ""}`}
+                                          >
+                                            <div className="relative flex items-center justify-center">
+                                              <Link
+                                                href={getProfileLink(
+                                                  reply.heartedBy || currentVideo.channel?.displayName,
+                                                  reply.heartedByHandle || currentVideo.channel?.handle
+                                                )}
+                                                className="h-3.5 w-3.5 rounded-full overflow-hidden object-cover border border-white/20 block hover:opacity-80 transition-opacity"
+                                                title={`Hearted by @${reply.heartedBy || currentVideo.channel?.displayName || "Creator"}`}
+                                                onClick={(e) => e.stopPropagation()}
+                                              >
+                                                <img
+                                                  src={currentVideo.channel?.avatarUrl || "/entropy-icon.png"}
+                                                  alt="Creator"
+                                                  className="h-full w-full object-cover"
+                                                  onError={(e) => {
+                                                    (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
+                                                  }}
+                                                />
+                                              </Link>
+                                              <Heart className="h-2 w-2 fill-rose-500 text-rose-500 absolute -bottom-0.5 -right-0.5 drop-shadow-sm" />
+                                            </div>
+                                          </button>
+                                        ) : (
+                                          <button
+                                            type="button"
+                                            onClick={() => handleToggleReplyHeart(comment.id, reply.id)}
+                                            className="p-1 rounded-full text-zinc-400 hover:text-rose-400 transition-colors cursor-pointer"
+                                            title="Award creator heart"
+                                          >
+                                            <Heart className="h-3.5 w-3.5" />
+                                          </button>
+                                        )}
                                       </div>
                                     </div>
                                   </div>
