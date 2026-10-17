@@ -27,6 +27,9 @@ import {
   Flag,
   Pin,
   Heart,
+  MoreVertical,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { cn, formatDuration, formatViews, formatTimeAgo, formatSubscribers } from "@/lib/utils";
 import { ALL_VIDEOS, SAMPLE_CHAPTERS, SAMPLE_HIGHLIGHTS } from "@/lib/mock-data";
@@ -191,6 +194,7 @@ function WatchContent() {
     dislikes: number;
     isPinned?: boolean;
     isHearted?: boolean;
+    isEdited?: boolean;
     pinnedBy?: string;
     heartedBy?: string;
     replies?: CommentReply[];
@@ -203,6 +207,9 @@ function WatchContent() {
   const [replyText, setReplyText] = useState("");
   const [expandedReplies, setExpandedReplies] = useState<Record<string, boolean>>({});
   const [replyVotes, setReplyVotes] = useState<Record<string, "like" | "dislike">>({});
+  const [activeMenuCommentId, setActiveMenuCommentId] = useState<string | null>(null);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState("");
 
   useEffect(() => {
     if (!currentVideo) {
@@ -477,6 +484,39 @@ function WatchContent() {
       localStorage.setItem(`entropy_comments_${vidId}`, JSON.stringify(updated));
     } catch {}
     showToast(willBeHearted ? "❤️ Awarded creator heart" : "Removed creator heart");
+  };
+
+  const handleDeleteComment = (commentId: string) => {
+    if (!currentVideo) return;
+    const vidId = currentVideo.id;
+    const updated = comments.filter((c) => c.id !== commentId);
+    setComments(updated);
+    try {
+      localStorage.setItem(`entropy_comments_${vidId}`, JSON.stringify(updated));
+    } catch {}
+    showToast("Comment deleted");
+  };
+
+  const handleSaveEdit = (commentId: string) => {
+    if (!currentVideo || !editingContent.trim()) return;
+    const vidId = currentVideo.id;
+    const updated = comments.map((c) => {
+      if (c.id === commentId) {
+        return {
+          ...c,
+          content: editingContent.trim(),
+          isEdited: true,
+        };
+      }
+      return c;
+    });
+    setComments(updated);
+    try {
+      localStorage.setItem(`entropy_comments_${vidId}`, JSON.stringify(updated));
+    } catch {}
+    setEditingCommentId(null);
+    setEditingContent("");
+    showToast("Comment edited");
   };
 
   const handleToggleReply = (commentId: string) => {
@@ -1025,17 +1065,129 @@ function WatchContent() {
                         />
                       </div>
                       <div className="flex-1 text-xs">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <span className="font-semibold text-zinc-200">@{comment.user}</span>
-                          {(comment.user === currentVideo.channel?.displayName ||
-                            comment.user === currentVideo.channel?.handle?.replace(/^@/, "")) && (
-                            <span className="bg-white/10 text-white text-[10px] font-bold px-2 py-0.5 rounded-full border border-white/10">
-                              Creator
-                            </span>
-                          )}
-                          <span className="text-zinc-500">{comment.timeAgo}</span>
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-zinc-200">@{comment.user}</span>
+                            {(comment.user === currentVideo.channel?.displayName ||
+                              comment.user === currentVideo.channel?.handle?.replace(/^@/, "")) && (
+                              <span className="bg-white/10 text-white text-[10px] font-bold px-2 py-0.5 rounded-full border border-white/10">
+                                Creator
+                              </span>
+                            )}
+                            <span className="text-zinc-500">{comment.timeAgo}</span>
+                          </div>
+
+                          {/* 3-Dots Action Menu (Pin, Edit, Delete) matching user's screenshot */}
+                          <div className="relative">
+                            <button
+                              type="button"
+                              onClick={() => setActiveMenuCommentId(activeMenuCommentId === comment.id ? null : comment.id)}
+                              className="p-1 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer opacity-80 md:opacity-0 group-hover:opacity-100"
+                              title="Action menu"
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </button>
+
+                            {activeMenuCommentId === comment.id && (
+                              <>
+                                <div
+                                  className="fixed inset-0 z-40"
+                                  onClick={() => setActiveMenuCommentId(null)}
+                                />
+                                <div className="absolute right-0 top-7 z-50 w-32 rounded-xl bg-[#212121] border border-white/[0.1] py-1.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 select-none">
+                                  {/* Pin option */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      handleTogglePin(comment.id);
+                                      setActiveMenuCommentId(null);
+                                    }}
+                                    className="w-full flex items-center gap-3 px-3.5 py-2 text-xs font-medium text-zinc-200 hover:bg-white/[0.08] hover:text-white transition-colors cursor-pointer text-left"
+                                  >
+                                    <Pin className={cn("h-4 w-4 rotate-45", comment.isPinned ? "fill-sky-400 text-sky-400" : "")} />
+                                    <span>{comment.isPinned ? "Unpin" : "Pin"}</span>
+                                  </button>
+
+                                  {/* Edit option */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingCommentId(comment.id);
+                                      setEditingContent(comment.content);
+                                      setActiveMenuCommentId(null);
+                                    }}
+                                    className="w-full flex items-center gap-3 px-3.5 py-2 text-xs font-medium text-zinc-200 hover:bg-white/[0.08] hover:text-white transition-colors cursor-pointer text-left"
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                    <span>Edit</span>
+                                  </button>
+
+                                  {/* Delete option */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      handleDeleteComment(comment.id);
+                                      setActiveMenuCommentId(null);
+                                    }}
+                                    className="w-full flex items-center gap-3 px-3.5 py-2 text-xs font-medium text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors cursor-pointer text-left"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                    <span>Delete</span>
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
                         </div>
-                        <p className="text-zinc-300 text-sm leading-relaxed">{comment.content}</p>
+
+                        {/* Comment Content or Inline Edit Box */}
+                        {editingCommentId === comment.id ? (
+                          <div className="mt-1 space-y-2">
+                            <textarea
+                              value={editingContent}
+                              onChange={(e) => setEditingContent(e.target.value)}
+                              className="w-full bg-[#181818] border border-white/[0.15] focus:border-white rounded-xl p-2.5 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition-colors resize-none min-h-[60px]"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" && !e.shiftKey) {
+                                  e.preventDefault();
+                                  handleSaveEdit(comment.id);
+                                }
+                                if (e.key === "Escape") {
+                                  setEditingCommentId(null);
+                                  setEditingContent("");
+                                }
+                              }}
+                            />
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingCommentId(null);
+                                  setEditingContent("");
+                                }}
+                                className="px-3 py-1 rounded-full text-xs font-semibold text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleSaveEdit(comment.id)}
+                                disabled={!editingContent.trim()}
+                                className="px-3.5 py-1 rounded-full text-xs font-semibold bg-white text-black hover:bg-zinc-200 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                              >
+                                Save
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-zinc-300 text-sm leading-relaxed">
+                            {comment.content}
+                            {comment.isEdited && (
+                              <span className="text-[11px] text-zinc-500 ml-1.5">(edited)</span>
+                            )}
+                          </p>
+                        )}
 
                         <div className="flex items-center gap-3.5 mt-2.5 text-zinc-400 flex-wrap">
                           <button
@@ -1098,26 +1250,6 @@ function WatchContent() {
                           >
                             Reply
                           </button>
-
-                          {/* Channel Owner Pin Control */}
-                          {isChannelOwner && (
-                            <div className="flex items-center gap-1.5 sm:ml-auto">
-                              <button
-                                type="button"
-                                onClick={() => handleTogglePin(comment.id)}
-                                className={cn(
-                                  "flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg border transition-all cursor-pointer font-medium",
-                                  comment.isPinned
-                                    ? "bg-sky-500/15 border-sky-500/30 text-sky-400 font-semibold"
-                                    : "border-white/[0.08] text-zinc-400 hover:text-white hover:bg-white/[0.06]"
-                                )}
-                                title={comment.isPinned ? "Unpin this comment" : "Pin this comment to the top"}
-                              >
-                                <Pin className={cn("h-3 w-3 rotate-45", comment.isPinned ? "fill-sky-400 text-sky-400" : "")} />
-                                <span>{comment.isPinned ? "Pinned" : "Pin"}</span>
-                              </button>
-                            </div>
-                          )}
                         </div>
 
                         {/* Inline Reply Input Box */}
