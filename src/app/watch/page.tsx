@@ -455,60 +455,66 @@ function WatchContent() {
   const handleToggleHeart = (commentId: string) => {
     if (!currentVideo) return;
     const vidId = currentVideo.id;
-    const target = comments.find((c) => c.id === commentId);
-    if (!target) return;
-    const willBeHearted = !target.isHearted;
     const creatorName = currentVideo.channel?.displayName || currentVideo.channel?.handle || "Creator";
 
-    const updated = comments.map((c) => {
-      if (c.id === commentId) {
-        return {
-          ...c,
-          isHearted: willBeHearted,
-          heartedBy: willBeHearted ? creatorName : undefined,
-        };
-      }
-      return c;
-    });
+    setComments((prevComments) => {
+      const target = prevComments.find((c) => c.id === commentId);
+      if (!target) return prevComments;
+      const willBeHearted = !target.isHearted;
 
-    setComments(updated);
-    try {
-      localStorage.setItem(`entropy_comments_${vidId}`, JSON.stringify(updated));
-    } catch {}
-    showToast(willBeHearted ? "❤️ Awarded creator heart" : "Removed creator heart");
+      const updated = prevComments.map((c) => {
+        if (c.id === commentId) {
+          return {
+            ...c,
+            isHearted: willBeHearted,
+            heartedBy: willBeHearted ? creatorName : undefined,
+          };
+        }
+        return c;
+      });
+
+      try {
+        localStorage.setItem(`entropy_comments_${vidId}`, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+    showToast("❤️ Creator heart updated");
   };
 
   const handleToggleReplyHeart = (commentId: string, replyId: string) => {
     if (!currentVideo) return;
     const vidId = currentVideo.id;
-    const targetComment = comments.find((c) => c.id === commentId);
-    if (!targetComment) return;
-    const targetReply = (targetComment.replies || []).find((r) => r.id === replyId);
-    if (!targetReply) return;
-
-    const willBeHearted = !targetReply.isHearted;
     const creatorName = currentVideo.channel?.displayName || currentVideo.channel?.handle || "Creator";
     const creatorHandle = currentVideo.channel?.handle || creatorName;
 
-    const updated = comments.map((c) => {
-      if (c.id !== commentId) return c;
-      const updatedReplies = (c.replies || []).map((r) => {
-        if (r.id !== replyId) return r;
-        return {
-          ...r,
-          isHearted: willBeHearted,
-          heartedBy: willBeHearted ? creatorName : undefined,
-          heartedByHandle: willBeHearted ? creatorHandle : undefined,
-        };
-      });
-      return { ...c, replies: updatedReplies };
-    });
+    setComments((prevComments) => {
+      const targetComment = prevComments.find((c) => c.id === commentId);
+      if (!targetComment) return prevComments;
+      const targetReply = (targetComment.replies || []).find((r) => r.id === replyId);
+      if (!targetReply) return prevComments;
 
-    setComments(updated);
-    try {
-      localStorage.setItem(`entropy_comments_${vidId}`, JSON.stringify(updated));
-    } catch {}
-    showToast(willBeHearted ? "❤️ Awarded creator heart to reply" : "Removed creator heart from reply");
+      const willBeHearted = !targetReply.isHearted;
+
+      const updated = prevComments.map((c) => {
+        if (c.id !== commentId) return c;
+        const updatedReplies = (c.replies || []).map((r) => {
+          if (r.id !== replyId) return r;
+          return {
+            ...r,
+            isHearted: willBeHearted,
+            heartedBy: willBeHearted ? creatorName : undefined,
+            heartedByHandle: willBeHearted ? creatorHandle : undefined,
+          };
+        });
+        return { ...c, replies: updatedReplies };
+      });
+
+      try {
+        localStorage.setItem(`entropy_comments_${vidId}`, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+    showToast("❤️ Creator heart updated");
   };
 
   const handleDeleteComment = (commentId: string) => {
@@ -1118,9 +1124,7 @@ function WatchContent() {
                     key={comment.id}
                     className={cn(
                       "relative flex flex-col p-3.5 rounded-2xl transition-all duration-200 group",
-                      comment.isHearted
-                        ? "border border-rose-500/30 bg-rose-500/[0.04] shadow-[0_0_20px_rgba(244,63,94,0.08)] ring-1 ring-rose-500/15"
-                        : comment.isPinned
+                      comment.isPinned
                         ? "border border-white/[0.08] bg-white/[0.02]"
                         : "hover:bg-white/[0.02]"
                     )}
@@ -1452,10 +1456,7 @@ function WatchContent() {
                                 {comment.replies.map((reply) => (
                                   <div
                                     key={reply.id}
-                                    className={cn(
-                                      "flex gap-2.5 pt-1.5 p-2 rounded-xl transition-all duration-200 group/reply",
-                                      reply.isHearted && "border border-rose-500/20 bg-rose-500/[0.03] ring-1 ring-rose-500/10"
-                                    )}
+                                    className="flex gap-2.5 pt-1.5 p-2 rounded-xl transition-all duration-200 group/reply hover:bg-white/[0.02]"
                                   >
                                     <Link
                                       href={getProfileLink(reply.user, reply.userHandle)}
