@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   Home,
   Compass,
@@ -15,7 +15,6 @@ import {
   Video,
   ListVideo,
   Menu,
-  Play,
   User,
   Bell,
 } from "lucide-react";
@@ -28,12 +27,136 @@ interface SidebarProps {
   onClose?: () => void;
 }
 
-export default function Sidebar({
+interface SidebarContentProps extends SidebarProps {
+  searchParams: ReturnType<typeof useSearchParams> | null;
+}
+
+function SidebarIcon({
+  icon: Icon,
+  isActive,
+  label,
+  className = "h-5 w-5",
+}: {
+  icon: React.ElementType;
+  isActive: boolean;
+  label: string;
+  className?: string;
+}) {
+  if (!isActive) {
+    return <Icon className={className} fill="none" />;
+  }
+
+  // Active filled icons with high-contrast inner glyphs for dark mode
+  if (label === "Watch Later") {
+    return (
+      <svg
+        className={className}
+        viewBox="0 0 24 24"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <circle cx="12" cy="12" r="10" fill="currentColor" stroke="none" />
+        <path
+          d="M12 6v6l4 2"
+          stroke="black"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+      </svg>
+    );
+  }
+
+  if (label === "Liked videos") {
+    return (
+      <svg
+        className={className}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path
+          d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"
+          fill="currentColor"
+          stroke="none"
+        />
+        <path d="M7 10v12" stroke="black" strokeWidth="2" fill="none" />
+      </svg>
+    );
+  }
+
+  if (label === "Subscriptions") {
+    return (
+      <svg
+        className={className}
+        viewBox="0 0 24 24"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <rect x="3" y="3" width="18" height="18" rx="2" fill="currentColor" stroke="none" />
+        <path
+          d="M9 9.003a1 1 0 0 1 1.517-.859l4.997 2.997a1 1 0 0 1 0 1.718l-4.997 2.997A1 1 0 0 1 9 14.996z"
+          fill="black"
+          stroke="none"
+        />
+      </svg>
+    );
+  }
+
+  if (label === "Home") {
+    return (
+      <svg
+        className={className}
+        viewBox="0 0 24 24"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path
+          d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+          fill="currentColor"
+          stroke="none"
+        />
+        <polyline points="9 22 9 12 15 12 15 22" stroke="black" strokeWidth="2" fill="none" />
+      </svg>
+    );
+  }
+
+  if (label === "Trending") {
+    return (
+      <svg
+        className={className}
+        viewBox="0 0 24 24"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <circle cx="12" cy="12" r="10" fill="currentColor" stroke="none" />
+        <path
+          d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"
+          fill="black"
+          stroke="none"
+        />
+      </svg>
+    );
+  }
+
+  return <Icon className={className} fill="currentColor" />;
+}
+
+function SidebarContent({
   collapsed = false,
   drawer = false,
   isOpen = false,
   onClose,
-}: SidebarProps) {
+  searchParams,
+}: SidebarContentProps) {
   const pathname = usePathname();
 
   const isItemActive = (href: string) => {
@@ -41,12 +164,17 @@ export default function Sidebar({
       return pathname === "/";
     }
     if (href.includes("?")) {
-      const [targetPath, query] = href.split("?");
+      const [targetPath, queryStr] = href.split("?");
       if (pathname !== targetPath) return false;
-      if (typeof window !== "undefined") {
-        return window.location.search.includes(query);
-      }
-      return true;
+      const targetList = new URLSearchParams(queryStr).get("list");
+      const currentList =
+        searchParams?.get("list") ??
+        (typeof window !== "undefined"
+          ? new URLSearchParams(window.location.search).get("list")
+          : pathname === "/playlist"
+          ? "WL"
+          : null);
+      return Boolean(targetList && currentList === targetList);
     }
     return pathname === href || pathname.startsWith(href + "/");
   };
@@ -109,7 +237,6 @@ export default function Sidebar({
           {/* Primary Section */}
           <div className="space-y-1 pb-3 border-b border-white/[0.08]">
             {mainLinks.map((item) => {
-              const Icon = item.icon;
               const isActive = isItemActive(item.href);
               return (
                 <Link
@@ -123,10 +250,7 @@ export default function Sidebar({
                       : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
                   )}
                 >
-                  <Icon
-                    className="h-5 w-5"
-                    fill={isActive ? "currentColor" : "none"}
-                  />
+                  <SidebarIcon icon={item.icon} isActive={isActive} label={item.label} />
                   <span>{item.label}</span>
                 </Link>
               );
@@ -139,7 +263,6 @@ export default function Sidebar({
               You
             </h3>
             {libraryLinks.map((item) => {
-              const Icon = item.icon;
               const isActive = isItemActive(item.href);
               return (
                 <Link
@@ -153,10 +276,7 @@ export default function Sidebar({
                       : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
                   )}
                 >
-                  <Icon
-                    className="h-5 w-5"
-                    fill={isActive ? "currentColor" : "none"}
-                  />
+                  <SidebarIcon icon={item.icon} isActive={isActive} label={item.label} />
                   <span>{item.label}</span>
                 </Link>
               );
@@ -169,7 +289,6 @@ export default function Sidebar({
               Explore
             </h3>
             {exploreLinks.map((item) => {
-              const Icon = item.icon;
               const isActive = isItemActive(item.href);
               return (
                 <Link
@@ -183,10 +302,7 @@ export default function Sidebar({
                       : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
                   )}
                 >
-                  <Icon
-                    className="h-5 w-5"
-                    fill={isActive ? "currentColor" : "none"}
-                  />
+                  <SidebarIcon icon={item.icon} isActive={isActive} label={item.label} />
                   <span>{item.label}</span>
                 </Link>
               );
@@ -201,7 +317,6 @@ export default function Sidebar({
     return (
       <aside className="sticky top-14 flex h-[calc(100vh-3.5rem)] w-18 flex-col items-center py-2 bg-black text-zinc-300 border-r border-white/[0.08]">
         {mainLinks.map((item) => {
-          const Icon = item.icon;
           const isActive = isItemActive(item.href);
           return (
             <Link
@@ -214,10 +329,7 @@ export default function Sidebar({
                   : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
               )}
             >
-              <Icon
-                className="h-5 w-5"
-                fill={isActive ? "currentColor" : "none"}
-              />
+              <SidebarIcon icon={item.icon} isActive={isActive} label={item.label} />
               <span>{item.label}</span>
             </Link>
           );
@@ -231,7 +343,6 @@ export default function Sidebar({
       {/* Primary Section */}
       <div className="space-y-1 pb-3 border-b border-white/[0.08]">
         {mainLinks.map((item) => {
-          const Icon = item.icon;
           const isActive = isItemActive(item.href);
           return (
             <Link
@@ -244,10 +355,7 @@ export default function Sidebar({
                   : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
               )}
             >
-              <Icon
-                className="h-5 w-5"
-                fill={isActive ? "currentColor" : "none"}
-              />
+              <SidebarIcon icon={item.icon} isActive={isActive} label={item.label} />
               <span>{item.label}</span>
             </Link>
           );
@@ -260,7 +368,6 @@ export default function Sidebar({
           You
         </h3>
         {libraryLinks.map((item) => {
-          const Icon = item.icon;
           const isActive = isItemActive(item.href);
           return (
             <Link
@@ -273,10 +380,7 @@ export default function Sidebar({
                   : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
               )}
             >
-              <Icon
-                className="h-5 w-5"
-                fill={isActive ? "currentColor" : "none"}
-              />
+              <SidebarIcon icon={item.icon} isActive={isActive} label={item.label} />
               <span>{item.label}</span>
             </Link>
           );
@@ -289,7 +393,6 @@ export default function Sidebar({
           Explore
         </h3>
         {exploreLinks.map((item) => {
-          const Icon = item.icon;
           const isActive = isItemActive(item.href);
           return (
             <Link
@@ -302,15 +405,25 @@ export default function Sidebar({
                   : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
               )}
             >
-              <Icon
-                className="h-5 w-5"
-                fill={isActive ? "currentColor" : "none"}
-              />
+              <SidebarIcon icon={item.icon} isActive={isActive} label={item.label} />
               <span>{item.label}</span>
             </Link>
           );
         })}
       </div>
     </aside>
+  );
+}
+
+function SidebarWithParams(props: SidebarProps) {
+  const searchParams = useSearchParams();
+  return <SidebarContent {...props} searchParams={searchParams} />;
+}
+
+export default function Sidebar(props: SidebarProps) {
+  return (
+    <Suspense fallback={<SidebarContent {...props} searchParams={null} />}>
+      <SidebarWithParams {...props} />
+    </Suspense>
   );
 }
