@@ -574,19 +574,33 @@ export default function CommunityTab({ channel, isOwnProfile }: CommunityTabProp
               >
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-[#181818] border border-white/[0.08] flex-shrink-0 overflow-hidden flex items-center justify-center font-bold text-sm text-white">
+                    <Link
+                      href={`/@${(post.channelHandle || cleanHandle).replace(/^@/, "")}`}
+                      className="h-10 w-10 rounded-full bg-[#181818] border border-white/[0.08] flex-shrink-0 overflow-hidden flex items-center justify-center font-bold text-sm text-white hover:opacity-80 transition-opacity cursor-pointer"
+                      title={`View @${post.channelHandle || cleanHandle}'s channel`}
+                    >
                       {post.channelAvatar ? (
                         <img src={post.channelAvatar} alt={post.channelName || "Channel"} className="h-full w-full object-cover" />
                       ) : (
                         <span>{(post.channelName || post.channelHandle || "C").slice(0, 1).toUpperCase()}</span>
                       )}
-                    </div>
+                    </Link>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-sm text-white">{post.channelName}</span>
+                        <Link
+                          href={`/@${(post.channelHandle || cleanHandle).replace(/^@/, "")}`}
+                          className="font-bold text-sm text-white hover:text-zinc-300 hover:underline transition-colors cursor-pointer"
+                        >
+                          {post.channelName}
+                        </Link>
                       </div>
                       <div className="flex items-center gap-1.5 text-xs text-zinc-500 mt-0.5">
-                        <span>@{post.channelHandle}</span>
+                        <Link
+                          href={`/@${(post.channelHandle || cleanHandle).replace(/^@/, "")}`}
+                          className="hover:text-zinc-300 transition-colors"
+                        >
+                          @{post.channelHandle}
+                        </Link>
                         <span>•</span>
                         <span>{formatPostTime(post.publishedAt)}</span>
                       </div>
@@ -765,16 +779,25 @@ export default function CommunityTab({ channel, isOwnProfile }: CommunityTabProp
                         {post.comments.map((comm) => (
                           <div key={comm.id} className="flex items-start justify-between gap-2.5 group">
                             <div className="flex gap-2.5">
-                              <div className="h-7 w-7 rounded-full bg-[#181818] border border-white/[0.08] flex-shrink-0 overflow-hidden flex items-center justify-center font-bold text-[11px] text-white">
+                              <Link
+                                href={`/@${(comm.authorHandle || "").replace(/^@/, "")}`}
+                                className="h-7 w-7 rounded-full bg-[#181818] border border-white/[0.08] flex-shrink-0 overflow-hidden flex items-center justify-center font-bold text-[11px] text-white hover:opacity-80 transition-opacity cursor-pointer"
+                                title={`View @${comm.authorHandle}'s channel`}
+                              >
                                 {comm.authorAvatar ? (
                                   <img src={comm.authorAvatar} alt={comm.authorName} className="h-full w-full object-cover" />
                                 ) : (
                                   <span>{(comm.authorName || comm.authorHandle || "U").slice(0, 1).toUpperCase()}</span>
                                 )}
-                              </div>
+                              </Link>
                               <div className="text-xs">
                                 <div className="flex items-center gap-1.5 text-zinc-400">
-                                  <span className="font-semibold text-white">@{comm.authorHandle}</span>
+                                  <Link
+                                    href={`/@${(comm.authorHandle || "").replace(/^@/, "")}`}
+                                    className="font-semibold text-white hover:underline hover:text-zinc-200 transition-colors cursor-pointer"
+                                  >
+                                    @{comm.authorHandle}
+                                  </Link>
                                   <span>•</span>
                                   <span>{formatPostTime(comm.createdAt)}</span>
                                 </div>

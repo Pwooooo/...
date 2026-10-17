@@ -177,6 +177,7 @@ function WatchContent() {
   interface CommentReply {
     id: string;
     user: string;
+    userHandle?: string;
     avatar: string;
     content: string;
     timeAgo: string;
@@ -188,6 +189,7 @@ function WatchContent() {
   interface CommentItem {
     id: string;
     user: string;
+    userHandle?: string;
     avatar: string;
     content: string;
     timeAgo: string;
@@ -197,7 +199,9 @@ function WatchContent() {
     isHearted?: boolean;
     isEdited?: boolean;
     pinnedBy?: string;
+    pinnedByHandle?: string;
     heartedBy?: string;
+    heartedByHandle?: string;
     replies?: CommentReply[];
   }
 
@@ -214,6 +218,22 @@ function WatchContent() {
   const [activeMenuReplyId, setActiveMenuReplyId] = useState<string | null>(null);
   const [editingReplyId, setEditingReplyId] = useState<string | null>(null);
   const [editingReplyContent, setEditingReplyContent] = useState("");
+
+  const getProfileLink = (username?: string, userHandle?: string) => {
+    if (userHandle) {
+      return `/@${userHandle.replace(/^@/, "")}`;
+    }
+    if (!username) return "/profile";
+    const clean = username.replace(/^@/, "").trim();
+    if (
+      currentVideo?.channel &&
+      (clean === currentVideo.channel.displayName ||
+        clean === currentVideo.channel.handle?.replace(/^@/, ""))
+    ) {
+      return `/@${(currentVideo.channel.handle || currentVideo.channel.displayName || clean).replace(/^@/, "")}`;
+    }
+    return `/@${encodeURIComponent(clean)}`;
+  };
 
   useEffect(() => {
     if (!currentVideo) {
@@ -580,9 +600,15 @@ function WatchContent() {
   const handleAddReply = (commentId: string) => {
     if (!currentVideo || !replyText.trim()) return;
     const vidId = currentVideo.id;
+    const userHandle = user?.handle
+      ? user.handle.replace(/^@/, "")
+      : user?.name
+      ? user.name.toLowerCase().replace(/\s+/g, "_")
+      : "guest";
     const newReply: CommentReply = {
       id: `r-${Date.now()}`,
       user: user ? user.name : "Guest User",
+      userHandle,
       avatar: user?.avatarUrl || user?.avatar || "/default-avatar.png",
       content: replyText.trim(),
       timeAgo: "Just now",
@@ -752,9 +778,15 @@ function WatchContent() {
     if (!currentVideo) return;
     if (!commentText.trim()) return;
 
+    const userHandle = user?.handle
+      ? user.handle.replace(/^@/, "")
+      : user?.name
+      ? user.name.toLowerCase().replace(/\s+/g, "_")
+      : "guest";
     const newComment: CommentItem = {
       id: `c-${Date.now()}`,
       user: user ? user.name : "Guest User",
+      userHandle,
       avatar: user?.avatarUrl || user?.avatar || "/default-avatar.png",
       content: commentText.trim(),
       timeAgo: "Just now",
@@ -824,8 +856,8 @@ function WatchContent() {
         <div className="mt-3 flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-zinc-900">
           {/* Channel Info & Subscribe */}
           <div className="flex items-center gap-3">
-            <Link href={`/@${currentVideo.channel.handle}`}>
-              <div className="h-10 w-10 overflow-hidden rounded-full bg-[#181818] border border-white/[0.08]">
+            <Link href={`/@${(currentVideo.channel.handle || currentVideo.channel.displayName).replace(/^@/, "")}`}>
+              <div className="h-10 w-10 overflow-hidden rounded-full bg-[#181818] border border-white/[0.08] hover:opacity-85 transition-opacity cursor-pointer">
                 <img
                   src={currentVideo.channel.avatarUrl || "/default-avatar.png"}
                   alt={currentVideo.channel.displayName}
@@ -837,7 +869,7 @@ function WatchContent() {
               </div>
             </Link>
             <div>
-              <Link href={`/@${currentVideo.channel.handle}`} className="font-semibold text-sm text-white hover:text-zinc-300 transition-colors">
+              <Link href={`/@${(currentVideo.channel.handle || currentVideo.channel.displayName).replace(/^@/, "")}`} className="font-semibold text-sm text-white hover:text-zinc-300 transition-colors">
                 <span>{currentVideo.channel.displayName}</span>
               </Link>
               <p className="text-xs text-zinc-400">
@@ -1024,7 +1056,11 @@ function WatchContent() {
 
           {/* Add Comment Input */}
           <form onSubmit={handleAddComment} className="flex gap-3 mb-6">
-            <div className="h-9 w-9 rounded-full bg-[#181818] border border-white/[0.08] flex items-center justify-center font-bold text-xs text-white flex-shrink-0 overflow-hidden">
+            <Link
+              href={user?.handle ? `/@${user.handle.replace(/^@/, "")}` : "/profile"}
+              className="h-9 w-9 rounded-full bg-[#181818] border border-white/[0.08] flex items-center justify-center font-bold text-xs text-white flex-shrink-0 overflow-hidden hover:opacity-85 transition-opacity cursor-pointer"
+              title={user ? `View ${user.name}'s profile` : "View profile"}
+            >
               <img
                 src={user?.avatarUrl || user?.avatar || "/default-avatar.png"}
                 alt={user?.name || "User"}
@@ -1033,7 +1069,7 @@ function WatchContent() {
                   (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
                 }}
               />
-            </div>
+            </Link>
             <div className="flex-1 flex flex-col gap-2">
               <input
                 type="text"
@@ -1094,15 +1130,25 @@ function WatchContent() {
                         <Pin className="h-3.5 w-3.5 text-zinc-300 fill-zinc-300 rotate-45" />
                         <span>
                           Pinned by{" "}
-                          <span className="text-zinc-200">
+                          <Link
+                            href={getProfileLink(
+                              comment.pinnedBy || currentVideo.channel?.displayName,
+                              comment.pinnedByHandle || currentVideo.channel?.handle
+                            )}
+                            className="text-zinc-200 hover:text-white hover:underline transition-colors cursor-pointer"
+                          >
                             @{comment.pinnedBy || currentVideo.channel?.displayName || currentVideo.channel?.handle || "Creator"}
-                          </span>
+                          </Link>
                         </span>
                       </div>
                     )}
 
                     <div className="flex gap-3">
-                      <div className="h-9 w-9 overflow-hidden rounded-full bg-[#181818] border border-white/[0.08] flex-shrink-0">
+                      <Link
+                        href={getProfileLink(comment.user, comment.userHandle)}
+                        className="h-9 w-9 overflow-hidden rounded-full bg-[#181818] border border-white/[0.08] flex-shrink-0 hover:opacity-85 transition-opacity cursor-pointer"
+                        title={`View @${comment.user}'s channel`}
+                      >
                         <img
                           src={comment.avatar || "/default-avatar.png"}
                           alt={comment.user}
@@ -1111,11 +1157,16 @@ function WatchContent() {
                             (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
                           }}
                         />
-                      </div>
+                      </Link>
                       <div className="flex-1 text-xs">
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold text-zinc-200">@{comment.user}</span>
+                            <Link
+                              href={getProfileLink(comment.user, comment.userHandle)}
+                              className="font-semibold text-zinc-200 hover:text-white hover:underline transition-colors cursor-pointer"
+                            >
+                              @{comment.user}
+                            </Link>
                             {(comment.user === currentVideo.channel?.displayName ||
                               comment.user === currentVideo.channel?.handle?.replace(/^@/, "")) && (
                               <span className="bg-white/10 text-white text-[10px] font-bold px-2 py-0.5 rounded-full border border-white/10">
@@ -1269,14 +1320,24 @@ function WatchContent() {
                               title={`Hearted by @${comment.heartedBy || currentVideo.channel?.displayName || "Creator"}${isChannelOwner ? " (click to remove)" : ""}`}
                             >
                               <div className="relative flex items-center justify-center">
-                                <img
-                                  src={currentVideo.channel?.avatarUrl || "/entropy-icon.png"}
-                                  alt="Creator"
-                                  className="h-4 w-4 rounded-full object-cover border border-white/20"
-                                  onError={(e) => {
-                                    (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
-                                  }}
-                                />
+                                <Link
+                                  href={getProfileLink(
+                                    comment.heartedBy || currentVideo.channel?.displayName,
+                                    comment.heartedByHandle || currentVideo.channel?.handle
+                                  )}
+                                  className="h-4 w-4 rounded-full overflow-hidden object-cover border border-white/20 block hover:opacity-80 transition-opacity"
+                                  title={`Hearted by @${comment.heartedBy || currentVideo.channel?.displayName || "Creator"}`}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <img
+                                    src={currentVideo.channel?.avatarUrl || "/entropy-icon.png"}
+                                    alt="Creator"
+                                    className="h-full w-full object-cover"
+                                    onError={(e) => {
+                                      (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
+                                    }}
+                                  />
+                                </Link>
                                 <Heart className="h-2.5 w-2.5 fill-rose-500 text-rose-500 absolute -bottom-0.5 -right-1 drop-shadow-sm" />
                               </div>
                             </button>
@@ -1304,7 +1365,11 @@ function WatchContent() {
                         {/* Inline Reply Input Box */}
                         {replyingToId === comment.id && (
                           <div className="mt-3 flex gap-3 pl-2 border-l-2 border-zinc-700/60 animate-in fade-in duration-200">
-                            <div className="h-7 w-7 rounded-full overflow-hidden bg-[#181818] border border-white/[0.08] flex-shrink-0 mt-0.5">
+                            <Link
+                              href={user?.handle ? `/@${user.handle.replace(/^@/, "")}` : "/profile"}
+                              className="h-7 w-7 rounded-full overflow-hidden bg-[#181818] border border-white/[0.08] flex-shrink-0 mt-0.5 hover:opacity-85 transition-opacity cursor-pointer"
+                              title={user ? `View ${user.name}'s profile` : "View profile"}
+                            >
                               <img
                                 src={user?.avatarUrl || user?.avatar || "/default-avatar.png"}
                                 alt="You"
@@ -1313,7 +1378,7 @@ function WatchContent() {
                                   (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
                                 }}
                               />
-                            </div>
+                            </Link>
                             <div className="flex-1 space-y-2">
                               <input
                                 type="text"
@@ -1378,7 +1443,11 @@ function WatchContent() {
                               <div className="mt-2.5 pl-3 space-y-3 border-l-2 border-zinc-800 ml-2 animate-in fade-in duration-200">
                                 {comment.replies.map((reply) => (
                                   <div key={reply.id} className="flex gap-2.5 pt-1 group/reply">
-                                    <div className="h-6 w-6 overflow-hidden rounded-full bg-[#181818] border border-white/[0.08] flex-shrink-0">
+                                    <Link
+                                      href={getProfileLink(reply.user, reply.userHandle)}
+                                      className="h-6 w-6 overflow-hidden rounded-full bg-[#181818] border border-white/[0.08] flex-shrink-0 hover:opacity-85 transition-opacity cursor-pointer"
+                                      title={`View @${reply.user}'s channel`}
+                                    >
                                       <img
                                         src={reply.avatar || "/default-avatar.png"}
                                         alt={reply.user}
@@ -1387,11 +1456,16 @@ function WatchContent() {
                                           (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
                                         }}
                                       />
-                                    </div>
+                                    </Link>
                                     <div className="flex-1 text-xs">
                                       <div className="flex items-center justify-between mb-0.5">
                                         <div className="flex items-center gap-2 flex-wrap">
-                                          <span className="font-semibold text-zinc-200">@{reply.user}</span>
+                                          <Link
+                                            href={getProfileLink(reply.user, reply.userHandle)}
+                                            className="font-semibold text-zinc-200 hover:text-white hover:underline transition-colors cursor-pointer"
+                                          >
+                                            @{reply.user}
+                                          </Link>
                                           {(reply.user === currentVideo.channel?.displayName ||
                                             reply.user === currentVideo.channel?.handle?.replace(/^@/, "")) && (
                                             <span className="bg-white/10 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full">

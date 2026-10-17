@@ -1141,18 +1141,25 @@ export default function GlobalNewsPage() {
                               ) : (
                                 post.comments?.map((comment) => (
                                   <div key={comment.id} className="flex gap-2.5 text-xs">
-                                    <div className="h-7 w-7 rounded-full bg-[#181818] border border-white/[0.08] flex items-center justify-center font-bold text-[10px] text-white flex-shrink-0 overflow-hidden">
+                                    <Link
+                                      href={`/@${(comment.authorHandle || comment.authorName || "").replace(/^@/, "")}`}
+                                      className="h-7 w-7 rounded-full bg-[#181818] border border-white/[0.08] flex items-center justify-center font-bold text-[10px] text-white flex-shrink-0 overflow-hidden hover:opacity-80 transition-opacity cursor-pointer"
+                                      title={`View ${comment.authorName}'s profile`}
+                                    >
                                       {comment.authorAvatar ? (
                                         <img src={comment.authorAvatar} alt={comment.authorName} className="h-full w-full object-cover" />
                                       ) : (
                                         <span>{(comment.authorName || "U").slice(0, 1).toUpperCase()}</span>
                                       )}
-                                    </div>
+                                    </Link>
                                     <div className="flex-1">
                                       <div className="flex items-center gap-2">
-                                        <span className="font-semibold text-zinc-200">
+                                        <Link
+                                          href={`/@${(comment.authorHandle || comment.authorName || "").replace(/^@/, "")}`}
+                                          className="font-semibold text-zinc-200 hover:text-white hover:underline transition-colors cursor-pointer"
+                                        >
                                           {comment.authorName}
-                                        </span>
+                                        </Link>
                                         <span className="text-[10px] text-zinc-500">
                                           {formatPostTime(comment.createdAt)}
                                         </span>
