@@ -15,6 +15,8 @@ import {
   Calendar,
   Sparkles,
   ArrowUpRight,
+  ArrowLeft,
+  Home,
   ChevronDown,
   Layers,
   Globe,
@@ -278,33 +280,21 @@ export default function StudioAnalyticsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex flex-wrap items-center gap-2 pb-2">
+      <div className="flex items-center gap-2 pb-2">
         {ANALYTICS_TABS.map((tab) => {
-          const isOverview = tab.id === "overview";
           const isActive = activeTab === tab.id;
           return (
             <button
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 isActive
                   ? "bg-white text-black shadow"
                   : "text-zinc-400 hover:text-white hover:bg-white/[0.06]"
               }`}
             >
-              <span>{tab.label}</span>
-              {!isOverview && (
-                <span
-                  className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full font-semibold transition-colors ${
-                    isActive
-                      ? "bg-black/10 text-black/70"
-                      : "bg-white/[0.06] text-zinc-400"
-                  }`}
-                >
-                  Coming Soon
-                </span>
-              )}
+              {tab.label}
             </button>
           );
         })}
@@ -619,29 +609,42 @@ export default function StudioAnalyticsPage() {
         </div>
       </div>
       ) : (
-        /* Coming Soon State for Reach, Engagement, and Audience */
-        <div className="rounded-2xl bg-[#141414] border border-white/[0.08] p-12 text-center flex flex-col items-center justify-center min-h-[460px] shadow-xl animate-in fade-in duration-200">
-          <div className="h-16 w-16 rounded-full bg-white/[0.04] border border-white/10 flex items-center justify-center text-white mb-4 shadow-inner">
-            {activeTab === "reach" && <Radio className="h-7 w-7 text-white" />}
-            {activeTab === "engagement" && <Clock className="h-7 w-7 text-white" />}
-            {activeTab === "audience" && <Users className="h-7 w-7 text-white" />}
+        /* Coming Soon State matching reference layout with Entropy Icon */
+        <div className="py-20 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-200">
+          <div className="relative mb-6 flex items-center justify-center">
+            <div className="absolute w-40 h-40 bg-white/[0.04] blur-3xl rounded-full pointer-events-none" />
+            <img
+              src="/entropy-icon.png"
+              alt="Entropy"
+              className="relative h-32 w-32 md:h-36 md:w-36 object-contain drop-shadow-[0_16px_32px_rgba(0,0,0,0.8)] transition-transform hover:scale-105 duration-300"
+            />
           </div>
-          <span className="text-[11px] font-mono uppercase tracking-widest text-zinc-400 font-semibold px-3 py-1 rounded-full bg-white/5 border border-white/10 mb-3">
+
+          <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
             Coming Soon
-          </span>
-          <h2 className="text-xl font-bold text-white capitalize">
-            {activeTab} Analytics
           </h2>
-          <p className="text-xs text-zinc-400 mt-2 max-w-md leading-relaxed">
-            {ANALYTICS_TABS.find((t) => t.id === activeTab)?.description}
+
+          <p className="text-xs md:text-sm text-zinc-400 mt-2 max-w-md leading-relaxed">
+            The {activeTab} analytics page is currently under construction and will be available soon.
           </p>
-          <button
-            type="button"
-            onClick={() => setActiveTab("overview")}
-            className="mt-6 px-5 py-2.5 rounded-full bg-white text-black font-bold text-xs hover:bg-zinc-200 transition-all shadow cursor-pointer active:scale-95"
-          >
-            Back to Overview
-          </button>
+
+          <div className="flex items-center gap-3 mt-8">
+            <button
+              type="button"
+              onClick={() => setActiveTab("overview")}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#1c1c1c] hover:bg-[#282828] text-white border border-white/10 font-semibold text-xs transition-all cursor-pointer shadow-sm active:scale-95"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span>Go back</span>
+            </button>
+            <Link
+              href="/studio"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#e50914] hover:bg-[#cc0813] text-white font-semibold text-xs transition-all shadow-md cursor-pointer active:scale-95"
+            >
+              <Home className="h-3.5 w-3.5" />
+              <span>Go home</span>
+            </Link>
+          </div>
         </div>
       )}
     </div>
