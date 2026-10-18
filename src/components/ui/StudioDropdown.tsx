@@ -43,6 +43,8 @@ export default function StudioDropdown({
   const selectedOption = normalizedOptions.find((opt) => opt.value === value);
   const displayText = selectedOption?.label || placeholder || value;
 
+  const [dropUp, setDropUp] = useState(false);
+
   // Close on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -56,6 +58,16 @@ export default function StudioDropdown({
 
     if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
+      // Check available space below to decide dropUp
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom;
+        if (spaceBelow < 260 && rect.top > 260) {
+          setDropUp(true);
+        } else {
+          setDropUp(false);
+        }
+      }
     }
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
@@ -107,7 +119,9 @@ export default function StudioDropdown({
           role="listbox"
           className={`absolute ${
             align === "right" ? "right-0" : "left-0"
-          } mt-1.5 min-w-full w-max max-w-xs z-50 rounded-2xl bg-[#212121] border border-white/[0.12] p-1.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 select-none max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-700 ${menuClassName}`}
+          } ${
+            dropUp ? "bottom-full mb-1.5" : "top-full mt-1.5"
+          } min-w-full w-max max-w-xs z-50 rounded-2xl bg-[#212121] border border-white/[0.12] p-1.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 select-none max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-700 ${menuClassName}`}
         >
           {normalizedOptions.map((opt) => {
             const isSelected = opt.value === value;

@@ -22,6 +22,12 @@ import {
   ChevronDown,
   User,
   Tv,
+  Check,
+  Globe,
+  Sliders,
+  Shield,
+  DollarSign,
+  CheckCircle2,
 } from "lucide-react";
 
 interface StudioLayoutProps {
@@ -37,6 +43,16 @@ export default function StudioLayout({ children }: StudioLayoutProps) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Studio Settings Modal State
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<"general" | "channel" | "upload" | "community" | "agreements">("general");
+  const [settingsCurrency, setSettingsCurrency] = useState("USD");
+  const [settingsVisibility, setSettingsVisibility] = useState<"public" | "unlisted" | "private">("public");
+  const [settingsHoldComments, setSettingsHoldComments] = useState(true);
+  const [settingsBlockLinks, setSettingsBlockLinks] = useState(false);
+  const [settingsBlockedWords, setSettingsBlockedWords] = useState("");
+  const [settingsToast, setSettingsToast] = useState<string | null>(null);
 
   const createRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -300,16 +316,17 @@ export default function StudioLayout({ children }: StudioLayoutProps) {
 
           {/* Bottom Settings & Return to Entropy */}
           <div className="p-2 border-t border-white/[0.06] space-y-1">
-            <Link
-              href="/settings"
-              className={`flex items-center gap-4 px-3.5 py-2.5 rounded-xl text-xs font-medium text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-all ${
+            <button
+              type="button"
+              onClick={() => setIsSettingsModalOpen(true)}
+              className={`w-full flex items-center gap-4 px-3.5 py-2.5 rounded-xl text-xs font-medium text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-all cursor-pointer ${
                 !isSidebarOpen && "justify-center px-0"
               }`}
               title={!isSidebarOpen ? "Settings" : undefined}
             >
               <Settings className="h-5 w-5 flex-shrink-0" />
               {isSidebarOpen && <span>Settings</span>}
-            </Link>
+            </button>
             <Link
               href="/"
               className={`flex items-center gap-4 px-3.5 py-2.5 rounded-xl text-xs font-medium text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-all ${
@@ -326,6 +343,279 @@ export default function StudioLayout({ children }: StudioLayoutProps) {
         {/* Studio Content Area */}
         <main className="flex-1 overflow-y-auto bg-[#0f0f0f]">{children}</main>
       </div>
+
+      {/* Studio Settings Modal */}
+      {isSettingsModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="w-full max-w-3xl rounded-2xl bg-[#141414] border border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 border-b border-white/[0.06]">
+              <div className="flex items-center gap-2.5">
+                <Settings className="h-5 w-5 text-white" />
+                <h3 className="font-bold text-base text-white">Studio settings</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsSettingsModalOpen(false)}
+                className="p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Modal Body with Left Tabs and Right Tab Panels */}
+            <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-[360px]">
+              {/* Left Tab navigation */}
+              <div className="w-full md:w-52 p-3 bg-[#111111] border-r border-white/[0.06] flex md:flex-col gap-1 overflow-x-auto md:overflow-x-visible">
+                {[
+                  { id: "general", label: "General", icon: Sliders },
+                  { id: "channel", label: "Channel", icon: Tv },
+                  { id: "upload", label: "Upload defaults", icon: Upload },
+                  { id: "community", label: "Community", icon: MessageSquare },
+                  { id: "agreements", label: "Agreements", icon: Shield },
+                ].map((t) => {
+                  const Icon = t.icon;
+                  const isActive = settingsTab === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setSettingsTab(t.id as any)}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-left transition-all cursor-pointer whitespace-nowrap ${
+                        isActive
+                          ? "bg-white text-black shadow-sm"
+                          : "text-zinc-400 hover:text-white hover:bg-white/[0.06]"
+                      }`}
+                    >
+                      <Icon className="h-4 w-4 flex-shrink-0" />
+                      <span>{t.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Right Tab Content */}
+              <div className="flex-1 p-6 overflow-y-auto space-y-5">
+                {settingsTab === "general" && (
+                  <div className="space-y-5">
+                    <div>
+                      <h4 className="font-bold text-sm text-white">Default units</h4>
+                      <p className="text-xs text-zinc-400 mt-1">
+                        Choose the currency you prefer to see in your channel analytics and monetization estimates.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-xs font-semibold text-zinc-300">
+                        Currency
+                      </label>
+                      <select
+                        value={settingsCurrency}
+                        onChange={(e) => setSettingsCurrency(e.target.value)}
+                        className="w-full max-w-xs rounded-xl bg-[#1e1e1e] border border-white/[0.08] focus:border-white/30 p-2.5 text-xs text-white outline-none"
+                      >
+                        <option value="USD">USD - US Dollar ($)</option>
+                        <option value="EUR">EUR - Euro (€)</option>
+                        <option value="GBP">GBP - British Pound (£)</option>
+                        <option value="CAD">CAD - Canadian Dollar ($)</option>
+                      </select>
+                    </div>
+
+                    <div className="pt-3 border-t border-white/[0.06]">
+                      <h5 className="font-semibold text-xs text-white">Account & System Settings</h5>
+                      <p className="text-xs text-zinc-400 mt-0.5">
+                        Need to change account passwords, sessions, or theme settings?
+                      </p>
+                      <Link
+                        href="/settings"
+                        onClick={() => setIsSettingsModalOpen(false)}
+                        className="inline-flex items-center gap-1.5 mt-2.5 text-xs font-semibold text-zinc-200 hover:text-white underline"
+                      >
+                        <span>Open Account Settings</span>
+                        <ExternalLink className="h-3 w-3" />
+                      </Link>
+                    </div>
+                  </div>
+                )}
+
+                {settingsTab === "channel" && (
+                  <div className="space-y-5">
+                    <div>
+                      <h4 className="font-bold text-sm text-white">Basic info</h4>
+                      <p className="text-xs text-zinc-400 mt-1">
+                        Set channel keywords and default location for discovery.
+                      </p>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                          Country of residence
+                        </label>
+                        <input
+                          type="text"
+                          defaultValue="United States"
+                          className="w-full max-w-sm rounded-xl bg-[#1e1e1e] border border-white/[0.08] focus:border-white/30 p-2.5 text-xs text-white outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                          Channel keywords
+                        </label>
+                        <input
+                          type="text"
+                          defaultValue="gaming, tech, coding, entropy"
+                          className="w-full rounded-xl bg-[#1e1e1e] border border-white/[0.08] focus:border-white/30 p-2.5 text-xs text-white outline-none"
+                          placeholder="comma separated keywords"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {settingsTab === "upload" && (
+                  <div className="space-y-5">
+                    <div>
+                      <h4 className="font-bold text-sm text-white">Upload defaults</h4>
+                      <p className="text-xs text-zinc-400 mt-1">
+                        These default settings will be pre-filled every time you upload a video.
+                      </p>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                          Default visibility
+                        </label>
+                        <select
+                          value={settingsVisibility}
+                          onChange={(e) => setSettingsVisibility(e.target.value as any)}
+                          className="w-full max-w-xs rounded-xl bg-[#1e1e1e] border border-white/[0.08] focus:border-white/30 p-2.5 text-xs text-white outline-none"
+                        >
+                          <option value="public">Public (Everyone can see)</option>
+                          <option value="unlisted">Unlisted (Anyone with link)</option>
+                          <option value="private">Private (Only you)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                          Default Category
+                        </label>
+                        <input
+                          type="text"
+                          defaultValue="Technology"
+                          className="w-full max-w-xs rounded-xl bg-[#1e1e1e] border border-white/[0.08] focus:border-white/30 p-2.5 text-xs text-white outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {settingsTab === "community" && (
+                  <div className="space-y-5">
+                    <div>
+                      <h4 className="font-bold text-sm text-white">Community & Automated filters</h4>
+                      <p className="text-xs text-zinc-400 mt-1">
+                        Control how comments and interactions are moderated on your channel.
+                      </p>
+                    </div>
+
+                    <div className="space-y-3">
+                      <label className="flex items-start gap-3 p-3 rounded-xl bg-[#1e1e1e] border border-white/[0.08] cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={settingsHoldComments}
+                          onChange={(e) => setSettingsHoldComments(e.target.checked)}
+                          className="mt-0.5 rounded accent-white cursor-pointer"
+                        />
+                        <div>
+                          <p className="text-xs font-semibold text-white">Hold potentially inappropriate comments for review</p>
+                          <p className="text-[11px] text-zinc-400 mt-0.5">Increases strictness of automatic filter before comments become public.</p>
+                        </div>
+                      </label>
+
+                      <label className="flex items-start gap-3 p-3 rounded-xl bg-[#1e1e1e] border border-white/[0.08] cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={settingsBlockLinks}
+                          onChange={(e) => setSettingsBlockLinks(e.target.checked)}
+                          className="mt-0.5 rounded accent-white cursor-pointer"
+                        />
+                        <div>
+                          <p className="text-xs font-semibold text-white">Block links in new comments</p>
+                          <p className="text-[11px] text-zinc-400 mt-0.5">New comments containing URLs or domain names will be automatically held for review.</p>
+                        </div>
+                      </label>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                          Blocked words
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={settingsBlockedWords}
+                          onChange={(e) => setSettingsBlockedWords(e.target.value)}
+                          placeholder="Words separated by commas will be automatically blocked..."
+                          className="w-full rounded-xl bg-[#1e1e1e] border border-white/[0.08] focus:border-white/30 p-2.5 text-xs text-white outline-none resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {settingsTab === "agreements" && (
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-bold text-sm text-white">Creator Agreements</h4>
+                      <p className="text-xs text-zinc-400 mt-1">
+                        All use of Entropy Studio is subject to the Entropy Terms of Service and Community Guidelines.
+                      </p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-[#1e1e1e] border border-white/[0.08] space-y-2 text-xs text-zinc-300">
+                      <p className="font-semibold text-white">Entropy Partner & Creator Terms</p>
+                      <p className="text-zinc-400 text-[11px] leading-relaxed">
+                        By continuing to broadcast, publish videos, or manage studio metadata, you agree to respect copyrighted content, adhere to copyright strike guidelines, and ensure uploaded videos conform to fair use policies.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-between p-4 border-t border-white/[0.06] bg-[#111111]">
+              <div className="text-xs text-zinc-400">
+                {settingsToast && (
+                  <span className="text-white font-semibold flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                    {settingsToast}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsSettingsModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSettingsToast("Studio settings saved!");
+                    setTimeout(() => setSettingsToast(null), 3000);
+                  }}
+                  className="px-5 py-2 rounded-xl bg-white text-black font-bold text-xs hover:bg-zinc-200 transition-all shadow cursor-pointer active:scale-95"
+                >
+                  Save settings
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

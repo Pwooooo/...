@@ -113,12 +113,57 @@ function StudioVideosContent() {
   // Delete Confirm State
   const [deletingVideoId, setDeletingVideoId] = useState<string | null>(null);
   const [activeActionMenuVideoId, setActiveActionMenuVideoId] = useState<string | null>(null);
+  const [actionMenuCoords, setActionMenuCoords] = useState<{
+    top?: number;
+    bottom?: number;
+    right: number;
+  } | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  // Auto-dismiss floating video action menu on scroll or resize so it stays locked to its anchor
+  useEffect(() => {
+    if (!activeActionMenuVideoId) return;
+    const handleDismiss = () => {
+      setActiveActionMenuVideoId(null);
+      setActionMenuCoords(null);
+    };
+    window.addEventListener("scroll", handleDismiss, true);
+    window.addEventListener("resize", handleDismiss);
+    return () => {
+      window.removeEventListener("scroll", handleDismiss, true);
+      window.removeEventListener("resize", handleDismiss);
+    };
+  }, [activeActionMenuVideoId]);
+
+  const handleToggleActionMenu = (e: React.MouseEvent<HTMLButtonElement>, videoId: string) => {
+    e.stopPropagation();
+    if (activeActionMenuVideoId === videoId) {
+      setActiveActionMenuVideoId(null);
+      setActionMenuCoords(null);
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const menuHeight = 220;
+
+    if (spaceBelow < menuHeight && rect.top > menuHeight) {
+      setActionMenuCoords({
+        bottom: window.innerHeight - rect.top + 6,
+        right: Math.max(16, window.innerWidth - rect.right),
+      });
+    } else {
+      setActionMenuCoords({
+        top: rect.bottom + 6,
+        right: Math.max(16, window.innerWidth - rect.right),
+      });
+    }
+    setActiveActionMenuVideoId(videoId);
   };
 
   useEffect(() => {
@@ -622,82 +667,15 @@ function StudioVideosContent() {
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
 
-                          {/* 3-Dots Smooth Action Menu matching Image 2 */}
-                          <div className="relative">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveActionMenuVideoId(
-                                  activeActionMenuVideoId === v.id ? null : v.id
-                                );
-                              }}
-                              className="p-1.5 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
-                              title="Options"
-                            >
-                              <MoreVertical className="h-3.5 w-3.5" />
-                            </button>
-
-                            {activeActionMenuVideoId === v.id && (
-                              <>
-                                <div
-                                  className="fixed inset-0 z-40"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setActiveActionMenuVideoId(null);
-                                  }}
-                                />
-                                <div className="absolute right-0 top-full mt-1.5 z-50 w-44 rounded-2xl bg-[#212121] border border-white/[0.12] p-1.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 select-none text-left">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setActiveActionMenuVideoId(null);
-                                      handleOpenEdit(v);
-                                    }}
-                                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:bg-[#272727] hover:text-white transition-colors cursor-pointer"
-                                  >
-                                    <Pencil className="h-3.5 w-3.5" />
-                                    <span>Edit details</span>
-                                  </button>
-                                  <Link
-                                    href="/studio/analytics"
-                                    onClick={() => setActiveActionMenuVideoId(null)}
-                                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:bg-[#272727] hover:text-white transition-colors"
-                                  >
-                                    <BarChart3 className="h-3.5 w-3.5" />
-                                    <span>Analytics</span>
-                                  </Link>
-                                  <Link
-                                    href="/studio/comments"
-                                    onClick={() => setActiveActionMenuVideoId(null)}
-                                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:bg-[#272727] hover:text-white transition-colors"
-                                  >
-                                    <MessageSquare className="h-3.5 w-3.5" />
-                                    <span>Comments</span>
-                                  </Link>
-                                  <Link
-                                    href={`/watch?v=${v.id}`}
-                                    onClick={() => setActiveActionMenuVideoId(null)}
-                                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:bg-[#272727] hover:text-white transition-colors"
-                                  >
-                                    <ExternalLink className="h-3.5 w-3.5" />
-                                    <span>Watch on Entropy</span>
-                                  </Link>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setActiveActionMenuVideoId(null);
-                                      setDeletingVideoId(v.id);
-                                    }}
-                                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-300 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                    <span>Delete</span>
-                                  </button>
-                                </div>
-                              </>
-                            )}
-                          </div>
+                          {/* 3-Dots Action Button */}
+                          <button
+                            type="button"
+                            onClick={(e) => handleToggleActionMenu(e, v.id)}
+                            className="p-1.5 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                            title="Options"
+                          >
+                            <MoreVertical className="h-3.5 w-3.5" />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -708,6 +686,92 @@ function StudioVideosContent() {
           </table>
         </div>
       </div>
+
+      {/* 3-Dots Smooth Action Menu rendered in fixed portal coordinates to prevent overflow clipping */}
+      {activeActionMenuVideoId && actionMenuCoords && (() => {
+        const activeVideo = videos.find((item) => item.id === activeActionMenuVideoId);
+        if (!activeVideo) return null;
+        return (
+          <>
+            <div
+              className="fixed inset-0 z-40"
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveActionMenuVideoId(null);
+                setActionMenuCoords(null);
+              }}
+            />
+            <div
+              style={{
+                position: "fixed",
+                top: actionMenuCoords.top !== undefined ? `${actionMenuCoords.top}px` : undefined,
+                bottom: actionMenuCoords.bottom !== undefined ? `${actionMenuCoords.bottom}px` : undefined,
+                right: `${actionMenuCoords.right}px`,
+              }}
+              className="z-50 w-48 rounded-2xl bg-[#212121] border border-white/[0.12] p-1.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 select-none text-left"
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveActionMenuVideoId(null);
+                  setActionMenuCoords(null);
+                  handleOpenEdit(activeVideo);
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:bg-[#272727] hover:text-white transition-colors cursor-pointer"
+              >
+                <Pencil className="h-3.5 w-3.5 text-zinc-400" />
+                <span>Edit details</span>
+              </button>
+              <Link
+                href="/studio/analytics"
+                onClick={() => {
+                  setActiveActionMenuVideoId(null);
+                  setActionMenuCoords(null);
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:bg-[#272727] hover:text-white transition-colors"
+              >
+                <BarChart3 className="h-3.5 w-3.5 text-zinc-400" />
+                <span>Analytics</span>
+              </Link>
+              <Link
+                href="/studio/comments"
+                onClick={() => {
+                  setActiveActionMenuVideoId(null);
+                  setActionMenuCoords(null);
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:bg-[#272727] hover:text-white transition-colors"
+              >
+                <MessageSquare className="h-3.5 w-3.5 text-zinc-400" />
+                <span>Comments</span>
+              </Link>
+              <Link
+                href={`/watch?v=${activeVideo.id}`}
+                onClick={() => {
+                  setActiveActionMenuVideoId(null);
+                  setActionMenuCoords(null);
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:bg-[#272727] hover:text-white transition-colors"
+              >
+                <ExternalLink className="h-3.5 w-3.5 text-zinc-400" />
+                <span>Watch on Entropy</span>
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  const vidId = activeVideo.id;
+                  setActiveActionMenuVideoId(null);
+                  setActionMenuCoords(null);
+                  setDeletingVideoId(vidId);
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-300 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+              >
+                <Trash2 className="h-3.5 w-3.5 text-zinc-400" />
+                <span>Delete</span>
+              </button>
+            </div>
+          </>
+        );
+      })()}
 
       {/* Edit Video Details Modal */}
       {editingVideo && (
