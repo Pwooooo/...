@@ -115,13 +115,15 @@ export default function StudioLayout({ children }: StudioLayoutProps) {
             <Menu className="h-5 w-5" />
           </button>
 
-          <Link href="/studio" className="flex items-center gap-2 group">
-            <div className="h-7 w-7 rounded-lg bg-red-600 flex items-center justify-center font-black text-sm tracking-tighter text-white shadow-md group-hover:scale-105 transition-transform">
-              E
-            </div>
+          <Link href="/studio" className="flex items-center gap-2.5 group">
+            <img
+              src="/entropy-icon.png"
+              alt="Entropy logo"
+              className="h-7 w-7 object-contain group-hover:scale-105 transition-transform"
+            />
             <div className="flex items-baseline gap-1.5">
               <span className="font-bold text-base tracking-tight text-white">Entropy</span>
-              <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 font-bold tracking-wider border border-red-500/30">
+              <span className="text-xs font-semibold text-white tracking-normal">
                 Studio
               </span>
             </div>
