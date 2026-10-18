@@ -17,7 +17,6 @@ import {
   TrendingUp,
   Users,
   Clock,
-  Sparkles,
   ArrowRight,
   ExternalLink,
   Heart,
@@ -466,30 +465,7 @@ export default function StudioDashboardPage() {
             </div>
           </div>
 
-          {/* 3. Studio Highlights & Creator Tools */}
-          <div className="rounded-2xl bg-[#141414] border border-white/[0.08] p-5 shadow-xl relative overflow-hidden">
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="h-4 w-4 text-white" />
-              <h3 className="font-bold text-sm text-white">Entropy Studio 2.0</h3>
-            </div>
-            <p className="text-xs text-zinc-400 leading-relaxed">
-              Experience lightning-fast uploads, local zero-storage offline testing, custom theater mode, and interactive floating mini player.
-            </p>
-            <div className="mt-4 flex items-center gap-3">
-              <Link
-                href="/studio/customization"
-                className="px-3.5 py-1.5 rounded-full bg-white text-black font-semibold text-xs hover:bg-zinc-200 transition-all shadow cursor-pointer"
-              >
-                Customize channel
-              </Link>
-              <Link
-                href="/studio/upload?type=short"
-                className="px-3.5 py-1.5 rounded-full bg-white/10 text-white font-semibold text-xs hover:bg-white/20 transition-all cursor-pointer"
-              >
-                Create Short
-              </Link>
-            </div>
-          </div>
+
         </div>
       </div>
     </div>
