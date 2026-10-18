@@ -376,6 +376,14 @@ export default function StudioCommentsPage() {
 
             return (
               <div key={comment.id} className="p-5 hover:bg-white/[0.02] transition-colors space-y-3">
+                {/* Pinned by you banner matching YouTube Studio & Watch page */}
+                {comment.isPinned && (
+                  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-400 pl-12 -mb-1">
+                    <Pin className="h-3 w-3 text-zinc-300 fill-zinc-300 rotate-45" />
+                    <span>Pinned by you</span>
+                  </div>
+                )}
+
                 {/* Top Row: User details & Video context badge */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
@@ -398,11 +406,6 @@ export default function StudioCommentsPage() {
                         <span className="text-[11px] text-zinc-500 font-mono">
                           {comment.timeAgo || "Recently"}
                         </span>
-                        {comment.isPinned && (
-                          <span className="px-1.5 py-0.2 rounded bg-white/10 text-white text-[10px] font-bold border border-white/20 flex items-center gap-1">
-                            <Pin className="h-2.5 w-2.5" /> Pinned
-                          </span>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -473,10 +476,15 @@ export default function StudioCommentsPage() {
                     <button
                       type="button"
                       onClick={() => handleTogglePin(videoId, comment.id)}
-                      className="flex items-center gap-1.5 px-2 py-1 rounded-full hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
-                      title={comment.isPinned ? "Unpin" : "Pin to top"}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-colors cursor-pointer ${
+                        comment.isPinned
+                          ? "bg-white/10 text-white font-semibold border border-white/20"
+                          : "hover:bg-white/10 hover:text-white"
+                      }`}
+                      title={comment.isPinned ? "Unpin comment" : "Pin to top"}
                     >
-                      <Pin className={`h-3.5 w-3.5 ${comment.isPinned ? "text-white fill-white" : ""}`} />
+                      <Pin className={`h-3.5 w-3.5 rotate-45 ${comment.isPinned ? "text-white fill-white" : ""}`} />
+                      <span>{comment.isPinned ? "Pinned" : "Pin"}</span>
                     </button>
 
                     {/* Delete comment */}
