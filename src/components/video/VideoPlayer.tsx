@@ -33,12 +33,14 @@ export interface VideoPlayerHandle {
   play: () => void;
   pause: () => void;
   getCurrentTime: () => number;
+  isPaused: () => boolean;
 }
 
 interface VideoPlayerProps {
   src: string;
   poster?: string;
   autoPlay?: boolean;
+  initialTime?: number;
   chapters?: VideoChapter[];
   highlights?: VideoHighlight[];
   onTimeChange?: (time: number) => void;
@@ -54,6 +56,7 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
       src,
       poster,
       autoPlay = false,
+      initialTime = 0,
       chapters = [],
       highlights = [],
       onTimeChange,
@@ -103,6 +106,7 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
         setIsPlaying(false);
       },
       getCurrentTime: () => videoRef.current?.currentTime || 0,
+      isPaused: () => videoRef.current?.paused ?? true,
     }));
 
     // Initialize Video & HLS
@@ -245,7 +249,16 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
       const video = videoRef.current;
       if (!video) return;
       setDuration(video.duration);
+      if (initialTime && initialTime > 0) {
+        video.currentTime = initialTime;
+      }
     };
+
+    useEffect(() => {
+      if (initialTime && initialTime > 0 && videoRef.current) {
+        videoRef.current.currentTime = initialTime;
+      }
+    }, [initialTime]);
 
     const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
       const video = videoRef.current;

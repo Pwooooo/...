@@ -31,6 +31,8 @@ import {
   MoreVertical,
   Pencil,
   Trash2,
+  PictureInPicture2,
+  Maximize2,
 } from "lucide-react";
 import { cn, formatDuration, formatViews, formatTimeAgo, formatSubscribers } from "@/lib/utils";
 import { ALL_VIDEOS, SAMPLE_CHAPTERS, SAMPLE_HIGHLIGHTS } from "@/lib/mock-data";
@@ -45,7 +47,8 @@ function WatchContent() {
   const searchParams = useSearchParams();
   const videoId = searchParams.get("v") || "";
   const initialTimestamp = parseInt(searchParams.get("t") || "0", 10);
-  const { activeVideo, closeMiniPlayer, openMiniPlayer } = useMiniPlayer();
+  const { activeVideo, closeMiniPlayer, openMiniPlayer, currentTime: miniPlayerTime } = useMiniPlayer();
+  const [restoredSeekTime, setRestoredSeekTime] = useState<number>(0);
   const playerRef = useRef<VideoPlayerHandle>(null);
   const chaptersPanelRef = useRef<HTMLDivElement>(null);
 
@@ -84,13 +87,20 @@ function WatchContent() {
   const handleOpenMiniPlayer = () => {
     if (!currentVideo) return;
     const curTime = playerRef.current?.getCurrentTime() || 0;
-    openMiniPlayer(currentVideo, curTime, true);
-    router.push("/");
+    const isPlaying = playerRef.current ? !playerRef.current.isPaused() : true;
+    openMiniPlayer(currentVideo, curTime, isPlaying);
   };
 
-  // Close floating mini player if user opened the same video in watch page
+  const handleRestoreFromMiniPlayer = () => {
+    if (miniPlayerTime > 0) {
+      setRestoredSeekTime(Math.floor(miniPlayerTime));
+    }
+    closeMiniPlayer();
+  };
+
+  // Close floating mini player ONLY if user opened a DIFFERENT video on the watch page
   useEffect(() => {
-    if (activeVideo && activeVideo.id === videoId) {
+    if (activeVideo && videoId && activeVideo.id !== videoId) {
       closeMiniPlayer();
     }
   }, [activeVideo, videoId, closeMiniPlayer]);
@@ -1028,19 +1038,48 @@ function WatchContent() {
                 : "w-full"
             }
           >
-            <VideoPlayer
-              ref={playerRef}
-              src={resolvedVideoUrl || currentVideo.rawVideoUrl || currentVideo.masterPlaylistUrl || "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"}
-              poster={currentVideo.thumbnailUrl || undefined}
-              autoPlay={true}
-              chapters={chapters}
-              highlights={highlights}
-              onTimeChange={setCurrentPlaybackTime}
-              onToggleChapters={handleToggleChapters}
-              isTheaterMode={isTheaterMode}
-              onToggleTheater={handleToggleTheater}
-              onToggleMiniPlayer={handleOpenMiniPlayer}
-            />
+            {activeVideo && activeVideo.id === currentVideo.id ? (
+              <div className="w-full aspect-video rounded-2xl bg-zinc-950/80 border border-white/10 flex flex-col items-center justify-center p-6 text-center shadow-xl backdrop-blur-sm select-none">
+                <div className="p-4 rounded-full bg-white/5 border border-white/10 mb-3">
+                  <PictureInPicture2 className="h-8 w-8 text-white animate-pulse" />
+                </div>
+                <h3 className="text-base font-semibold text-white">Playing in Miniplayer</h3>
+                <p className="text-xs text-zinc-400 mt-1 max-w-sm">
+                  Video is currently playing in the floating player in the bottom right corner. You can read comments, explore, or restore to full screen.
+                </p>
+                <div className="flex items-center gap-3 mt-4">
+                  <button
+                    type="button"
+                    onClick={handleRestoreFromMiniPlayer}
+                    className="px-4 py-2 bg-white text-black font-semibold rounded-full text-xs hover:bg-zinc-200 transition-all flex items-center gap-1.5 cursor-pointer shadow"
+                  >
+                    <Maximize2 className="h-3.5 w-3.5" />
+                    <span>Expand Video</span>
+                  </button>
+                  <Link
+                    href="/"
+                    className="px-4 py-2 bg-white/10 text-white font-medium rounded-full text-xs hover:bg-white/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>Browse Home</span>
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <VideoPlayer
+                ref={playerRef}
+                src={resolvedVideoUrl || currentVideo.rawVideoUrl || currentVideo.masterPlaylistUrl || "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"}
+                poster={currentVideo.thumbnailUrl || undefined}
+                autoPlay={true}
+                initialTime={initialTimestamp || restoredSeekTime || 0}
+                chapters={chapters}
+                highlights={highlights}
+                onTimeChange={setCurrentPlaybackTime}
+                onToggleChapters={handleToggleChapters}
+                isTheaterMode={isTheaterMode}
+                onToggleTheater={handleToggleTheater}
+                onToggleMiniPlayer={handleOpenMiniPlayer}
+              />
+            )}
           </div>
         </div>
 

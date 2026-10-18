@@ -3,10 +3,12 @@
 import React, { createContext, useContext, useState, useRef, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { VideoItem } from "@/types";
-import { Play, Pause, X, Maximize2, RotateCcw, RotateCw, Volume2, VolumeX } from "lucide-react";
+import { Play, Pause, X, Maximize2, RotateCcw, RotateCw, Volume2, VolumeX, PictureInPicture2 } from "lucide-react";
 import Link from "next/link";
 import { formatDuration } from "@/lib/utils";
 import { resolveChannelAvatar } from "@/lib/user-validation";
+import { getVideoBlob } from "@/lib/video-storage";
+import Hls from "hls.js";
 
 interface MiniPlayerContextType {
   activeVideo: VideoItem | null;
@@ -28,11 +30,12 @@ export function MiniPlayerProvider({ children }: { children: React.ReactNode }) 
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
+  const [resolvedSrc, setResolvedSrc] = useState<string>("");
+
   const videoRef = useRef<HTMLVideoElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
   const router = useRouter();
   const pathname = usePathname();
-
-  const isWatchPage = pathname === "/watch";
 
   const openMiniPlayer = (video: VideoItem, initialTime = 0, autoPlay = true) => {
     setActiveVideo(video);
@@ -41,12 +44,18 @@ export function MiniPlayerProvider({ children }: { children: React.ReactNode }) 
   };
 
   const closeMiniPlayer = () => {
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
     if (videoRef.current) {
       videoRef.current.pause();
+      videoRef.current.src = "";
     }
     setActiveVideo(null);
     setIsPlaying(false);
     setCurrentTime(0);
+    setResolvedSrc("");
   };
 
   const togglePlay = () => {
@@ -62,33 +71,110 @@ export function MiniPlayerProvider({ children }: { children: React.ReactNode }) 
 
   const seekTo = (seconds: number) => {
     if (!videoRef.current) return;
-    videoRef.current.currentTime = Math.max(0, Math.min(seconds, duration || 0));
-    setCurrentTime(videoRef.current.currentTime);
+    const target = Math.max(0, Math.min(seconds, duration || 0));
+    videoRef.current.currentTime = target;
+    setCurrentTime(target);
   };
 
   const expandToWatch = () => {
     if (!activeVideo) return;
     const seekSec = Math.floor(currentTime);
-    router.push(`/watch?v=${activeVideo.id}&t=${seekSec}`);
+    const targetId = activeVideo.id;
     closeMiniPlayer();
+    if (pathname === "/watch") {
+      router.replace(`/watch?v=${targetId}&t=${seekSec}`);
+    } else {
+      router.push(`/watch?v=${targetId}&t=${seekSec}`);
+    }
   };
 
-  // Sync video time and events
+  // Resolve source URL whenever activeVideo changes
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !activeVideo) return;
+    let isCancelled = false;
+    let blobUrl: string | null = null;
 
-    if (currentTime > 0 && Math.abs(video.currentTime - currentTime) > 2) {
-      video.currentTime = currentTime;
+    async function resolveSource() {
+      if (!activeVideo) {
+        setResolvedSrc("");
+        return;
+      }
+
+      // Check IndexedDB first for offline/local videos
+      const localBlob = await getVideoBlob(activeVideo.id);
+      if (isCancelled) return;
+      if (localBlob) {
+        blobUrl = URL.createObjectURL(localBlob);
+        setResolvedSrc(blobUrl);
+        return;
+      }
+
+      let src = activeVideo.rawVideoUrl || "";
+      if (!src) {
+        if (activeVideo.id.startsWith("v-srv-") || activeVideo.id.startsWith("v-user-")) {
+          src = `/api/videos/${activeVideo.id}/stream`;
+        } else if (activeVideo.masterPlaylistUrl) {
+          src = activeVideo.masterPlaylistUrl;
+        } else {
+          src = "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8";
+        }
+      }
+
+      if (!isCancelled) {
+        setResolvedSrc(src);
+      }
     }
 
-    if (isPlaying) {
-      video.play().catch(() => {
-        setIsPlaying(false);
-      });
-    }
+    resolveSource();
+
+    return () => {
+      isCancelled = true;
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+      }
+    };
   }, [activeVideo]);
 
+  // Attach resolvedSrc to video element (with HLS support)
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !resolvedSrc) return;
+
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+
+    const isHls = resolvedSrc.endsWith(".m3u8") || resolvedSrc.includes(".m3u8");
+
+    if (isHls && Hls.isSupported()) {
+      const hls = new Hls({ capLevelToPlayerSize: true, autoStartLoad: true });
+      hlsRef.current = hls;
+      hls.loadSource(resolvedSrc);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        if (currentTime > 0) {
+          video.currentTime = currentTime;
+        }
+        if (isPlaying) {
+          video.play().catch(() => {});
+        }
+      });
+      return () => {
+        hls.destroy();
+        hlsRef.current = null;
+      };
+    } else {
+      video.src = resolvedSrc;
+      if (currentTime > 0) {
+        video.currentTime = currentTime;
+      }
+      if (isPlaying) {
+        video.play().catch(() => {});
+      }
+    }
+  }, [resolvedSrc]);
+
+  // Keep state synchronized with video element
   const handleTimeUpdate = () => {
     if (videoRef.current) {
       setCurrentTime(videoRef.current.currentTime);
@@ -115,8 +201,17 @@ export function MiniPlayerProvider({ children }: { children: React.ReactNode }) 
     }
   };
 
-  // Video source resolution
-  const videoSrc = activeVideo?.rawVideoUrl || activeVideo?.masterPlaylistUrl || "";
+  const toggleNativePiP = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!videoRef.current) return;
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else if (document.pictureInPictureEnabled) {
+        await videoRef.current.requestPictureInPicture();
+      }
+    } catch {}
+  };
 
   return (
     <MiniPlayerContext.Provider
@@ -134,8 +229,8 @@ export function MiniPlayerProvider({ children }: { children: React.ReactNode }) 
     >
       {children}
 
-      {/* Floating In-App Mini Player (Hidden on /watch page of active video) */}
-      {activeVideo && !isWatchPage && (
+      {/* Floating In-App Mini Player */}
+      {activeVideo && (
         <aside
           role="region"
           aria-label="Video miniplayer"
@@ -145,7 +240,6 @@ export function MiniPlayerProvider({ children }: { children: React.ReactNode }) 
           <div className="relative aspect-video w-full bg-black group overflow-hidden">
             <video
               ref={videoRef}
-              src={videoSrc}
               poster={activeVideo.thumbnailUrl || undefined}
               onTimeUpdate={handleTimeUpdate}
               onLoadedMetadata={handleLoadedMetadata}
@@ -160,20 +254,30 @@ export function MiniPlayerProvider({ children }: { children: React.ReactNode }) 
 
             {/* Quick Hover Controls Overlay */}
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2 pointer-events-none">
-              {/* Top Bar: Expand & Close */}
+              {/* Top Bar: PiP, Expand & Close */}
               <div className="flex items-center justify-between w-full pointer-events-auto">
-                <button
-                  type="button"
-                  onClick={expandToWatch}
-                  className="p-1.5 rounded-full bg-black/60 hover:bg-black/90 text-white transition-colors"
-                  title="Expand to watch page"
-                >
-                  <Maximize2 className="h-4 w-4" />
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={expandToWatch}
+                    className="p-1.5 rounded-full bg-black/60 hover:bg-black/90 text-white transition-colors cursor-pointer"
+                    title="Expand to watch page"
+                  >
+                    <Maximize2 className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={toggleNativePiP}
+                    className="p-1.5 rounded-full bg-black/60 hover:bg-black/90 text-white transition-colors cursor-pointer"
+                    title="Picture-in-Picture window"
+                  >
+                    <PictureInPicture2 className="h-4 w-4" />
+                  </button>
+                </div>
                 <button
                   type="button"
                   onClick={closeMiniPlayer}
-                  className="p-1.5 rounded-full bg-black/60 hover:bg-black/90 text-white transition-colors"
+                  className="p-1.5 rounded-full bg-black/60 hover:bg-black/90 text-white transition-colors cursor-pointer"
                   title="Close miniplayer"
                 >
                   <X className="h-4 w-4" />
@@ -184,24 +288,33 @@ export function MiniPlayerProvider({ children }: { children: React.ReactNode }) 
               <div className="flex items-center justify-center gap-4 pointer-events-auto">
                 <button
                   type="button"
-                  onClick={() => skipSeconds(-10)}
-                  className="p-2 rounded-full bg-black/60 hover:bg-black/90 text-white transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    skipSeconds(-10);
+                  }}
+                  className="p-2 rounded-full bg-black/60 hover:bg-black/90 text-white transition-colors cursor-pointer"
                   title="Rewind 10s"
                 >
                   <RotateCcw className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
-                  onClick={togglePlay}
-                  className="p-3 rounded-full bg-white text-black hover:bg-zinc-200 transition-transform active:scale-95 shadow-lg"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    togglePlay();
+                  }}
+                  className="p-3 rounded-full bg-white text-black hover:bg-zinc-200 transition-transform active:scale-95 shadow-lg cursor-pointer"
                   title={isPlaying ? "Pause" : "Play"}
                 >
                   {isPlaying ? <Pause className="h-4 w-4 fill-black" /> : <Play className="h-4 w-4 fill-black ml-0.5" />}
                 </button>
                 <button
                   type="button"
-                  onClick={() => skipSeconds(10)}
-                  className="p-2 rounded-full bg-black/60 hover:bg-black/90 text-white transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    skipSeconds(10);
+                  }}
+                  className="p-2 rounded-full bg-black/60 hover:bg-black/90 text-white transition-colors cursor-pointer"
                   title="Forward 10s"
                 >
                   <RotateCw className="h-4 w-4" />
@@ -212,8 +325,11 @@ export function MiniPlayerProvider({ children }: { children: React.ReactNode }) 
               <div className="flex items-center justify-between text-[11px] font-mono text-zinc-300 pointer-events-auto">
                 <button
                   type="button"
-                  onClick={() => setIsMuted((m) => !m)}
-                  className="p-1 rounded bg-black/60 hover:bg-black/90 text-white transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsMuted((m) => !m);
+                  }}
+                  className="p-1 rounded bg-black/60 hover:bg-black/90 text-white transition-colors cursor-pointer"
                   title={isMuted ? "Unmute" : "Mute"}
                 >
                   {isMuted ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
@@ -228,6 +344,7 @@ export function MiniPlayerProvider({ children }: { children: React.ReactNode }) 
             <div
               className="absolute bottom-0 left-0 right-0 h-1 bg-white/20 cursor-pointer group-hover:h-1.5 transition-all"
               onClick={(e) => {
+                e.stopPropagation();
                 const rect = e.currentTarget.getBoundingClientRect();
                 const pos = (e.clientX - rect.left) / rect.width;
                 seekTo(pos * (duration || 1));
@@ -275,7 +392,7 @@ export function MiniPlayerProvider({ children }: { children: React.ReactNode }) 
               <button
                 type="button"
                 onClick={togglePlay}
-                className="p-1.5 rounded-lg text-zinc-300 hover:text-white hover:bg-white/10 transition-colors"
+                className="p-1.5 rounded-lg text-zinc-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                 title={isPlaying ? "Pause" : "Play"}
               >
                 {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
@@ -283,7 +400,7 @@ export function MiniPlayerProvider({ children }: { children: React.ReactNode }) 
               <button
                 type="button"
                 onClick={expandToWatch}
-                className="p-1.5 rounded-lg text-zinc-300 hover:text-white hover:bg-white/10 transition-colors"
+                className="p-1.5 rounded-lg text-zinc-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                 title="Expand"
               >
                 <Maximize2 className="h-4 w-4" />
@@ -291,7 +408,7 @@ export function MiniPlayerProvider({ children }: { children: React.ReactNode }) 
               <button
                 type="button"
                 onClick={closeMiniPlayer}
-                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                 title="Close"
               >
                 <X className="h-4 w-4" />
