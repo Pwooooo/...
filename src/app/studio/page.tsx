@@ -376,9 +376,6 @@ export default function StudioDashboardPage() {
                 <BarChart3 className="h-4 w-4 text-white" />
                 <h3 className="font-bold text-sm text-white">Channel analytics</h3>
               </div>
-              <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-zinc-300 bg-white/5 px-2 py-0.5 rounded border border-white/10">
-                Active
-              </span>
             </div>
 
             <div className="mt-4 space-y-4">
