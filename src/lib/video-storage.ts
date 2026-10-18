@@ -125,9 +125,75 @@ export function isNextJsFillerVideo(video?: { id?: string; title?: string; chann
   return isFillerVideo(video);
 }
 
-// ----------------- Base Static Videos (All filler removed) -----------------
+// ----------------- Base Static Videos -----------------
+export const DEFAULT_ENTROPY_VIDEOS: VideoItem[] = [
+  {
+    id: "v-user-video-1",
+    title: "Entropy 2.0 Walkthrough: Theater Mode & Floating Mini Player",
+    description: "Explore the all-new Entropy 2.0 release featuring seamless zero-interruption Theater Mode, custom in-app floating Mini Player, and high-performance video streaming.",
+    thumbnailUrl: "/placeholder-thumb.jpg",
+    masterPlaylistUrl: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+    rawVideoUrl: "/uploads/videos/v-user-video-1.mp4",
+    durationSeconds: 185,
+    viewCount: 820,
+    publishedAt: "2026-10-18T20:00:00.000Z",
+    category: "Technology",
+    tags: ["Technology", "Streaming", "WebDev", "Entropy"],
+    isShort: false,
+    channel: {
+      id: "ch-entropy",
+      handle: "entropy",
+      displayName: "Entropy Team",
+      avatarUrl: "/entropy-icon.png",
+      subscribersCount: 1250,
+    },
+    chapters: [
+      {
+        id: "ch-1",
+        title: "Introduction & Welcome",
+        seconds: 0,
+        thumbnailUrl: "/placeholder-thumb.jpg",
+      },
+      {
+        id: "ch-2",
+        title: "Theater Mode Overview",
+        seconds: 45,
+        thumbnailUrl: "/placeholder-thumb.jpg",
+      },
+      {
+        id: "ch-3",
+        title: "Floating Mini Player Demo",
+        seconds: 110,
+        thumbnailUrl: "/placeholder-thumb.jpg",
+      },
+    ],
+  },
+  {
+    id: "v-user-short-1",
+    title: "Entropy Mobile & Theater Mode Demo #Shorts",
+    description: "Quick look at Entropy's responsive layout, Theater Mode, and picture-in-picture floating player.",
+    thumbnailUrl: "/placeholder-thumb.jpg",
+    masterPlaylistUrl: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+    rawVideoUrl: "/uploads/videos/v-user-short-1.mp4",
+    durationSeconds: 24,
+    viewCount: 1420,
+    publishedAt: "2026-10-18T20:00:00.000Z",
+    category: "Shorts",
+    tags: ["Shorts", "Tech", "Entropy"],
+    isShort: true,
+    songName: "Entropy Ambient Synth",
+    channel: {
+      id: "ch-entropy",
+      handle: "entropy",
+      displayName: "Entropy Team",
+      avatarUrl: "/entropy-icon.png",
+      subscribersCount: 1250,
+    },
+  },
+];
+
 export function getBaseVideos(): VideoItem[] {
-  return [];
+  return DEFAULT_ENTROPY_VIDEOS;
 }
 
 // ----------------- Central Client Video Cache -----------------
@@ -257,17 +323,20 @@ export function getAllCombinedVideos(): VideoItem[] {
       // Merge: only keep real non-filler videos
       const nonSampleMap = new Map<string, VideoItem>();
 
-      userUploads.forEach((v) => {
+      getBaseVideos().forEach((v) => {
         if (!isFillerVideo(v)) nonSampleMap.set(v.id, v);
       });
       serverCached.forEach((v) => {
+        if (!isFillerVideo(v)) nonSampleMap.set(v.id, v);
+      });
+      userUploads.forEach((v) => {
         if (!isFillerVideo(v)) nonSampleMap.set(v.id, v);
       });
 
       return Array.from(nonSampleMap.values());
     } catch {}
   }
-  return [];
+  return getBaseVideos();
 }
 
 export function getUserVideos(): VideoItem[] {
