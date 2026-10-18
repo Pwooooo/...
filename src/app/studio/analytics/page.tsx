@@ -25,6 +25,36 @@ import StudioDropdown from "@/components/ui/StudioDropdown";
 
 export type MetricType = "views" | "watchTime" | "subscribers" | "impressions";
 
+const ANALYTICS_TABS: {
+  id: "overview" | "reach" | "engagement" | "audience";
+  label: string;
+  description: string;
+}[] = [
+  {
+    id: "overview",
+    label: "Overview",
+    description: "Overall channel performance, views, watch time, and real-time activity.",
+  },
+  {
+    id: "reach",
+    label: "Reach",
+    description:
+      "Impressions funnels, click-through rate trends, unique viewer reach, and external traffic source breakdowns will be available here soon.",
+  },
+  {
+    id: "engagement",
+    label: "Engagement",
+    description:
+      "Audience retention curves, watch time per viewer segment, top cards, and end screen interactions will be available here soon.",
+  },
+  {
+    id: "audience",
+    label: "Audience",
+    description:
+      "Subscriber growth retention, returning viewers vs new viewers, and active viewer times will be available here soon.",
+  },
+];
+
 export default function StudioAnalyticsPage() {
   const { user } = useAuth();
   const [videos, setVideos] = useState<VideoItem[]>([]);
@@ -248,25 +278,41 @@ export default function StudioAnalyticsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 pb-2">
-        {(["overview", "reach", "engagement", "audience"] as const).map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 rounded-xl text-xs font-bold capitalize transition-all cursor-pointer ${
-              activeTab === tab
-                ? "bg-white text-black shadow"
-                : "text-zinc-400 hover:text-white hover:bg-white/[0.06]"
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center gap-2 pb-2">
+        {ANALYTICS_TABS.map((tab) => {
+          const isOverview = tab.id === "overview";
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                isActive
+                  ? "bg-white text-black shadow"
+                  : "text-zinc-400 hover:text-white hover:bg-white/[0.06]"
+              }`}
+            >
+              <span>{tab.label}</span>
+              {!isOverview && (
+                <span
+                  className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full font-semibold transition-colors ${
+                    isActive
+                      ? "bg-black/10 text-black/70"
+                      : "bg-white/[0.06] text-zinc-400"
+                  }`}
+                >
+                  Coming Soon
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Main Grid: Left Charts + Right Realtime */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {activeTab === "overview" ? (
+        /* Main Grid: Left Charts + Right Realtime */
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column (Charts & Metric Cards) */}
         <div className="lg:col-span-2 space-y-6">
           {/* Summary Banner */}
@@ -572,6 +618,32 @@ export default function StudioAnalyticsPage() {
           </div>
         </div>
       </div>
+      ) : (
+        /* Coming Soon State for Reach, Engagement, and Audience */
+        <div className="rounded-2xl bg-[#141414] border border-white/[0.08] p-12 text-center flex flex-col items-center justify-center min-h-[460px] shadow-xl animate-in fade-in duration-200">
+          <div className="h-16 w-16 rounded-full bg-white/[0.04] border border-white/10 flex items-center justify-center text-white mb-4 shadow-inner">
+            {activeTab === "reach" && <Radio className="h-7 w-7 text-white" />}
+            {activeTab === "engagement" && <Clock className="h-7 w-7 text-white" />}
+            {activeTab === "audience" && <Users className="h-7 w-7 text-white" />}
+          </div>
+          <span className="text-[11px] font-mono uppercase tracking-widest text-zinc-400 font-semibold px-3 py-1 rounded-full bg-white/5 border border-white/10 mb-3">
+            Coming Soon
+          </span>
+          <h2 className="text-xl font-bold text-white capitalize">
+            {activeTab} Analytics
+          </h2>
+          <p className="text-xs text-zinc-400 mt-2 max-w-md leading-relaxed">
+            {ANALYTICS_TABS.find((t) => t.id === activeTab)?.description}
+          </p>
+          <button
+            type="button"
+            onClick={() => setActiveTab("overview")}
+            className="mt-6 px-5 py-2.5 rounded-full bg-white text-black font-bold text-xs hover:bg-zinc-200 transition-all shadow cursor-pointer active:scale-95"
+          >
+            Back to Overview
+          </button>
+        </div>
+      )}
     </div>
   );
 }
