@@ -8,6 +8,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const UPLOADS_DIR = path.join(process.cwd(), "public", "uploads", "videos");
+const PUBLIC_VIDEOS_DIR = path.join(process.cwd(), "public", "videos");
 
 const MIME_MAP: Record<string, string> = {
   ".mp4": "video/mp4",
@@ -41,19 +42,23 @@ function getR2Client() {
 }
 
 function findLocalVideoFile(id: string): string | null {
-  if (!fs.existsSync(UPLOADS_DIR)) return null;
-
+  const dirs = [PUBLIC_VIDEOS_DIR, UPLOADS_DIR];
   const extensions = [".mp4", ".webm", ".mov", ".mkv", ".m4v"];
-  for (const ext of extensions) {
-    const candidate = path.join(UPLOADS_DIR, `${id}${ext}`);
-    if (fs.existsSync(candidate)) return candidate;
-  }
 
-  try {
-    const files = fs.readdirSync(UPLOADS_DIR);
-    const match = files.find((f) => f.startsWith(`${id}.`));
-    if (match) return path.join(UPLOADS_DIR, match);
-  } catch {}
+  for (const dir of dirs) {
+    if (!fs.existsSync(dir)) continue;
+
+    for (const ext of extensions) {
+      const candidate = path.join(dir, `${id}${ext}`);
+      if (fs.existsSync(candidate)) return candidate;
+    }
+
+    try {
+      const files = fs.readdirSync(dir);
+      const match = files.find((f) => f.startsWith(`${id}.`));
+      if (match) return path.join(dir, match);
+    } catch {}
+  }
 
   return null;
 }
