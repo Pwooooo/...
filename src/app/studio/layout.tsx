@@ -650,7 +650,7 @@ export default function StudioLayout({ children }: StudioLayoutProps) {
               <div className="text-xs text-zinc-400">
                 {settingsToast && (
                   <span className="text-white font-semibold flex items-center gap-1.5">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                    <CheckCircle2 className="h-4 w-4 text-white" />
                     {settingsToast}
                   </span>
                 )}

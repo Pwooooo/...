@@ -300,7 +300,7 @@ export default function StudioUploadPage() {
               </h2>
               <p className="text-xs text-zinc-400 mb-8 max-w-md mx-auto">
                 {uploadType === "short"
-                  ? "Your YouTube Short has been processed and is ready for streaming in the Shorts feed."
+                  ? "Your Short has been processed and is ready for streaming in the Shorts feed."
                   : "Your video has been processed and is ready for streaming on Entropy."}
               </p>
 

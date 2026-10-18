@@ -306,7 +306,24 @@ export default function StudioDashboardPage() {
             </div>
 
             <div className="mt-4 space-y-1">
-              {videos.slice(0, 4).map((v) => (
+              {videos.length === 0 ? (
+                <div className="py-8 text-center flex flex-col items-center">
+                  <div className="h-12 w-12 rounded-full bg-white/[0.04] border border-white/10 flex items-center justify-center text-zinc-400 mb-3">
+                    <VideoIcon className="h-6 w-6" />
+                  </div>
+                  <p className="text-xs font-semibold text-white">No videos published yet</p>
+                  <p className="text-[11px] text-zinc-400 mt-1 max-w-xs">
+                    Upload your first video to start tracking performance metrics and comments.
+                  </p>
+                  <Link
+                    href="/studio/upload"
+                    className="mt-4 px-4 py-2 rounded-full bg-white text-black font-bold text-xs hover:bg-zinc-200 transition-all shadow cursor-pointer"
+                  >
+                    Upload video
+                  </Link>
+                </div>
+              ) : (
+                videos.slice(0, 4).map((v) => (
                 <div key={v.id} className="py-3 flex items-center justify-between gap-4 group">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="relative aspect-video w-20 flex-shrink-0 rounded-lg overflow-hidden bg-zinc-900 border border-white/10">
@@ -347,7 +364,8 @@ export default function StudioDashboardPage() {
                     </Link>
                   </div>
                 </div>
-              ))}
+              )))
+            }
             </div>
           </div>
         </div>
@@ -449,10 +467,10 @@ export default function StudioDashboardPage() {
                       <button
                         type="button"
                         onClick={() => handleToggleHeart(item.comment.id, item.videoId)}
-                        className={`p-1 rounded-full transition-colors cursor-pointer ${
+                        className={`p-1 rounded-full transition-colors cursor-pointer hover:bg-white/10 ${
                           item.comment.isHearted
-                            ? "text-white bg-white/10"
-                            : "text-zinc-500 hover:text-white hover:bg-white/10"
+                            ? "text-white"
+                            : "text-zinc-500 hover:text-white"
                         }`}
                         title={item.comment.isHearted ? "Unheart" : "Creator heart"}
                       >

@@ -219,7 +219,7 @@ export default function StudioCommentsPage() {
 
     const newReply: CommentReply = {
       id: `r-${Date.now()}`,
-      user: user?.name || "Entropy Team",
+      user: user?.name || "Creator",
       userHandle: user?.handle ? user.handle.replace(/^@/, "") : "creator",
       avatar: user?.avatarUrl || "/default-avatar.png",
       content: replyText.trim(),
@@ -248,7 +248,7 @@ export default function StudioCommentsPage() {
 
   // Filtered comments
   const filteredComments = commentsList.filter((item) => {
-    if (activeTab === "review") return false; // In YouTube studio, review is for flagged comments
+    if (activeTab === "review") return false; // Review is for flagged comments
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
