@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useEffect, useRef, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/navigation/Navbar";
 import Sidebar from "@/components/navigation/Sidebar";
 import VideoPlayer, { VideoPlayerHandle } from "@/components/video/VideoPlayer";
+import { useMiniPlayer } from "@/context/MiniPlayerContext";
 import {
   ThumbsUp,
   ThumbsDown,
@@ -40,10 +41,32 @@ import { getUserVideos, getVideoBlob, getAllCombinedVideos, getBaseVideos, fetch
 import { VideoItem } from "@/types";
 
 function WatchContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const videoId = searchParams.get("v") || "";
+  const initialTimestamp = parseInt(searchParams.get("t") || "0", 10);
+  const { activeVideo, closeMiniPlayer, openMiniPlayer } = useMiniPlayer();
   const playerRef = useRef<VideoPlayerHandle>(null);
   const chaptersPanelRef = useRef<HTMLDivElement>(null);
+
+  const [isTheaterMode, setIsTheaterMode] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        return localStorage.getItem("entropy_theater_mode") === "true";
+      } catch {}
+    }
+    return false;
+  });
+
+  const handleToggleTheater = () => {
+    setIsTheaterMode((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("entropy_theater_mode", String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   const [currentVideo, setCurrentVideo] = useState<VideoItem | null>(() => {
     const combined = getAllCombinedVideos();
@@ -57,6 +80,30 @@ function WatchContent() {
     const combined = getAllCombinedVideos();
     return combined.filter((v) => v.id !== videoId && !isShortVideo(v));
   });
+
+  const handleOpenMiniPlayer = () => {
+    if (!currentVideo) return;
+    const curTime = playerRef.current?.getCurrentTime() || 0;
+    openMiniPlayer(currentVideo, curTime, true);
+    router.push("/");
+  };
+
+  // Close floating mini player if user opened the same video in watch page
+  useEffect(() => {
+    if (activeVideo && activeVideo.id === videoId) {
+      closeMiniPlayer();
+    }
+  }, [activeVideo, videoId, closeMiniPlayer]);
+
+  // Jump to timestamp query param ?t=...
+  useEffect(() => {
+    if (initialTimestamp > 0) {
+      const timer = setTimeout(() => {
+        playerRef.current?.seekTo(initialTimestamp);
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [initialTimestamp, videoId]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -950,7 +997,7 @@ function WatchContent() {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 max-w-[1720px] mx-auto px-4 lg:px-6 py-4 relative">
+    <div className={`w-full transition-all duration-300 relative ${isTheaterMode ? "bg-black" : "max-w-[1720px] mx-auto px-4 lg:px-6 py-4"}`}>
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-white text-black px-4 py-2.5 rounded-xl font-semibold text-xs shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
@@ -959,19 +1006,52 @@ function WatchContent() {
         </div>
       )}
 
-      {/* Primary Left Column: Player & Info */}
-      <div className="flex-1 min-w-0">
-        {/* Adaptive Video Player with Chapters & forwardRef */}
-        <VideoPlayer
-          ref={playerRef}
-          src={resolvedVideoUrl || currentVideo.rawVideoUrl || currentVideo.masterPlaylistUrl || "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"}
-          poster={currentVideo.thumbnailUrl || undefined}
-          autoPlay={true}
-          chapters={chapters}
-          highlights={highlights}
-          onTimeChange={setCurrentPlaybackTime}
-          onToggleChapters={handleToggleChapters}
-        />
+      <div
+        className={`grid gap-6 ${
+          isTheaterMode
+            ? "grid-cols-1 lg:grid-cols-[1fr_400px] max-w-[1920px] mx-auto"
+            : "grid-cols-1 lg:grid-cols-[1fr_400px]"
+        }`}
+      >
+        {/* 1. Video Player Container */}
+        <div
+          className={
+            isTheaterMode
+              ? "col-span-full w-full bg-black border-b border-zinc-900/80 flex justify-center pb-2"
+              : "col-span-1 lg:col-start-1 lg:row-start-1"
+          }
+        >
+          <div
+            className={
+              isTheaterMode
+                ? "w-full max-w-[1920px] max-h-[82vh] aspect-video flex items-center justify-center"
+                : "w-full"
+            }
+          >
+            <VideoPlayer
+              ref={playerRef}
+              src={resolvedVideoUrl || currentVideo.rawVideoUrl || currentVideo.masterPlaylistUrl || "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"}
+              poster={currentVideo.thumbnailUrl || undefined}
+              autoPlay={true}
+              chapters={chapters}
+              highlights={highlights}
+              onTimeChange={setCurrentPlaybackTime}
+              onToggleChapters={handleToggleChapters}
+              isTheaterMode={isTheaterMode}
+              onToggleTheater={handleToggleTheater}
+              onToggleMiniPlayer={handleOpenMiniPlayer}
+            />
+          </div>
+        </div>
+
+        {/* 2. Primary Details & Comments Column */}
+        <div
+          className={`min-w-0 ${
+            isTheaterMode
+              ? "col-span-1 lg:col-start-1 lg:row-start-2 max-w-[1300px] w-full px-4 lg:pl-6 pb-8"
+              : "col-span-1 lg:col-start-1 lg:row-start-2"
+          }`}
+        >
 
         {/* Video Title */}
         <h1 className="mt-4 text-xl md:text-2xl font-bold text-white tracking-tight">
@@ -1787,8 +1867,14 @@ function WatchContent() {
         </div>
       </div>
 
-      {/* Recommended Up Next Videos & Chapters Side Panel (Right Column) */}
-      <div className="w-full lg:w-[400px] flex flex-col gap-3">
+      {/* 3. Recommended Up Next Videos & Chapters Side Panel (Right Column) */}
+        <div
+          className={`w-full flex flex-col gap-3 ${
+            isTheaterMode
+              ? "col-span-1 lg:col-start-2 lg:row-start-2 px-4 lg:pr-6 pb-8"
+              : "col-span-1 lg:col-start-2 lg:row-start-1 lg:row-span-2"
+          }`}
+        >
         {/* Chapters & Most Watched Parts Side Panel (Opened by clicking chapter text in player) */}
         {isChaptersPanelOpen && chapters.length > 0 && (
           <div
@@ -1918,6 +2004,7 @@ function WatchContent() {
         ))}
       </div>
     </div>
+  </div>
   );
 }
 

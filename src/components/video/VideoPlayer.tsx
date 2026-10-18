@@ -22,6 +22,8 @@ import {
   X,
   Layers,
   Sparkles,
+  PictureInPicture2,
+  RectangleHorizontal,
 } from "lucide-react";
 import { formatDuration } from "@/lib/utils";
 import { VideoChapter, VideoHighlight } from "@/types";
@@ -41,6 +43,9 @@ interface VideoPlayerProps {
   highlights?: VideoHighlight[];
   onTimeChange?: (time: number) => void;
   onToggleChapters?: () => void;
+  isTheaterMode?: boolean;
+  onToggleTheater?: () => void;
+  onToggleMiniPlayer?: () => void;
 }
 
 const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
@@ -53,6 +58,9 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
       highlights = [],
       onTimeChange,
       onToggleChapters,
+      isTheaterMode = false,
+      onToggleTheater,
+      onToggleMiniPlayer,
     },
     ref
   ) => {
@@ -190,6 +198,12 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
         } else if (e.key === "f") {
           e.preventDefault();
           toggleFullscreen();
+        } else if (e.key === "t" || e.key === "T") {
+          e.preventDefault();
+          onToggleTheater?.();
+        } else if (e.key === "i" || e.key === "I") {
+          e.preventDefault();
+          onToggleMiniPlayer?.();
         } else if (e.key === "m") {
           e.preventDefault();
           toggleMute();
@@ -218,7 +232,7 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
 
       window.addEventListener("keydown", handleKeyDown);
       return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [togglePlay, toggleFullscreen, toggleMute]);
+    }, [togglePlay, toggleFullscreen, toggleMute, onToggleTheater, onToggleMiniPlayer]);
 
     const handleTimeUpdate = () => {
       const video = videoRef.current;
@@ -273,7 +287,11 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     return (
       <div
         ref={containerRef}
-        className="group relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-2xl bg-black border border-white/10 shadow-2xl select-none"
+        className={`group relative flex aspect-video w-full items-center justify-center overflow-hidden bg-black select-none transition-all duration-300 ${
+          isTheaterMode
+            ? "rounded-none border-x-0 border-t-0 border-b border-zinc-900 max-h-[82vh] h-full"
+            : "rounded-2xl border border-white/10 shadow-2xl"
+        }`}
       >
         <video
           ref={videoRef}
@@ -513,6 +531,40 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
                       </div>
                     )}
                   </div>
+                )}
+
+                {/* Miniplayer (In-app or native Picture-in-Picture) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onToggleMiniPlayer) {
+                      onToggleMiniPlayer();
+                    } else if (videoRef.current && document.pictureInPictureEnabled) {
+                      if (document.pictureInPictureElement) {
+                        document.exitPictureInPicture().catch(() => {});
+                      } else {
+                        videoRef.current.requestPictureInPicture().catch(() => {});
+                      }
+                    }
+                  }}
+                  className="hover:text-zinc-300 transition-colors cursor-pointer"
+                  title="Miniplayer (i)"
+                >
+                  <PictureInPicture2 className="h-5 w-5" />
+                </button>
+
+                {/* Theater Mode */}
+                {onToggleTheater && (
+                  <button
+                    type="button"
+                    onClick={onToggleTheater}
+                    className={`hover:text-zinc-300 transition-colors cursor-pointer ${
+                      isTheaterMode ? "text-white" : "text-zinc-400"
+                    }`}
+                    title={isTheaterMode ? "Default view (t)" : "Theater mode (t)"}
+                  >
+                    <RectangleHorizontal className="h-5 w-5" />
+                  </button>
                 )}
 
                 <button onClick={toggleFullscreen} className="hover:text-zinc-300 transition-colors cursor-pointer" title="Fullscreen (F)">

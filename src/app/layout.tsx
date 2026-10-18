@@ -24,6 +24,7 @@ export const metadata: Metadata = {
 
 import { AuthProvider } from "@/context/AuthContext";
 import { NotificationProvider } from "@/context/NotificationContext";
+import { MiniPlayerProvider } from "@/context/MiniPlayerContext";
 
 export default function RootLayout({
   children,
@@ -40,7 +41,9 @@ export default function RootLayout({
       </head>
       <body className={`min-h-full flex flex-col bg-background text-white ${titilliumWeb.className} selection:bg-white selection:text-black`}>
         <AuthProvider>
-          <NotificationProvider>{children}</NotificationProvider>
+          <NotificationProvider>
+            <MiniPlayerProvider>{children}</MiniPlayerProvider>
+          </NotificationProvider>
         </AuthProvider>
       </body>
     </html>
