@@ -24,6 +24,7 @@ import {
   TrendingUp,
   X,
   Trash2,
+  ExternalLink,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { VideoItem } from "@/types";
@@ -56,14 +57,40 @@ export default function ChannelProfileView({
   const [editAvatarUrl, setEditAvatarUrl] = useState("");
   const [editError, setEditError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [userVideos, setUserVideos] = useState<VideoItem[]>([]);
-
   const userHandle = (user?.handle || "").replace(/^@/, "").trim().toLowerCase();
   const userName = (user?.name || "").trim().toLowerCase();
   const targetClean = cleanHandle.trim().toLowerCase();
   const isOwnProfile = Boolean(
     user && (userHandle === targetClean || userName === targetClean)
   );
+
+  const [userVideos, setUserVideos] = useState<VideoItem[]>([]);
+  const [channelLinks, setChannelLinks] = useState<{ title: string; url: string }[]>([]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem("entropy_channel_links");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const cleaned = parsed.map((item: { title: string; url: string }) => {
+              if (item.url && (item.url.includes("Pwooooo") || item.url.includes("..."))) {
+                return { ...item, url: "https://github.com/YourUsername/YourProject" };
+              }
+              return item;
+            });
+            setChannelLinks(cleaned);
+          }
+        } else if (isOwnProfile) {
+          setChannelLinks([
+            { title: "Website", url: "https://entropy.video" },
+            { title: "GitHub", url: "https://github.com/YourUsername/YourProject" },
+          ]);
+        }
+      } catch {}
+    }
+  }, [isOwnProfile]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -725,6 +752,35 @@ export default function ChannelProfileView({
                   <span className="font-mono text-zinc-400">entropyy.vercel.app/profile/@{channel.handle}</span>
                 </div>
               </div>
+
+              {/* Custom Channel Links */}
+              {channelLinks.length > 0 && (
+                <div className="space-y-2.5 pt-3 border-t border-white/[0.08]">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-400">Links</h4>
+                  <div className="space-y-1.5">
+                    {channelLinks.map((l, i) => (
+                      <a
+                        key={i}
+                        href={l.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between text-xs text-zinc-200 hover:text-white p-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.04] hover:border-white/10 transition-colors group"
+                      >
+                        <div className="flex items-center gap-2">
+                          <LinkIcon className="h-3.5 w-3.5 text-zinc-500 group-hover:text-white transition-colors" />
+                          <span className="font-semibold text-white">{l.title || "Link"}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-zinc-500 font-mono text-[11px] group-hover:text-zinc-300">
+                          <span className="truncate max-w-[180px]">
+                            {l.url.replace(/^https?:\/\//, "")}
+                          </span>
+                          <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="pt-2">
                 <button

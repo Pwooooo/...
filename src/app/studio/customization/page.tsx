@@ -32,7 +32,7 @@ export default function StudioCustomizationPage() {
 
   const [links, setLinks] = useState<{ title: string; url: string }[]>([
     { title: "Website", url: "https://entropy.video" },
-    { title: "GitHub", url: "https://github.com/Pwooooo/..." },
+    { title: "GitHub", url: "https://github.com/YourUsername/YourProject" },
   ]);
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -57,6 +57,19 @@ export default function StudioCustomizationPage() {
         if (savedBanner) setBannerPreview(savedBanner);
         const savedBio = localStorage.getItem("entropy_channel_bio");
         if (savedBio) setDescription(savedBio);
+        const savedLinks = localStorage.getItem("entropy_channel_links");
+        if (savedLinks) {
+          const parsed = JSON.parse(savedLinks);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const cleaned = parsed.map((item: { title: string; url: string }) => {
+              if (item.url && (item.url.includes("Pwooooo") || item.url.includes("..."))) {
+                return { ...item, url: "https://github.com/YourUsername/YourProject" };
+              }
+              return item;
+            });
+            setLinks(cleaned);
+          }
+        }
       } catch {}
     }
   }, [user]);
@@ -388,52 +401,94 @@ export default function StudioCustomizationPage() {
 
             {/* Links */}
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-2">
-                Links
-              </label>
-              <div className="space-y-2.5 max-w-2xl">
-                {links.map((link, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={link.title}
-                      onChange={(e) => {
-                        const next = [...links];
-                        next[idx].title = e.target.value;
-                        setLinks(next);
-                      }}
-                      placeholder="Link title (e.g. Website)"
-                      className="w-1/3 rounded-xl bg-[#1e1e1e] border border-white/[0.08] focus:border-white/30 p-2 text-xs text-white outline-none"
-                    />
-                    <input
-                      type="url"
-                      value={link.url}
-                      onChange={(e) => {
-                        const next = [...links];
-                        next[idx].url = e.target.value;
-                        setLinks(next);
-                      }}
-                      placeholder="URL (https://...)"
-                      className="flex-1 rounded-xl bg-[#1e1e1e] border border-white/[0.08] focus:border-white/30 p-2 text-xs text-white outline-none"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveLink(idx)}
-                      className="p-2 rounded-lg hover:bg-white/10 text-zinc-500 hover:text-white cursor-pointer transition-colors"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
+              <div className="flex items-center justify-between mb-1.5 max-w-2xl">
+                <div>
+                  <label className="block text-xs font-bold text-white">
+                    Links
+                  </label>
+                  <p className="text-[11px] text-zinc-400 mt-0.5">
+                    Share external links (like your website, GitHub, or social profiles) with your viewers.
+                  </p>
+                </div>
+                <span className="text-[11px] font-mono text-zinc-500 font-semibold">
+                  {links.length}/5
+                </span>
+              </div>
 
-                <button
-                  type="button"
-                  onClick={handleAddLink}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-semibold text-zinc-300 hover:text-white transition-colors cursor-pointer mt-1"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  <span>Add link</span>
-                </button>
+              <div className="space-y-2.5 max-w-2xl mt-3">
+                {links.length === 0 ? (
+                  <div className="p-4 rounded-xl border border-dashed border-white/10 text-center text-xs text-zinc-500">
+                    No links added yet. Click &quot;Add link&quot; below to add links to your channel.
+                  </div>
+                ) : (
+                  links.map((link, idx) => (
+                    <div
+                      key={idx}
+                      className="group flex items-center gap-2 p-1.5 rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-white/15 transition-all"
+                    >
+                      <div className="w-1/3 min-w-[120px]">
+                        <input
+                          type="text"
+                          value={link.title}
+                          onChange={(e) => {
+                            const next = [...links];
+                            next[idx].title = e.target.value;
+                            setLinks(next);
+                          }}
+                          placeholder="Title (e.g. GitHub)"
+                          className="w-full rounded-xl bg-[#181818] border border-white/[0.08] focus:border-white/30 px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none transition-colors"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <input
+                          type="url"
+                          value={link.url}
+                          onChange={(e) => {
+                            const next = [...links];
+                            next[idx].url = e.target.value;
+                            setLinks(next);
+                          }}
+                          placeholder="https://..."
+                          className="w-full rounded-xl bg-[#181818] border border-white/[0.08] focus:border-white/30 px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none font-mono text-[11px] transition-colors"
+                        />
+                      </div>
+
+                      {/* Test link external button */}
+                      {link.url && link.url.startsWith("http") && (
+                        <a
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 rounded-xl hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                          title="Open link in new tab"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      )}
+
+                      {/* Delete link */}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveLink(idx)}
+                        className="p-2 rounded-xl hover:bg-white/10 text-zinc-500 hover:text-white cursor-pointer transition-colors"
+                        title="Remove link"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))
+                )}
+
+                {links.length < 5 && (
+                  <button
+                    type="button"
+                    onClick={handleAddLink}
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/20 text-xs font-semibold text-zinc-200 hover:text-white transition-all cursor-pointer mt-2"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>Add link</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
