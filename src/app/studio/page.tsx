@@ -121,9 +121,24 @@ export default function StudioDashboardPage() {
     setRecentComments(collected.slice(0, 5));
   }, [videos]);
 
+  const formatNumber = (num: number): string => {
+    if (num >= 1_000_000) return (num / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
+    if (num >= 1_000) return (num / 1_000).toFixed(1).replace(/\.0$/, "") + "K";
+    return num.toLocaleString();
+  };
+
   const latestVideo = videos.find((v) => !isShortVideo(v)) || videos[0];
   const totalViews = videos.reduce((acc, v) => acc + (v.viewCount || 0), 0);
-  const subscriberCount = user?.subscribersCount || 1280;
+  const totalWatchTimeHours = Number(
+    (
+      videos.reduce(
+        (acc, v) => acc + (v.viewCount || 0) * (v.durationSeconds || 15) * 0.68,
+        0
+      ) / 3600
+    ).toFixed(1)
+  );
+  const subscriberCount = user?.subscribersCount ?? videos[0]?.channel?.subscribersCount ?? 1280;
+  const netSubsInPeriod = Math.max(1, Math.round(totalViews * 0.024));
 
   const handleToggleHeart = (commentId: string, videoId: string) => {
     setRecentComments((prev) =>
@@ -257,7 +272,7 @@ export default function StudioDashboardPage() {
                   <div className="pt-3 flex items-center gap-3">
                     <Link
                       href="/studio/analytics"
-                      className="text-xs text-red-400 hover:text-red-300 font-semibold flex items-center gap-1 transition-colors"
+                      className="text-xs text-zinc-300 hover:text-white font-semibold flex items-center gap-1 transition-colors"
                     >
                       <span>Go to video analytics</span>
                       <ArrowRight className="h-3.5 w-3.5" />
@@ -279,12 +294,12 @@ export default function StudioDashboardPage() {
           <div className="rounded-2xl bg-[#141414] border border-white/[0.08] p-5 shadow-xl">
             <div className="flex items-center justify-between pb-4 border-b border-white/[0.06]">
               <div className="flex items-center gap-2">
-                <VideoIcon className="h-4 w-4 text-red-400" />
+                <VideoIcon className="h-4 w-4 text-white" />
                 <h3 className="font-bold text-sm text-white">Published videos</h3>
               </div>
               <Link
                 href="/studio/videos"
-                className="text-xs text-red-400 hover:text-red-300 font-semibold flex items-center gap-1 transition-colors"
+                className="text-xs text-zinc-300 hover:text-white font-semibold flex items-center gap-1 transition-colors"
               >
                 <span>See all content</span>
                 <ArrowRight className="h-3.5 w-3.5" />
@@ -359,7 +374,7 @@ export default function StudioDashboardPage() {
                   <span className="text-3xl font-black text-white tracking-tight font-mono">
                     {subscriberCount.toLocaleString()}
                   </span>
-                  <span className="text-xs font-semibold text-emerald-400 font-mono">+48 in last 28 days</span>
+                  <span className="text-xs font-semibold text-emerald-400 font-mono">+{netSubsInPeriod} in last 28 days</span>
                 </div>
               </div>
 
@@ -367,11 +382,11 @@ export default function StudioDashboardPage() {
                 <p className="text-xs font-bold text-zinc-300">Summary (Last 28 days)</p>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-zinc-400">Views</span>
-                  <span className="font-bold text-white font-mono">{formatViews(totalViews)}</span>
+                  <span className="font-bold text-white font-mono">{formatNumber(totalViews)}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-zinc-400">Watch time (hours)</span>
-                  <span className="font-bold text-white font-mono">382.4</span>
+                  <span className="font-bold text-white font-mono">{totalWatchTimeHours}</span>
                 </div>
               </div>
 
@@ -396,7 +411,7 @@ export default function StudioDashboardPage() {
               </div>
               <Link
                 href="/studio/comments"
-                className="text-xs text-red-400 hover:text-red-300 font-semibold transition-colors"
+                className="text-xs text-zinc-300 hover:text-white font-semibold transition-colors"
               >
                 View all
               </Link>
@@ -452,9 +467,9 @@ export default function StudioDashboardPage() {
           </div>
 
           {/* 3. Studio Highlights & Creator Tools */}
-          <div className="rounded-2xl bg-gradient-to-br from-red-950/20 via-[#141414] to-zinc-950 border border-red-500/20 p-5 shadow-xl relative overflow-hidden">
+          <div className="rounded-2xl bg-[#141414] border border-white/[0.08] p-5 shadow-xl relative overflow-hidden">
             <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="h-4 w-4 text-red-400" />
+              <Sparkles className="h-4 w-4 text-white" />
               <h3 className="font-bold text-sm text-white">Entropy Studio 2.0</h3>
             </div>
             <p className="text-xs text-zinc-400 leading-relaxed">
