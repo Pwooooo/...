@@ -245,11 +245,8 @@ export default function StudioDashboardPage() {
                   <h4 className="font-bold text-sm text-white line-clamp-2 leading-snug">
                     {latestVideo.title}
                   </h4>
-                  <p className="text-xs text-zinc-400 line-clamp-2">
-                    {latestVideo.description || "No description provided."}
-                  </p>
 
-                  <div className="pt-2 space-y-2">
+                  <div className="pt-1 space-y-2">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-zinc-400">Ranking by views</span>
                       <span className="font-semibold text-white font-mono">1 of {videos.length}</span>
