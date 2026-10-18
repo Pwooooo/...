@@ -29,6 +29,41 @@ import {
   DollarSign,
   CheckCircle2,
 } from "lucide-react";
+import StudioDropdown from "@/components/ui/StudioDropdown";
+
+function BoxToggle({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: () => void;
+  label?: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={(e) => {
+        e.stopPropagation();
+        onChange();
+      }}
+      className={`h-6 w-6 rounded-lg flex items-center justify-center transition-all cursor-pointer border-2 flex-shrink-0 ${
+        checked
+          ? "border-white bg-black shadow-sm ring-1 ring-white/10"
+          : "border-white/20 bg-[#181818] hover:border-white/40"
+      }`}
+    >
+      <span
+        className={`h-3 w-3 rounded-xs bg-white transition-all duration-150 ${
+          checked ? "scale-100 opacity-100" : "scale-50 opacity-0"
+        }`}
+      />
+    </button>
+  );
+}
 
 interface StudioLayoutProps {
   children: React.ReactNode;
@@ -49,6 +84,8 @@ export default function StudioLayout({ children }: StudioLayoutProps) {
   const [settingsTab, setSettingsTab] = useState<"general" | "channel" | "upload" | "community" | "agreements">("general");
   const [settingsCurrency, setSettingsCurrency] = useState("USD");
   const [settingsVisibility, setSettingsVisibility] = useState<"public" | "unlisted" | "private">("public");
+  const [settingsCategory, setSettingsCategory] = useState("Technology");
+  const [settingsCountry, setSettingsCountry] = useState("United States");
   const [settingsHoldComments, setSettingsHoldComments] = useState(true);
   const [settingsBlockLinks, setSettingsBlockLinks] = useState(false);
   const [settingsBlockedWords, setSettingsBlockedWords] = useState("");
@@ -409,16 +446,17 @@ export default function StudioLayout({ children }: StudioLayoutProps) {
                       <label className="block text-xs font-semibold text-zinc-300">
                         Currency
                       </label>
-                      <select
+                      <StudioDropdown
                         value={settingsCurrency}
-                        onChange={(e) => setSettingsCurrency(e.target.value)}
-                        className="w-full max-w-xs rounded-xl bg-[#1e1e1e] border border-white/[0.08] focus:border-white/30 p-2.5 text-xs text-white outline-none"
-                      >
-                        <option value="USD">USD - US Dollar ($)</option>
-                        <option value="EUR">EUR - Euro (€)</option>
-                        <option value="GBP">GBP - British Pound (£)</option>
-                        <option value="CAD">CAD - Canadian Dollar ($)</option>
-                      </select>
+                        onChange={setSettingsCurrency}
+                        options={[
+                          { value: "USD", label: "USD - US Dollar ($)", icon: <DollarSign className="h-3.5 w-3.5 text-zinc-400" /> },
+                          { value: "EUR", label: "EUR - Euro (€)", icon: <DollarSign className="h-3.5 w-3.5 text-zinc-400" /> },
+                          { value: "GBP", label: "GBP - British Pound (£)", icon: <DollarSign className="h-3.5 w-3.5 text-zinc-400" /> },
+                          { value: "CAD", label: "CAD - Canadian Dollar ($)", icon: <DollarSign className="h-3.5 w-3.5 text-zinc-400" /> },
+                        ]}
+                        className="w-full max-w-xs"
+                      />
                     </div>
 
                     <div className="pt-3 border-t border-white/[0.06]">
@@ -452,10 +490,20 @@ export default function StudioLayout({ children }: StudioLayoutProps) {
                         <label className="block text-xs font-semibold text-zinc-300 mb-1">
                           Country of residence
                         </label>
-                        <input
-                          type="text"
-                          defaultValue="United States"
-                          className="w-full max-w-sm rounded-xl bg-[#1e1e1e] border border-white/[0.08] focus:border-white/30 p-2.5 text-xs text-white outline-none"
+                        <StudioDropdown
+                          value={settingsCountry}
+                          onChange={setSettingsCountry}
+                          options={[
+                            "United States",
+                            "United Kingdom",
+                            "Canada",
+                            "Germany",
+                            "France",
+                            "Japan",
+                            "Australia",
+                            "International",
+                          ]}
+                          className="w-full max-w-sm"
                         />
                       </div>
                       <div>
@@ -487,25 +535,35 @@ export default function StudioLayout({ children }: StudioLayoutProps) {
                         <label className="block text-xs font-semibold text-zinc-300 mb-1">
                           Default visibility
                         </label>
-                        <select
+                        <StudioDropdown
                           value={settingsVisibility}
-                          onChange={(e) => setSettingsVisibility(e.target.value as any)}
-                          className="w-full max-w-xs rounded-xl bg-[#1e1e1e] border border-white/[0.08] focus:border-white/30 p-2.5 text-xs text-white outline-none"
-                        >
-                          <option value="public">Public (Everyone can see)</option>
-                          <option value="unlisted">Unlisted (Anyone with link)</option>
-                          <option value="private">Private (Only you)</option>
-                        </select>
+                          onChange={(val) => setSettingsVisibility(val as any)}
+                          options={[
+                            { value: "public", label: "Public (Everyone can see)", icon: <Globe className="h-3.5 w-3.5 text-zinc-400" /> },
+                            { value: "unlisted", label: "Unlisted (Anyone with link)", icon: <Globe className="h-3.5 w-3.5 text-zinc-400" /> },
+                            { value: "private", label: "Private (Only you)", icon: <Shield className="h-3.5 w-3.5 text-zinc-400" /> },
+                          ]}
+                          className="w-full max-w-xs"
+                        />
                       </div>
 
                       <div>
                         <label className="block text-xs font-semibold text-zinc-300 mb-1">
                           Default Category
                         </label>
-                        <input
-                          type="text"
-                          defaultValue="Technology"
-                          className="w-full max-w-xs rounded-xl bg-[#1e1e1e] border border-white/[0.08] focus:border-white/30 p-2.5 text-xs text-white outline-none"
+                        <StudioDropdown
+                          value={settingsCategory}
+                          onChange={setSettingsCategory}
+                          options={[
+                            "Technology",
+                            "Gaming",
+                            "Music",
+                            "Education",
+                            "Entertainment",
+                            "Science",
+                            "General",
+                          ]}
+                          className="w-full max-w-xs"
                         />
                       </div>
                     </div>
@@ -522,31 +580,35 @@ export default function StudioLayout({ children }: StudioLayoutProps) {
                     </div>
 
                     <div className="space-y-3">
-                      <label className="flex items-start gap-3 p-3 rounded-xl bg-[#1e1e1e] border border-white/[0.08] cursor-pointer">
-                        <input
-                          type="checkbox"
+                      <div
+                        onClick={() => setSettingsHoldComments((prev) => !prev)}
+                        className="flex items-start gap-3.5 p-3.5 rounded-xl bg-[#181818] hover:bg-[#1e1e1e] border border-white/[0.08] hover:border-white/20 transition-all cursor-pointer select-none"
+                      >
+                        <BoxToggle
                           checked={settingsHoldComments}
-                          onChange={(e) => setSettingsHoldComments(e.target.checked)}
-                          className="mt-0.5 rounded accent-white cursor-pointer"
+                          onChange={() => setSettingsHoldComments((prev) => !prev)}
+                          label="Hold potentially inappropriate comments for review"
                         />
                         <div>
                           <p className="text-xs font-semibold text-white">Hold potentially inappropriate comments for review</p>
                           <p className="text-[11px] text-zinc-400 mt-0.5">Increases strictness of automatic filter before comments become public.</p>
                         </div>
-                      </label>
+                      </div>
 
-                      <label className="flex items-start gap-3 p-3 rounded-xl bg-[#1e1e1e] border border-white/[0.08] cursor-pointer">
-                        <input
-                          type="checkbox"
+                      <div
+                        onClick={() => setSettingsBlockLinks((prev) => !prev)}
+                        className="flex items-start gap-3.5 p-3.5 rounded-xl bg-[#181818] hover:bg-[#1e1e1e] border border-white/[0.08] hover:border-white/20 transition-all cursor-pointer select-none"
+                      >
+                        <BoxToggle
                           checked={settingsBlockLinks}
-                          onChange={(e) => setSettingsBlockLinks(e.target.checked)}
-                          className="mt-0.5 rounded accent-white cursor-pointer"
+                          onChange={() => setSettingsBlockLinks((prev) => !prev)}
+                          label="Block links in new comments"
                         />
                         <div>
                           <p className="text-xs font-semibold text-white">Block links in new comments</p>
                           <p className="text-[11px] text-zinc-400 mt-0.5">New comments containing URLs or domain names will be automatically held for review.</p>
                         </div>
-                      </label>
+                      </div>
 
                       <div>
                         <label className="block text-xs font-semibold text-zinc-300 mb-1">
