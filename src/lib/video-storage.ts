@@ -101,6 +101,10 @@ export function isFillerVideo(video?: { id?: string; title?: string; channel?: {
     id.startsWith("sample-") ||
     id.startsWith("short-") ||
     id.startsWith("v-blob-") ||
+    id === "v-entropy-test-video" ||
+    id === "v-entropy-test-short" ||
+    id.startsWith("v-entropy-") ||
+    id.includes("entropy-test") ||
     id === "v-srv-1792152077838" ||
     id === "v-user-1792152077838" ||
     id === "v-srv-1792158340022" ||
@@ -109,6 +113,8 @@ export function isFillerVideo(video?: { id?: string; title?: string; channel?: {
     channelId === "creator" ||
     channelName === "creator" ||
     title.includes("next.js") ||
+    title.includes("entropy 2.0 walkthrough") ||
+    title.includes("entropy mobile & theater mode demo") ||
     title.includes("distributed video transcoder") ||
     title.includes("operating systems are so complex") ||
     title.includes("shaders & webgl") ||
@@ -125,72 +131,8 @@ export function isNextJsFillerVideo(video?: { id?: string; title?: string; chann
   return isFillerVideo(video);
 }
 
-// ----------------- Base Static Videos -----------------
-export const DEFAULT_ENTROPY_VIDEOS: VideoItem[] = [
-  {
-    id: "v-entropy-test-video",
-    title: "Entropy 2.0 Walkthrough: Theater Mode & Floating Mini Player",
-    description: "Explore the all-new Entropy 2.0 release featuring seamless zero-interruption Theater Mode, custom in-app floating Mini Player, and high-performance local video playback.",
-    thumbnailUrl: "/videos/entropy-test-video-thumb.jpg",
-    masterPlaylistUrl: null,
-    rawVideoUrl: "/videos/entropy-test-video.mp4",
-    durationSeconds: 15,
-    viewCount: 820,
-    publishedAt: "2026-10-18T20:00:00.000Z",
-    category: "Technology",
-    tags: ["Technology", "Streaming", "WebDev", "Entropy"],
-    isShort: false,
-    channel: {
-      id: "ch-entropy",
-      handle: "entropy",
-      displayName: "Entropy Team",
-      avatarUrl: "/entropy-icon.png",
-      subscribersCount: 1250,
-    },
-    chapters: [
-      {
-        id: "ch-1",
-        title: "Introduction & Welcome",
-        seconds: 0,
-        thumbnailUrl: "/videos/entropy-test-video-thumb.jpg",
-      },
-      {
-        id: "ch-2",
-        title: "Theater Mode Demo",
-        seconds: 5,
-        thumbnailUrl: "/videos/entropy-test-video-thumb.jpg",
-      },
-      {
-        id: "ch-3",
-        title: "Mini Player Testing",
-        seconds: 10,
-        thumbnailUrl: "/videos/entropy-test-video-thumb.jpg",
-      },
-    ],
-  },
-  {
-    id: "v-entropy-test-short",
-    title: "Entropy Mobile & Theater Mode Demo #Shorts",
-    description: "Quick look at Entropy's responsive layout, Theater Mode, and picture-in-picture floating player running locally.",
-    thumbnailUrl: "/videos/entropy-test-short-thumb.jpg",
-    masterPlaylistUrl: null,
-    rawVideoUrl: "/videos/entropy-test-short.mp4",
-    durationSeconds: 15,
-    viewCount: 1420,
-    publishedAt: "2026-10-18T20:00:00.000Z",
-    category: "Shorts",
-    tags: ["Shorts", "Tech", "Entropy"],
-    isShort: true,
-    songName: "Entropy Ambient Synth",
-    channel: {
-      id: "ch-entropy",
-      handle: "entropy",
-      displayName: "Entropy Team",
-      avatarUrl: "/entropy-icon.png",
-      subscribersCount: 1250,
-    },
-  },
-];
+// ----------------- Base Static Videos (All Stock Videos Removed) -----------------
+export const DEFAULT_ENTROPY_VIDEOS: VideoItem[] = [];
 
 export function getBaseVideos(): VideoItem[] {
   return DEFAULT_ENTROPY_VIDEOS;
@@ -199,7 +141,7 @@ export function getBaseVideos(): VideoItem[] {
 // ----------------- Central Client Video Cache -----------------
 const SERVER_CACHE_KEY = "entropy_server_videos_cache";
 const USER_UPLOADS_KEY = "entropy_user_uploaded_videos";
-const CACHE_PURGE_VERSION = "entropy_purge_v5";
+const CACHE_PURGE_VERSION = "entropy_purge_v6";
 
 if (typeof window !== "undefined") {
   try {

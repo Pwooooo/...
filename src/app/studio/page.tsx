@@ -69,7 +69,7 @@ export default function StudioDashboardPage() {
                 comment: c,
                 videoId: v.id,
                 videoTitle: v.title,
-                videoThumb: v.thumbnailUrl || "/videos/entropy-test-video-thumb.jpg",
+                videoThumb: v.thumbnailUrl || "/placeholder-thumb.jpg",
               });
             });
           }
@@ -223,7 +223,7 @@ export default function StudioDashboardPage() {
                 {/* Thumbnail & Title */}
                 <div className="md:col-span-6 group relative rounded-xl overflow-hidden aspect-video bg-zinc-900 border border-white/10">
                   <img
-                    src={latestVideo.thumbnailUrl || "/videos/entropy-test-video-thumb.jpg"}
+                    src={latestVideo.thumbnailUrl || "/placeholder-thumb.jpg"}
                     alt={latestVideo.title}
                     className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
@@ -325,7 +325,7 @@ export default function StudioDashboardPage() {
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="relative aspect-video w-20 flex-shrink-0 rounded-lg overflow-hidden bg-zinc-900 border border-white/10">
                       <img
-                        src={v.thumbnailUrl || "/videos/entropy-test-video-thumb.jpg"}
+                        src={v.thumbnailUrl || "/placeholder-thumb.jpg"}
                         alt={v.title}
                         className="h-full w-full object-cover group-hover:scale-105 transition-transform"
                       />

@@ -62,7 +62,7 @@ export default function StudioCommentsPage() {
               collected.push({
                 videoId: v.id,
                 videoTitle: v.title,
-                videoThumb: v.thumbnailUrl || "/videos/entropy-test-video-thumb.jpg",
+                videoThumb: v.thumbnailUrl || "/placeholder-thumb.jpg",
                 comment: c,
               });
             });

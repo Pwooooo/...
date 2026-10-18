@@ -554,7 +554,7 @@ function StudioVideosContent() {
                         <div className="flex items-center gap-3">
                           <div className="relative aspect-video w-24 flex-shrink-0 rounded-lg overflow-hidden bg-zinc-900 border border-white/10 group-hover:scale-105 transition-transform">
                             <img
-                              src={v.thumbnailUrl || "/videos/entropy-test-video-thumb.jpg"}
+                              src={v.thumbnailUrl || "/placeholder-thumb.jpg"}
                               alt={v.title}
                               className="h-full w-full object-cover"
                             />
@@ -834,7 +834,7 @@ function StudioVideosContent() {
                 <div className="flex items-center gap-4">
                   <div className="relative aspect-video w-36 rounded-xl overflow-hidden bg-zinc-900 border border-white/10 flex-shrink-0">
                     <img
-                      src={editThumbnailUrl || "/videos/entropy-test-video-thumb.jpg"}
+                      src={editThumbnailUrl || "/placeholder-thumb.jpg"}
                       alt="Thumbnail preview"
                       className="h-full w-full object-cover"
                     />

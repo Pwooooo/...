@@ -471,7 +471,7 @@ export default function StudioAnalyticsPage() {
                     </span>
                     <div className="relative aspect-video w-20 flex-shrink-0 rounded-lg overflow-hidden bg-zinc-900 border border-white/10">
                       <img
-                        src={v.thumbnailUrl || "/videos/entropy-test-video-thumb.jpg"}
+                        src={v.thumbnailUrl || "/placeholder-thumb.jpg"}
                         alt={v.title}
                         className="h-full w-full object-cover"
                       />

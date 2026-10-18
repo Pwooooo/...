@@ -31,6 +31,10 @@ function isNextJsFillerVideo(video?: { id?: string; title?: string; channel?: { 
     id.startsWith("sample-") ||
     id.startsWith("short-") ||
     id.startsWith("v-blob-") ||
+    id === "v-entropy-test-video" ||
+    id === "v-entropy-test-short" ||
+    id.startsWith("v-entropy-") ||
+    id.includes("entropy-test") ||
     id === "v-srv-1792152077838" ||
     id === "v-user-1792152077838" ||
     id === "v-srv-1792158340022" ||
@@ -39,6 +43,8 @@ function isNextJsFillerVideo(video?: { id?: string; title?: string; channel?: { 
     channelId === "creator" ||
     channelName === "creator" ||
     title.includes("next.js") ||
+    title.includes("entropy 2.0 walkthrough") ||
+    title.includes("entropy mobile & theater mode demo") ||
     title.includes("distributed video transcoder") ||
     title.includes("operating systems are so complex") ||
     title.includes("shaders & webgl") ||
@@ -77,6 +83,8 @@ const DEFAULT_SERVER_DELETED = [
   "sample-4",
   "sample-5",
   "sample-6",
+  "v-entropy-test-video",
+  "v-entropy-test-short",
   "v-srv-1792152077838",
   "v-user-1792152077838",
   "v-srv-1792158340022",
