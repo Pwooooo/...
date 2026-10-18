@@ -23,12 +23,15 @@ import {
 } from "lucide-react";
 import StudioDropdown from "@/components/ui/StudioDropdown";
 
+export type MetricType = "views" | "watchTime" | "subscribers" | "impressions";
+
 export default function StudioAnalyticsPage() {
   const { user } = useAuth();
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [activeTab, setActiveTab] = useState<"overview" | "reach" | "engagement" | "audience">("overview");
   const [timeRange, setTimeRange] = useState("Last 28 days");
-  const [hoveredPoint, setHoveredPoint] = useState<{ day: number; views: number; x: number; y: number } | null>(null);
+  const [activeMetric, setActiveMetric] = useState<MetricType>("views");
+  const [hoveredPoint, setHoveredPoint] = useState<{ day: number; value: number; x: number; y: number } | null>(null);
 
   useEffect(() => {
     setVideos(getAllCombinedVideos());
@@ -67,13 +70,71 @@ export default function StudioAnalyticsPage() {
   const views48h = Math.round(totalViews * 0.18) || Math.min(totalViews, 48);
   const views60m = Math.max(1, Math.round((views48h / 48) * 1.5));
 
-  // Dynamic 28-day data points whose sum strictly equals totalViews
+  // Metric configurations for dynamic headline, trend title, and formatting
+  const metricConfigs = {
+    views: {
+      id: "views" as const,
+      label: "Views",
+      headline: (
+        <>
+          Your channel got{" "}
+          <span className="text-white font-mono font-black">{formatNumber(totalViews)}</span> views in the last 28 days
+        </>
+      ),
+      trendTitle: "Daily Views Trend",
+      valueDisplay: formatNumber(totalViews),
+      change: "+18%",
+      formatTooltip: (v: number) => `${v.toLocaleString()} views`,
+    },
+    watchTime: {
+      id: "watchTime" as const,
+      label: "Watch time (hours)",
+      headline: (
+        <>
+          Your channel got{" "}
+          <span className="text-white font-mono font-black">{totalWatchTimeHours}</span> watch hours in the last 28 days
+        </>
+      ),
+      trendTitle: "Daily Watch Time (Hours) Trend",
+      valueDisplay: `${totalWatchTimeHours}`,
+      change: "+12%",
+      formatTooltip: (v: number) => `${v.toFixed(1)} hours`,
+    },
+    subscribers: {
+      id: "subscribers" as const,
+      label: "Subscribers",
+      headline: (
+        <>
+          Your channel gained{" "}
+          <span className="text-white font-mono font-black">+{netSubsInPeriod}</span> subscribers in the last 28 days
+        </>
+      ),
+      trendTitle: "Daily Subscriber Growth Trend",
+      valueDisplay: `+${netSubsInPeriod}`,
+      change: "+25%",
+      formatTooltip: (v: number) => `+${Math.round(v)} subscribers`,
+    },
+    impressions: {
+      id: "impressions" as const,
+      label: "Impressions",
+      headline: (
+        <>
+          Your channel got{" "}
+          <span className="text-white font-mono font-black">{formatNumber(impressionsCount)}</span> impressions in the last 28 days
+        </>
+      ),
+      trendTitle: "Daily Impressions Trend",
+      valueDisplay: formatNumber(impressionsCount),
+      change: "+15%",
+      formatTooltip: (v: number) => `${v.toLocaleString()} impressions`,
+    },
+  };
+
+  const currentMetric = metricConfigs[activeMetric];
+
+  // Dynamic 28-day data points driven by activeMetric
   const dataPoints = useMemo(() => {
     const days = 28;
-    if (totalViews <= 0) {
-      return Array.from({ length: days }, (_, i) => ({ day: i + 1, views: 0 }));
-    }
-
     // Realistic day-by-day distribution weights (natural weekend peaks & launch bumps)
     const weights = [
       0.022, 0.019, 0.026, 0.038, 0.033, 0.025, 0.028,
@@ -83,21 +144,33 @@ export default function StudioAnalyticsPage() {
     ];
     const sumW = weights.reduce((a, b) => a + b, 0);
 
+    let targetTotal = totalViews;
+    if (activeMetric === "watchTime") targetTotal = totalWatchTimeHours;
+    if (activeMetric === "subscribers") targetTotal = netSubsInPeriod;
+    if (activeMetric === "impressions") targetTotal = impressionsCount;
+
     let allocated = 0;
-    const points = weights.map((w, idx) => {
+    const pts = weights.map((w, idx) => {
       const day = idx + 1;
-      const v = Math.round((w / sumW) * totalViews);
-      allocated += v;
-      return { day, views: v };
+      let val: number;
+      if (activeMetric === "watchTime") {
+        val = Number(((w / sumW) * targetTotal).toFixed(2));
+      } else {
+        val = Math.round((w / sumW) * targetTotal);
+      }
+      allocated += val;
+      return { day, value: val };
     });
 
-    const diff = totalViews - allocated;
-    points[points.length - 1].views = Math.max(0, points[points.length - 1].views + diff);
-    return points;
-  }, [totalViews]);
+    if (activeMetric !== "watchTime") {
+      const diff = targetTotal - allocated;
+      pts[pts.length - 1].value = Math.max(0, pts[pts.length - 1].value + diff);
+    }
+    return pts;
+  }, [activeMetric, totalViews, totalWatchTimeHours, netSubsInPeriod, impressionsCount]);
 
-  const maxViews = Math.max(...dataPoints.map((d) => d.views), 1);
-  const minViews = Math.min(...dataPoints.map((d) => d.views), 0);
+  const maxVal = Math.max(...dataPoints.map((d) => d.value), 0.1);
+  const minVal = Math.min(...dataPoints.map((d) => d.value), 0);
 
   // SVG Chart geometry
   const svgWidth = 800;
@@ -107,8 +180,8 @@ export default function StudioAnalyticsPage() {
 
   const points = dataPoints.map((d, index) => {
     const x = paddingX + (index / (dataPoints.length - 1)) * (svgWidth - paddingX * 2);
-    const range = maxViews - minViews || 1;
-    const y = svgHeight - paddingY - ((d.views - minViews) / range) * (svgHeight - paddingY * 2);
+    const range = maxVal - minVal || 1;
+    const y = svgHeight - paddingY - ((d.value - minVal) / range) * (svgHeight - paddingY * 2);
     return { ...d, x, y };
   });
 
@@ -198,50 +271,54 @@ export default function StudioAnalyticsPage() {
         <div className="lg:col-span-2 space-y-6">
           {/* Summary Banner */}
           <div className="rounded-2xl bg-[#141414] border border-white/[0.08] p-6 shadow-xl space-y-6">
-            <h2 className="text-lg font-bold text-white">
-              Your channel got{" "}
-              <span className="text-white font-mono font-black">{formatNumber(totalViews)}</span> views in the last 28 days
+            <h2 className="text-lg font-bold text-white transition-colors">
+              {currentMetric.headline}
             </h2>
 
-            {/* Metric Cards Row */}
+            {/* Metric Cards Row - Clickable to switch active graph */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
-              <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.06] space-y-1">
-                <span className="text-xs text-zinc-400">Views</span>
-                <p className="text-xl font-bold text-white font-mono">{formatNumber(totalViews)}</p>
-                <span className="text-[11px] font-semibold text-emerald-400 flex items-center gap-0.5">
-                  <ArrowUpRight className="h-3 w-3" /> +18%
-                </span>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.06] space-y-1">
-                <span className="text-xs text-zinc-400">Watch time (hours)</span>
-                <p className="text-xl font-bold text-white font-mono">{totalWatchTimeHours}</p>
-                <span className="text-[11px] font-semibold text-emerald-400 flex items-center gap-0.5">
-                  <ArrowUpRight className="h-3 w-3" /> +12%
-                </span>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.06] space-y-1">
-                <span className="text-xs text-zinc-400">Subscribers</span>
-                <p className="text-xl font-bold text-white font-mono">+{netSubsInPeriod}</p>
-                <span className="text-[11px] font-semibold text-emerald-400 flex items-center gap-0.5">
-                  <ArrowUpRight className="h-3 w-3" /> +25%
-                </span>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.06] space-y-1">
-                <span className="text-xs text-zinc-400">Impressions</span>
-                <p className="text-xl font-bold text-white font-mono">{formatNumber(impressionsCount)}</p>
-                <span className="text-[11px] font-semibold text-emerald-400 flex items-center gap-0.5">
-                  <ArrowUpRight className="h-3 w-3" /> +15%
-                </span>
-              </div>
+              {[
+                metricConfigs.views,
+                metricConfigs.watchTime,
+                metricConfigs.subscribers,
+                metricConfigs.impressions,
+              ].map((m) => {
+                const isSelected = activeMetric === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => {
+                      setActiveMetric(m.id);
+                      setHoveredPoint(null);
+                    }}
+                    className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer relative select-none ${
+                      isSelected
+                        ? "bg-white/[0.08] border-white/40 shadow-lg ring-1 ring-white/20"
+                        : "bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.05] hover:border-white/20"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className={`text-xs font-semibold transition-colors ${isSelected ? "text-white" : "text-zinc-400"}`}>
+                        {m.label}
+                      </span>
+                      {isSelected && (
+                        <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+                      )}
+                    </div>
+                    <p className="text-xl font-bold text-white font-mono mt-1">{m.valueDisplay}</p>
+                    <span className="text-[11px] font-semibold text-emerald-400 flex items-center gap-0.5 mt-0.5">
+                      <ArrowUpRight className="h-3 w-3" /> {m.change}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
             {/* Interactive SVG Chart (White Stroke & Gradient) */}
             <div className="relative pt-4">
               <div className="flex items-center justify-between text-xs text-zinc-400 mb-2">
-                <span>Daily Views Trend</span>
+                <span className="font-semibold text-white">{currentMetric.trendTitle}</span>
                 <span className="font-mono text-[11px]">Hover over graph for details</span>
               </div>
 
@@ -325,7 +402,7 @@ export default function StudioAnalyticsPage() {
                     }}
                   >
                     <p className="font-mono text-zinc-400 text-[10px]">Day {hoveredPoint.day}</p>
-                    <p className="font-bold text-white font-mono">{hoveredPoint.views} views</p>
+                    <p className="font-bold text-white font-mono">{currentMetric.formatTooltip(hoveredPoint.value)}</p>
                   </div>
                 )}
               </div>
