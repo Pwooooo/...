@@ -528,7 +528,7 @@ export default function StudioAnalyticsPage() {
               {[
                 { label: "Browse features", pct: 42.4, color: "bg-white" },
                 { label: "Suggested videos", pct: 31.8, color: "bg-zinc-300" },
-                { label: "YouTube/Entropy Search", pct: 15.2, color: "bg-zinc-400" },
+                { label: "Entropy Search", pct: 15.2, color: "bg-zinc-400" },
                 { label: "Channel pages", pct: 6.8, color: "bg-zinc-500" },
                 { label: "Direct or unknown", pct: 3.8, color: "bg-zinc-600" },
               ].map((item) => (
