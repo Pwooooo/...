@@ -292,7 +292,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
                   </Link>
 
                   <Link
-                    href="/studio/videos"
+                    href="/studio"
                     onClick={() => setIsUserMenuOpen(false)}
                     className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:text-white hover:bg-[#222222] transition-colors"
                   >

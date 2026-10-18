@@ -21,6 +21,7 @@ export interface User {
   bio?: string;
   country?: string;
   joinedAt?: string;
+  subscribersCount?: number;
 }
 
 interface AuthContextType {

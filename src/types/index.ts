@@ -96,3 +96,33 @@ export interface CommunityPost {
   comments: CommunityComment[];
 }
 
+export interface CommentReply {
+  id: string;
+  user: string;
+  userHandle?: string;
+  avatar: string;
+  content: string;
+  createdAt: number;
+  timeAgo: string;
+  likes: number;
+  dislikes?: number;
+  isEdited?: boolean;
+}
+
+export interface CommentItem {
+  id: string;
+  user: string;
+  userHandle?: string;
+  avatar: string;
+  content: string;
+  createdAt: number;
+  timeAgo: string;
+  likes: number;
+  dislikes?: number;
+  isPinned?: boolean;
+  isHearted?: boolean;
+  isEdited?: boolean;
+  replies?: CommentReply[];
+}
+
+

@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import Navbar from "@/components/navigation/Navbar";
-import Sidebar from "@/components/navigation/Sidebar";
+
 import {
   UploadCloud,
   CheckCircle2,
@@ -268,19 +267,13 @@ export default function StudioUploadPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-zinc-100 flex flex-col">
-      <Navbar />
-
-      <div className="flex flex-1">
-        <Sidebar />
-
-        <main className="flex-1 overflow-x-hidden px-4 md:px-8 py-8 max-w-4xl mx-auto w-full">
-          {toastMessage && (
-            <div className="fixed bottom-6 right-6 z-50 bg-white text-black px-4 py-2.5 rounded-xl font-semibold text-xs shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
-              <CheckCircle2 className="h-4 w-4" />
-              <span>{toastMessage}</span>
-            </div>
-          )}
+    <div className="p-6 md:p-8 max-w-4xl mx-auto w-full">
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-white text-black px-4 py-2.5 rounded-xl font-semibold text-xs shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <CheckCircle2 className="h-4 w-4" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
 
           {!user ? (
             <div className="py-20 max-w-md mx-auto text-center flex flex-col items-center">
@@ -778,8 +771,6 @@ export default function StudioUploadPage() {
               )}
             </div>
           )}
-        </main>
-      </div>
     </div>
   );
 }
