@@ -292,21 +292,18 @@ export default function StudioAnalyticsPage() {
                       setActiveMetric(m.id);
                       setHoveredPoint(null);
                     }}
-                    className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer relative select-none ${
+                    className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer select-none ${
                       isSelected
-                        ? "bg-white/[0.08] border-white/40 shadow-lg ring-1 ring-white/20"
-                        : "bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.05] hover:border-white/20"
+                        ? "bg-white/[0.05] border-white/[0.16]"
+                        : "bg-white/[0.015] border-white/[0.05] hover:bg-white/[0.03] hover:border-white/[0.09]"
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className={`text-xs font-semibold transition-colors ${isSelected ? "text-white" : "text-zinc-400"}`}>
-                        {m.label}
-                      </span>
-                      {isSelected && (
-                        <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-                      )}
-                    </div>
-                    <p className="text-xl font-bold text-white font-mono mt-1">{m.valueDisplay}</p>
+                    <span className={`text-xs font-semibold transition-colors ${isSelected ? "text-white" : "text-zinc-400"}`}>
+                      {m.label}
+                    </span>
+                    <p className={`text-xl font-bold font-mono mt-1 transition-colors ${isSelected ? "text-white" : "text-zinc-200"}`}>
+                      {m.valueDisplay}
+                    </p>
                     <span className="text-[11px] font-semibold text-emerald-400 flex items-center gap-0.5 mt-0.5">
                       <ArrowUpRight className="h-3 w-3" /> {m.change}
                     </span>
