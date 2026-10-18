@@ -35,6 +35,7 @@ import {
   fetchServerVideos,
   isShortVideo,
 } from "@/lib/video-storage";
+import StudioDropdown from "@/components/ui/StudioDropdown";
 
 const CATEGORIES = [
   "All Categories",
@@ -111,6 +112,7 @@ function StudioVideosContent() {
 
   // Delete Confirm State
   const [deletingVideoId, setDeletingVideoId] = useState<string | null>(null);
+  const [activeActionMenuVideoId, setActiveActionMenuVideoId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -388,29 +390,23 @@ function StudioVideosContent() {
           </div>
 
           {/* Category Dropdown */}
-          <select
+          <StudioDropdown
             value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="bg-[#181818] border border-white/[0.08] focus:border-white/30 rounded-xl py-2 px-3 text-xs text-zinc-300 outline-none cursor-pointer"
-          >
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c} className="bg-zinc-900 text-white">
-                {c}
-              </option>
-            ))}
-          </select>
+            onChange={setSelectedCategory}
+            options={CATEGORIES}
+          />
 
           {/* Visibility Dropdown */}
-          <select
+          <StudioDropdown
             value={selectedVisibility}
-            onChange={(e) => setSelectedVisibility(e.target.value as any)}
-            className="bg-[#181818] border border-white/[0.08] focus:border-white/30 rounded-xl py-2 px-3 text-xs text-zinc-300 outline-none cursor-pointer"
-          >
-            <option value="all" className="bg-zinc-900 text-white">All Visibility</option>
-            <option value="public" className="bg-zinc-900 text-white">Public</option>
-            <option value="unlisted" className="bg-zinc-900 text-white">Unlisted</option>
-            <option value="private" className="bg-zinc-900 text-white">Private</option>
-          </select>
+            onChange={(val) => setSelectedVisibility(val as any)}
+            options={[
+              { value: "all", label: "All Visibility", icon: <Eye className="h-3.5 w-3.5 text-zinc-400" /> },
+              { value: "public", label: "Public", icon: <Globe className="h-3.5 w-3.5 text-zinc-400" /> },
+              { value: "unlisted", label: "Unlisted", icon: <EyeOff className="h-3.5 w-3.5 text-zinc-400" /> },
+              { value: "private", label: "Private", icon: <Lock className="h-3.5 w-3.5 text-zinc-400" /> },
+            ]}
+          />
         </div>
       </div>
 
@@ -591,28 +587,28 @@ function StudioVideosContent() {
                           <button
                             type="button"
                             onClick={() => handleOpenEdit(v)}
-                            className="p-1.5 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer hidden md:inline-flex"
                             title="Edit video details"
                           >
                             <Pencil className="h-3.5 w-3.5" />
                           </button>
                           <Link
                             href="/studio/analytics"
-                            className="p-1.5 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
+                            className="p-1.5 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-colors hidden md:inline-flex"
                             title="View analytics"
                           >
                             <BarChart3 className="h-3.5 w-3.5" />
                           </Link>
                           <Link
                             href="/studio/comments"
-                            className="p-1.5 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
+                            className="p-1.5 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-colors hidden md:inline-flex"
                             title="View comments"
                           >
                             <MessageSquare className="h-3.5 w-3.5" />
                           </Link>
                           <Link
                             href={`/watch?v=${v.id}`}
-                            className="p-1.5 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
+                            className="p-1.5 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-colors hidden md:inline-flex"
                             title="Watch on Entropy"
                           >
                             <ExternalLink className="h-3.5 w-3.5" />
@@ -620,11 +616,88 @@ function StudioVideosContent() {
                           <button
                             type="button"
                             onClick={() => setDeletingVideoId(v.id)}
-                            className="p-1.5 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer hidden md:inline-flex"
                             title="Delete video"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
+
+                          {/* 3-Dots Smooth Action Menu matching Image 2 */}
+                          <div className="relative">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveActionMenuVideoId(
+                                  activeActionMenuVideoId === v.id ? null : v.id
+                                );
+                              }}
+                              className="p-1.5 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                              title="Options"
+                            >
+                              <MoreVertical className="h-3.5 w-3.5" />
+                            </button>
+
+                            {activeActionMenuVideoId === v.id && (
+                              <>
+                                <div
+                                  className="fixed inset-0 z-40"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveActionMenuVideoId(null);
+                                  }}
+                                />
+                                <div className="absolute right-0 top-full mt-1.5 z-50 w-44 rounded-2xl bg-[#212121] border border-white/[0.12] p-1.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 select-none text-left">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActiveActionMenuVideoId(null);
+                                      handleOpenEdit(v);
+                                    }}
+                                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:bg-[#272727] hover:text-white transition-colors cursor-pointer"
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                    <span>Edit details</span>
+                                  </button>
+                                  <Link
+                                    href="/studio/analytics"
+                                    onClick={() => setActiveActionMenuVideoId(null)}
+                                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:bg-[#272727] hover:text-white transition-colors"
+                                  >
+                                    <BarChart3 className="h-3.5 w-3.5" />
+                                    <span>Analytics</span>
+                                  </Link>
+                                  <Link
+                                    href="/studio/comments"
+                                    onClick={() => setActiveActionMenuVideoId(null)}
+                                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:bg-[#272727] hover:text-white transition-colors"
+                                  >
+                                    <MessageSquare className="h-3.5 w-3.5" />
+                                    <span>Comments</span>
+                                  </Link>
+                                  <Link
+                                    href={`/watch?v=${v.id}`}
+                                    onClick={() => setActiveActionMenuVideoId(null)}
+                                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:bg-[#272727] hover:text-white transition-colors"
+                                  >
+                                    <ExternalLink className="h-3.5 w-3.5" />
+                                    <span>Watch on Entropy</span>
+                                  </Link>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActiveActionMenuVideoId(null);
+                                      setDeletingVideoId(v.id);
+                                    }}
+                                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-300 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                    <span>Delete</span>
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </td>
                     </tr>
@@ -731,32 +804,30 @@ function StudioVideosContent() {
                   <label className="block text-xs font-semibold text-zinc-300 mb-1">
                     Category
                   </label>
-                  <select
+                  <StudioDropdown
                     value={editCategory}
-                    onChange={(e) => setEditCategory(e.target.value)}
-                    className="w-full rounded-xl bg-[#1e1e1e] border border-white/[0.08] focus:border-white/30 p-2.5 text-xs text-white outline-none cursor-pointer"
-                  >
-                    {CATEGORIES.filter((c) => c !== "All Categories").map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setEditCategory}
+                    options={CATEGORIES.filter((c) => c !== "All Categories")}
+                    className="w-full"
+                    buttonClassName="w-full bg-[#1e1e1e] p-2.5"
+                  />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-zinc-300 mb-1">
                     Visibility
                   </label>
-                  <select
+                  <StudioDropdown
                     value={editVisibility}
-                    onChange={(e) => setEditVisibility(e.target.value as any)}
-                    className="w-full rounded-xl bg-[#1e1e1e] border border-white/[0.08] focus:border-white/30 p-2.5 text-xs text-white outline-none cursor-pointer"
-                  >
-                    <option value="public">Public (Everyone can see)</option>
-                    <option value="unlisted">Unlisted (Anyone with link)</option>
-                    <option value="private">Private (Only you)</option>
-                  </select>
+                    onChange={(val) => setEditVisibility(val as any)}
+                    options={[
+                      { value: "public", label: "Public (Everyone can see)", icon: <Globe className="h-3.5 w-3.5 text-zinc-400" /> },
+                      { value: "unlisted", label: "Unlisted (Anyone with link)", icon: <EyeOff className="h-3.5 w-3.5 text-zinc-400" /> },
+                      { value: "private", label: "Private (Only you)", icon: <Lock className="h-3.5 w-3.5 text-zinc-400" /> },
+                    ]}
+                    className="w-full"
+                    buttonClassName="w-full bg-[#1e1e1e] p-2.5"
+                  />
                 </div>
               </div>
 

@@ -21,11 +21,13 @@ import {
   Radio,
   ExternalLink,
 } from "lucide-react";
+import StudioDropdown from "@/components/ui/StudioDropdown";
 
 export default function StudioAnalyticsPage() {
   const { user } = useAuth();
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [activeTab, setActiveTab] = useState<"overview" | "reach" | "engagement" | "audience">("overview");
+  const [timeRange, setTimeRange] = useState("Last 28 days");
   const [hoveredPoint, setHoveredPoint] = useState<{ day: number; views: number; x: number; y: number } | null>(null);
 
   useEffect(() => {
@@ -156,10 +158,19 @@ export default function StudioAnalyticsPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#181818] border border-white/10 text-xs text-zinc-300 font-medium select-none">
-            <Calendar className="h-3.5 w-3.5 text-zinc-400" />
-            <span>Last 28 days</span>
-          </div>
+          <StudioDropdown
+            value={timeRange}
+            onChange={setTimeRange}
+            icon={<Calendar className="h-3.5 w-3.5 text-zinc-400" />}
+            align="right"
+            options={[
+              "Last 7 days",
+              "Last 28 days",
+              "Last 90 days",
+              "Last 365 days",
+              "Lifetime",
+            ]}
+          />
         </div>
       </div>
 

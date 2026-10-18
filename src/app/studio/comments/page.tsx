@@ -22,6 +22,7 @@ import {
   Send,
   Sparkles,
 } from "lucide-react";
+import StudioDropdown from "@/components/ui/StudioDropdown";
 
 interface CommentEntry {
   videoId: string;
@@ -346,15 +347,15 @@ export default function StudioCommentsPage() {
             )}
           </div>
 
-          <select
+          <StudioDropdown
             value={filterFilter}
-            onChange={(e) => setFilterFilter(e.target.value as any)}
-            className="bg-[#181818] border border-white/[0.08] focus:border-white/30 rounded-xl py-2 px-3 text-xs text-zinc-300 outline-none cursor-pointer"
-          >
-            <option value="all" className="bg-zinc-900 text-white">All comments</option>
-            <option value="unreplied" className="bg-zinc-900 text-white">I haven't replied</option>
-            <option value="hearted" className="bg-zinc-900 text-white">Hearted by me</option>
-          </select>
+            onChange={(val) => setFilterFilter(val as any)}
+            options={[
+              { value: "all", label: "All comments", icon: <MessageSquare className="h-3.5 w-3.5 text-zinc-400" /> },
+              { value: "unreplied", label: "I haven't replied", icon: <Reply className="h-3.5 w-3.5 text-zinc-400" /> },
+              { value: "hearted", label: "Hearted by me", icon: <Heart className="h-3.5 w-3.5 text-zinc-400" /> },
+            ]}
+          />
         </div>
       </div>
 

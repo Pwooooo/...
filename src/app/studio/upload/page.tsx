@@ -30,6 +30,7 @@ import {
   fetchServerVideos,
 } from "@/lib/video-storage";
 import { formatDuration } from "@/lib/utils";
+import StudioDropdown from "@/components/ui/StudioDropdown";
 
 const VIDEO_CATEGORIES = [
   "Shorts",
@@ -588,17 +589,13 @@ export default function StudioUploadPage() {
                           <label className="block text-xs font-bold text-zinc-300 mb-1.5">
                             Category
                           </label>
-                          <select
+                          <StudioDropdown
                             value={category}
-                            onChange={(e) => setCategory(e.target.value)}
-                            className="w-full rounded-xl bg-black border border-white/[0.08] px-3 py-2 text-xs text-white outline-none focus:border-white/20 transition-colors"
-                          >
-                            {VIDEO_CATEGORIES.map((c) => (
-                              <option key={c} value={c} className="bg-[#141414] text-white">
-                                {c}
-                              </option>
-                            ))}
-                          </select>
+                            onChange={setCategory}
+                            options={VIDEO_CATEGORIES}
+                            className="w-full"
+                            buttonClassName="w-full bg-black py-2 text-white"
+                          />
                         </div>
 
                         <div>
