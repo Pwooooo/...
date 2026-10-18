@@ -444,7 +444,7 @@ export default function StudioCommentsPage() {
                       onClick={() => handleToggleHeart(videoId, comment.id)}
                       className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-colors cursor-pointer ${
                         comment.isHearted
-                          ? "bg-white/10 text-white font-semibold border border-white/20"
+                          ? "bg-white/10 text-white font-semibold"
                           : "hover:bg-white/10 hover:text-white"
                       }`}
                       title={comment.isHearted ? "Unheart" : "Creator heart"}
@@ -478,7 +478,7 @@ export default function StudioCommentsPage() {
                       onClick={() => handleTogglePin(videoId, comment.id)}
                       className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-colors cursor-pointer ${
                         comment.isPinned
-                          ? "bg-white/10 text-white font-semibold border border-white/20"
+                          ? "bg-white/10 text-white font-semibold"
                           : "hover:bg-white/10 hover:text-white"
                       }`}
                       title={comment.isPinned ? "Unpin comment" : "Pin to top"}

@@ -314,9 +314,8 @@ export default function StudioAnalyticsPage() {
 
             {/* Interactive SVG Chart (White Stroke & Gradient) */}
             <div className="relative pt-4">
-              <div className="flex items-center justify-between text-xs text-zinc-400 mb-2">
+              <div className="text-xs text-zinc-400 mb-2">
                 <span className="font-semibold text-white">{currentMetric.trendTitle}</span>
-                <span className="font-mono text-[11px]">Hover over graph for details</span>
               </div>
 
               <div className="relative w-full overflow-hidden rounded-xl bg-black/40 border border-white/[0.06] p-2">
