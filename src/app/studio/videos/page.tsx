@@ -48,6 +48,46 @@ const CATEGORIES = [
   "Shorts",
 ];
 
+function BoxToggle({
+  checked,
+  indeterminate,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  indeterminate?: boolean;
+  onChange: () => void;
+  label?: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={indeterminate ? "mixed" : checked}
+      aria-label={label}
+      onClick={(e) => {
+        e.stopPropagation();
+        onChange();
+      }}
+      className={`h-5 w-5 rounded-md flex items-center justify-center transition-all cursor-pointer border-2 select-none ${
+        checked || indeterminate
+          ? "border-white bg-black shadow-sm ring-1 ring-white/10"
+          : "border-white/20 bg-[#181818] hover:border-white/40"
+      }`}
+    >
+      <span
+        className={`bg-white transition-all duration-150 ${
+          indeterminate
+            ? "h-0.5 w-2.5 rounded-full scale-100 opacity-100"
+            : checked
+            ? "h-2.5 w-2.5 rounded-xs scale-100 opacity-100"
+            : "h-2.5 w-2.5 rounded-xs scale-50 opacity-0"
+        }`}
+      />
+    </button>
+  );
+}
+
 function StudioVideosContent() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
@@ -407,14 +447,17 @@ function StudioVideosContent() {
             <thead className="bg-[#1a1a1a] text-zinc-400 border-b border-white/[0.08] font-semibold uppercase tracking-wider text-[11px] select-none">
               <tr>
                 <th className="py-3 px-4 w-10">
-                  <input
-                    type="checkbox"
+                  <BoxToggle
                     checked={
                       filteredVideos.length > 0 &&
                       selectedVideoIds.length === filteredVideos.length
                     }
+                    indeterminate={
+                      selectedVideoIds.length > 0 &&
+                      selectedVideoIds.length < filteredVideos.length
+                    }
                     onChange={handleToggleSelectAll}
-                    className="rounded bg-zinc-800 border-zinc-700 text-white focus:ring-0 cursor-pointer accent-white"
+                    label="Select all videos"
                   />
                 </th>
                 <th className="py-3 px-4 min-w-[280px]">Video</th>
@@ -458,11 +501,10 @@ function StudioVideosContent() {
                     >
                       {/* Checkbox */}
                       <td className="py-3 px-4">
-                        <input
-                          type="checkbox"
+                        <BoxToggle
                           checked={isSelected}
                           onChange={() => handleToggleSelectVideo(v.id)}
-                          className="rounded bg-zinc-800 border-zinc-700 text-white focus:ring-0 cursor-pointer accent-white"
+                          label={`Select ${v.title}`}
                         />
                       </td>
 
