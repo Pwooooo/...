@@ -736,7 +736,7 @@ export default function StudioUploadPage() {
                   )}
 
                   {/* Action buttons */}
-                  <div className="flex items-center justify-between pt-4 border-t border-white/[0.06]">
+                  <div className="flex items-center justify-between pt-4">
                     <button
                       type="button"
                       disabled={isUploading}

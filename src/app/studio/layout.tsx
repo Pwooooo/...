@@ -103,7 +103,7 @@ export default function StudioLayout({ children }: StudioLayoutProps) {
   return (
     <div className="min-h-screen bg-[#0f0f0f] text-white flex flex-col font-sans selection:bg-white/20">
       {/* 1. Studio Top Navbar */}
-      <header className="sticky top-0 z-40 h-14 bg-[#121212]/95 backdrop-blur-md border-b border-white/[0.08] px-4 flex items-center justify-between select-none">
+      <header className="sticky top-0 z-40 h-14 bg-[#121212]/95 backdrop-blur-md px-4 flex items-center justify-between select-none">
         {/* Left: Hamburger + Studio Logo */}
         <div className="flex items-center gap-3">
           <button
@@ -204,7 +204,7 @@ export default function StudioLayout({ children }: StudioLayoutProps) {
 
             {isUserMenuOpen && user && (
               <div className="absolute right-0 top-full mt-2 w-60 rounded-xl bg-[#1e1e1e] border border-white/10 shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
-                <div className="p-2 border-b border-white/[0.08] mb-1">
+                <div className="p-2 mb-1">
                   <p className="text-xs font-bold text-white truncate">{channelName}</p>
                   <p className="text-[11px] text-zinc-400 truncate">{channelHandle}</p>
                 </div>

@@ -156,7 +156,7 @@ export default function StudioCustomizationPage() {
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.08] pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white">Channel customization</h1>
           <p className="text-xs text-zinc-400 mt-1">
@@ -183,7 +183,7 @@ export default function StudioCustomizationPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-white/[0.08] pb-2">
+      <div className="flex items-center gap-2 pb-2">
         <button
           type="button"
           onClick={() => setActiveTab("branding")}

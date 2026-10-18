@@ -177,7 +177,7 @@ export default function StudioDashboardPage() {
       )}
 
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.08] pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white">Channel dashboard</h1>
           <p className="text-xs text-zinc-400 mt-1">
@@ -210,7 +210,7 @@ export default function StudioDashboardPage() {
           {/* 1. Latest Video Performance */}
           {latestVideo ? (
             <div className="rounded-2xl bg-[#141414] border border-white/[0.08] p-5 shadow-xl hover:border-white/15 transition-all">
-              <div className="flex items-center justify-between pb-4 border-b border-white/[0.06]">
+              <div className="flex items-center justify-between pb-4">
                 <div className="flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-white" />
                   <h3 className="font-bold text-sm text-white">Latest video performance</h3>
@@ -250,7 +250,7 @@ export default function StudioDashboardPage() {
                     {latestVideo.description || "No description provided."}
                   </p>
 
-                  <div className="pt-2 border-t border-white/[0.06] space-y-2">
+                  <div className="pt-2 space-y-2">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-zinc-400">Ranking by views</span>
                       <span className="font-semibold text-white font-mono">1 of {videos.length}</span>
@@ -292,7 +292,7 @@ export default function StudioDashboardPage() {
 
           {/* 2. Published Videos Snapshot */}
           <div className="rounded-2xl bg-[#141414] border border-white/[0.08] p-5 shadow-xl">
-            <div className="flex items-center justify-between pb-4 border-b border-white/[0.06]">
+            <div className="flex items-center justify-between pb-4">
               <div className="flex items-center gap-2">
                 <VideoIcon className="h-4 w-4 text-white" />
                 <h3 className="font-bold text-sm text-white">Published videos</h3>
@@ -306,7 +306,7 @@ export default function StudioDashboardPage() {
               </Link>
             </div>
 
-            <div className="mt-4 divide-y divide-white/[0.06]">
+            <div className="mt-4 space-y-1">
               {videos.slice(0, 4).map((v) => (
                 <div key={v.id} className="py-3 flex items-center justify-between gap-4 group">
                   <div className="flex items-center gap-3 min-w-0">
@@ -357,7 +357,7 @@ export default function StudioDashboardPage() {
         <div className="space-y-6">
           {/* 1. Channel Analytics Overview */}
           <div className="rounded-2xl bg-[#141414] border border-white/[0.08] p-5 shadow-xl">
-            <div className="flex items-center justify-between pb-4 border-b border-white/[0.06]">
+            <div className="flex items-center justify-between pb-4">
               <div className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4 text-white" />
                 <h3 className="font-bold text-sm text-white">Channel analytics</h3>
@@ -378,7 +378,7 @@ export default function StudioDashboardPage() {
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-white/[0.06] space-y-3">
+              <div className="pt-3 space-y-3">
                 <p className="text-xs font-bold text-zinc-300">Summary (Last 28 days)</p>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-zinc-400">Views</span>
@@ -390,7 +390,7 @@ export default function StudioDashboardPage() {
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-white/[0.06]">
+              <div className="pt-3">
                 <Link
                   href="/studio/analytics"
                   className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-xs font-semibold text-white border border-white/10 transition-all cursor-pointer"
@@ -404,7 +404,7 @@ export default function StudioDashboardPage() {
 
           {/* 2. Recent Comments Inbox */}
           <div className="rounded-2xl bg-[#141414] border border-white/[0.08] p-5 shadow-xl">
-            <div className="flex items-center justify-between pb-4 border-b border-white/[0.06]">
+            <div className="flex items-center justify-between pb-4">
               <div className="flex items-center gap-2">
                 <MessageSquare className="h-4 w-4 text-white" />
                 <h3 className="font-bold text-sm text-white">Recent comments</h3>

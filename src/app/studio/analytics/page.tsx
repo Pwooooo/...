@@ -149,7 +149,7 @@ export default function StudioAnalyticsPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.08] pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white">Channel analytics</h1>
           <p className="text-xs text-zinc-400 mt-1">
@@ -175,7 +175,7 @@ export default function StudioAnalyticsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-white/[0.08] pb-2">
+      <div className="flex items-center gap-2 pb-2">
         {(["overview", "reach", "engagement", "audience"] as const).map((tab) => (
           <button
             key={tab}
@@ -340,7 +340,7 @@ export default function StudioAnalyticsPage() {
 
           {/* Top Content Ranked Table */}
           <div className="rounded-2xl bg-[#141414] border border-white/[0.08] p-5 shadow-xl">
-            <div className="flex items-center justify-between pb-4 border-b border-white/[0.06]">
+            <div className="flex items-center justify-between pb-4">
               <div className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4 text-white" />
                 <h3 className="font-bold text-sm text-white">Top content in this period</h3>
@@ -353,7 +353,7 @@ export default function StudioAnalyticsPage() {
               </Link>
             </div>
 
-            <div className="mt-4 divide-y divide-white/[0.06]">
+            <div className="mt-4 space-y-1">
               {sortedVideos.slice(0, 5).map((v, i) => (
                 <div key={v.id} className="py-3 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3 min-w-0">
@@ -402,7 +402,7 @@ export default function StudioAnalyticsPage() {
         <div className="space-y-6">
           {/* 1. Realtime Card */}
           <div className="rounded-2xl bg-[#141414] border border-white/[0.08] p-5 shadow-xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
+            <div className="flex items-center justify-between pb-3">
               <div>
                 <h3 className="font-bold text-sm text-white">Realtime</h3>
                 <div className="flex items-center gap-1.5 mt-0.5">
@@ -419,7 +419,7 @@ export default function StudioAnalyticsPage() {
               </p>
             </div>
 
-            <div className="pt-2 border-t border-white/[0.06] space-y-2">
+            <div className="pt-2 space-y-2">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-zinc-400">Views • Last 48 hours</span>
                 <span className="font-bold text-white font-mono">{views48h.toLocaleString()}</span>
@@ -438,7 +438,7 @@ export default function StudioAnalyticsPage() {
               </div>
             </div>
 
-            <div className="pt-3 border-t border-white/[0.06] flex items-center justify-between text-xs">
+            <div className="pt-3 flex items-center justify-between text-xs">
               <span className="text-zinc-400">Views • Last 60 minutes</span>
               <span className="font-bold text-white font-mono">{views60m}</span>
             </div>
@@ -446,7 +446,7 @@ export default function StudioAnalyticsPage() {
 
           {/* 2. Traffic Sources Breakdown */}
           <div className="rounded-2xl bg-[#141414] border border-white/[0.08] p-5 shadow-xl space-y-4">
-            <div className="pb-3 border-b border-white/[0.06]">
+            <div className="pb-3">
               <h3 className="font-bold text-sm text-white">Traffic source types</h3>
               <p className="text-xs text-zinc-400 mt-0.5">Where viewers find your content</p>
             </div>
@@ -477,7 +477,7 @@ export default function StudioAnalyticsPage() {
 
           {/* 3. Top Geographies */}
           <div className="rounded-2xl bg-[#141414] border border-white/[0.08] p-5 shadow-xl space-y-4">
-            <div className="pb-3 border-b border-white/[0.06]">
+            <div className="pb-3">
               <h3 className="font-bold text-sm text-white">Top geographies</h3>
               <p className="text-xs text-zinc-400 mt-0.5">Views by location (last 28 days)</p>
             </div>

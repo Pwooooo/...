@@ -310,7 +310,7 @@ function StudioVideosContent() {
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.08] pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white">Channel content</h1>
           <p className="text-xs text-zinc-400 mt-1">
@@ -332,7 +332,7 @@ function StudioVideosContent() {
       {/* Tabs & Search Filter Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Tabs: Videos vs Shorts */}
-        <div className="flex items-center gap-2 border-b border-white/[0.08] pb-2 md:border-b-0 md:pb-0">
+        <div className="flex items-center gap-2 pb-2 md:pb-0">
           <button
             type="button"
             onClick={() => setActiveTab("videos")}
@@ -440,7 +440,7 @@ function StudioVideosContent() {
       <div className="rounded-2xl bg-[#141414] border border-white/[0.08] overflow-hidden shadow-2xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-[#1a1a1a] text-zinc-400 border-b border-white/[0.08] font-semibold uppercase tracking-wider text-[11px] select-none">
+            <thead className="bg-[#1a1a1a] text-zinc-400 font-semibold uppercase tracking-wider text-[11px] select-none">
               <tr>
                 <th className="py-3 px-4 w-10">
                   <BoxToggle
@@ -465,7 +465,7 @@ function StudioVideosContent() {
                 <th className="py-3 px-4 text-right min-w-[150px]">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.06]">
+            <tbody>
               {filteredVideos.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-zinc-500">
@@ -714,7 +714,7 @@ function StudioVideosContent() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
           <div className="w-full max-w-2xl rounded-2xl bg-[#141414] border border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-5 border-b border-white/[0.08]">
+            <div className="flex items-center justify-between p-5">
               <div className="flex items-center gap-2">
                 <Pencil className="h-4 w-4 text-white" />
                 <h3 className="font-bold text-sm text-white">Video details</h3>
@@ -846,7 +846,7 @@ function StudioVideosContent() {
               </div>
 
               {/* Modal Footer Actions */}
-              <div className="pt-4 border-t border-white/[0.08] flex items-center justify-end gap-3">
+              <div className="pt-4 flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={handleCloseEdit}

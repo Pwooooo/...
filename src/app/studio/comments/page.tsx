@@ -279,7 +279,7 @@ export default function StudioCommentsPage() {
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.08] pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white">Channel comments</h1>
           <p className="text-xs text-zinc-400 mt-1">
@@ -360,7 +360,7 @@ export default function StudioCommentsPage() {
       </div>
 
       {/* Comments List */}
-      <div className="rounded-2xl bg-[#141414] border border-white/[0.08] overflow-hidden shadow-2xl divide-y divide-white/[0.06]">
+      <div className="rounded-2xl bg-[#141414] border border-white/[0.08] overflow-hidden shadow-2xl">
         {filteredComments.length === 0 ? (
           <div className="p-12 text-center text-zinc-500 space-y-2">
             <MessageSquare className="h-10 w-10 mx-auto opacity-30" />
