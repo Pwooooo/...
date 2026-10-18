@@ -639,7 +639,7 @@ export default function StudioAnalyticsPage() {
             </button>
             <Link
               href="/studio"
-              className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#e50914] hover:bg-[#cc0813] text-white font-semibold text-xs transition-all shadow-md cursor-pointer active:scale-95"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white hover:bg-zinc-200 text-black font-semibold text-xs transition-all shadow-md cursor-pointer active:scale-95"
             >
               <Home className="h-3.5 w-3.5" />
               <span>Go home</span>
