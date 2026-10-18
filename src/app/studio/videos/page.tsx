@@ -392,7 +392,7 @@ function StudioVideosContent() {
           <button
             type="button"
             onClick={handleBulkDelete}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600/80 hover:bg-red-600 text-white font-semibold transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-black hover:bg-zinc-200 font-semibold transition-all cursor-pointer"
           >
             <Trash2 className="h-3.5 w-3.5" />
             <span>Delete selected</span>
@@ -414,7 +414,7 @@ function StudioVideosContent() {
                       selectedVideoIds.length === filteredVideos.length
                     }
                     onChange={handleToggleSelectAll}
-                    className="rounded bg-zinc-800 border-zinc-700 text-red-600 focus:ring-0 cursor-pointer"
+                    className="rounded bg-zinc-800 border-zinc-700 text-white focus:ring-0 cursor-pointer accent-white"
                   />
                 </th>
                 <th className="py-3 px-4 min-w-[280px]">Video</th>
@@ -462,7 +462,7 @@ function StudioVideosContent() {
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => handleToggleSelectVideo(v.id)}
-                          className="rounded bg-zinc-800 border-zinc-700 text-red-600 focus:ring-0 cursor-pointer"
+                          className="rounded bg-zinc-800 border-zinc-700 text-white focus:ring-0 cursor-pointer accent-white"
                         />
                       </td>
 
@@ -500,17 +500,17 @@ function StudioVideosContent() {
                       <td className="py-3 px-4">
                         <div className="inline-flex items-center gap-1.5">
                           {visibility === "public" && (
-                            <span className="flex items-center gap-1 text-emerald-400 font-semibold text-xs">
+                            <span className="flex items-center gap-1 text-zinc-200 font-semibold text-xs">
                               <Globe className="h-3.5 w-3.5" /> Public
                             </span>
                           )}
                           {visibility === "unlisted" && (
-                            <span className="flex items-center gap-1 text-amber-400 font-semibold text-xs">
+                            <span className="flex items-center gap-1 text-zinc-400 font-semibold text-xs">
                               <EyeOff className="h-3.5 w-3.5" /> Unlisted
                             </span>
                           )}
                           {visibility === "private" && (
-                            <span className="flex items-center gap-1 text-rose-400 font-semibold text-xs">
+                            <span className="flex items-center gap-1 text-zinc-400 font-semibold text-xs">
                               <Lock className="h-3.5 w-3.5" /> Private
                             </span>
                           )}
@@ -578,7 +578,7 @@ function StudioVideosContent() {
                           <button
                             type="button"
                             onClick={() => setDeletingVideoId(v.id)}
-                            className="p-1.5 rounded-lg hover:bg-red-500/20 text-zinc-400 hover:text-red-400 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
                             title="Delete video"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -601,7 +601,7 @@ function StudioVideosContent() {
             {/* Modal Header */}
             <div className="flex items-center justify-between p-5 border-b border-white/[0.08]">
               <div className="flex items-center gap-2">
-                <Pencil className="h-4 w-4 text-red-500" />
+                <Pencil className="h-4 w-4 text-white" />
                 <h3 className="font-bold text-sm text-white">Video details</h3>
               </div>
               <button
@@ -773,7 +773,7 @@ function StudioVideosContent() {
               <button
                 type="button"
                 onClick={handleDeleteConfirm}
-                className="px-4 py-2 rounded-full bg-red-600 hover:bg-red-500 text-white font-bold text-xs transition-colors cursor-pointer shadow"
+                className="px-4 py-2 rounded-full bg-white text-black hover:bg-zinc-200 font-bold text-xs transition-colors cursor-pointer shadow"
               >
                 Delete permanently
               </button>

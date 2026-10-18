@@ -398,7 +398,7 @@ export default function StudioCommentsPage() {
                           {comment.timeAgo || "Recently"}
                         </span>
                         {comment.isPinned && (
-                          <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-400 text-[10px] font-bold border border-amber-500/30 flex items-center gap-1">
+                          <span className="px-1.5 py-0.2 rounded bg-white/10 text-white text-[10px] font-bold border border-white/20 flex items-center gap-1">
                             <Pin className="h-2.5 w-2.5" /> Pinned
                           </span>
                         )}
@@ -440,12 +440,12 @@ export default function StudioCommentsPage() {
                       onClick={() => handleToggleHeart(videoId, comment.id)}
                       className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-colors cursor-pointer ${
                         comment.isHearted
-                          ? "bg-red-500/10 text-red-500 font-semibold border border-red-500/20"
+                          ? "bg-white/10 text-white font-semibold border border-white/20"
                           : "hover:bg-white/10 hover:text-white"
                       }`}
                       title={comment.isHearted ? "Unheart" : "Creator heart"}
                     >
-                      <Heart className={`h-3.5 w-3.5 ${comment.isHearted ? "fill-red-500" : ""}`} />
+                      <Heart className={`h-3.5 w-3.5 ${comment.isHearted ? "fill-white text-white" : ""}`} />
                       <span>{comment.isHearted ? "Hearted" : "Heart"}</span>
                     </button>
 
@@ -475,14 +475,14 @@ export default function StudioCommentsPage() {
                       className="flex items-center gap-1.5 px-2 py-1 rounded-full hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
                       title={comment.isPinned ? "Unpin" : "Pin to top"}
                     >
-                      <Pin className={`h-3.5 w-3.5 ${comment.isPinned ? "text-amber-400 fill-amber-400" : ""}`} />
+                      <Pin className={`h-3.5 w-3.5 ${comment.isPinned ? "text-white fill-white" : ""}`} />
                     </button>
 
                     {/* Delete comment */}
                     <button
                       type="button"
                       onClick={() => handleDeleteComment(videoId, comment.id)}
-                      className="flex items-center gap-1.5 px-2 py-1 rounded-full hover:bg-red-500/20 hover:text-red-400 transition-colors cursor-pointer ml-auto"
+                      className="flex items-center gap-1.5 px-2 py-1 rounded-full hover:bg-white/10 hover:text-white transition-colors cursor-pointer ml-auto"
                       title="Delete comment"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -503,7 +503,7 @@ export default function StudioCommentsPage() {
                               />
                             </div>
                             <span className="font-bold text-xs text-white">{r.user}</span>
-                            <span className="text-[10px] text-red-400 bg-red-500/10 px-1 rounded font-bold">
+                            <span className="text-[10px] text-zinc-300 bg-white/10 px-1 rounded font-bold">
                               Creator
                             </span>
                             <span className="text-[10px] text-zinc-500 font-mono">{r.timeAgo}</span>

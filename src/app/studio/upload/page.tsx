@@ -518,11 +518,11 @@ export default function StudioUploadPage() {
                       <div>
                         <div className="flex items-center justify-between mb-1.5">
                           <label className="block text-xs font-bold text-zinc-300">
-                            Title <span className="text-red-400">*</span>
+                            Title <span className="text-zinc-400">*</span>
                           </label>
                           <span
                             className={`text-[11px] font-mono ${
-                              title.length >= 100 ? "text-amber-400 font-bold" : "text-zinc-500"
+                              title.length >= 100 ? "text-white font-bold" : "text-zinc-500"
                             }`}
                           >
                             {title.length}/100
@@ -563,7 +563,7 @@ export default function StudioUploadPage() {
                           </label>
                           <span
                             className={`text-[11px] font-mono ${
-                              description.length >= 10000 ? "text-amber-400 font-bold" : "text-zinc-500"
+                              description.length >= 10000 ? "text-white font-bold" : "text-zinc-500"
                             }`}
                           >
                             {description.length}/10000
@@ -609,7 +609,7 @@ export default function StudioUploadPage() {
                             <span
                               className={`text-[11px] font-mono ${
                                 tagsInput.split(",").map((t) => t.trim()).filter(Boolean).length > 10
-                                  ? "text-amber-400 font-bold"
+                                  ? "text-white font-bold"
                                   : "text-zinc-500"
                               }`}
                             >

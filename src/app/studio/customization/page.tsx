@@ -321,7 +321,7 @@ export default function StudioCustomizationPage() {
               }}
               className={`px-4 py-2 rounded-xl font-semibold text-xs transition-all cursor-pointer ${
                 watermarkEnabled
-                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                  ? "bg-white text-black shadow"
                   : "bg-white/10 text-zinc-400"
               }`}
             >
@@ -419,7 +419,7 @@ export default function StudioCustomizationPage() {
                     <button
                       type="button"
                       onClick={() => handleRemoveLink(idx)}
-                      className="p-2 rounded-lg hover:bg-red-500/20 text-zinc-500 hover:text-red-400 cursor-pointer transition-colors"
+                      className="p-2 rounded-lg hover:bg-white/10 text-zinc-500 hover:text-white cursor-pointer transition-colors"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>

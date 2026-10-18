@@ -164,7 +164,7 @@ export default function StudioLayout({ children }: StudioLayoutProps) {
                   onClick={() => setIsCreateOpen(false)}
                   className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-zinc-200 hover:text-white hover:bg-white/[0.08] transition-colors"
                 >
-                  <Upload className="h-4 w-4 text-red-400" />
+                  <Upload className="h-4 w-4 text-white" />
                   <span>Upload videos</span>
                 </Link>
                 <Link
@@ -172,7 +172,7 @@ export default function StudioLayout({ children }: StudioLayoutProps) {
                   onClick={() => setIsCreateOpen(false)}
                   className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-zinc-200 hover:text-white hover:bg-white/[0.08] transition-colors"
                 >
-                  <Film className="h-4 w-4 text-rose-400" />
+                  <Film className="h-4 w-4 text-white" />
                   <span>Create Short</span>
                 </Link>
               </div>
@@ -291,7 +291,7 @@ export default function StudioLayout({ children }: StudioLayoutProps) {
                   } ${!isSidebarOpen && "justify-center px-0"}`}
                   title={!isSidebarOpen ? item.label : undefined}
                 >
-                  <Icon className={`h-5 w-5 flex-shrink-0 ${isActive ? "text-red-500" : ""}`} />
+                  <Icon className={`h-5 w-5 flex-shrink-0 ${isActive ? "text-white" : ""}`} />
                   {isSidebarOpen && <span>{item.label}</span>}
                 </Link>
               );

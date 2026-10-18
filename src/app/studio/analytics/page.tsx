@@ -272,18 +272,36 @@ export default function StudioAnalyticsPage() {
                     strokeLinejoin="round"
                   />
 
-                  {/* Interactive points - White dots */}
-                  {points.map((p) => (
-                    <circle
-                      key={p.day}
-                      cx={p.x}
-                      cy={p.y}
-                      r="4"
-                      className="fill-black stroke-white stroke-2 cursor-pointer hover:r-6 transition-all"
-                      onMouseEnter={() => setHoveredPoint(p)}
-                      onMouseLeave={() => setHoveredPoint(null)}
+                  {/* Vertical hover indicator line */}
+                  {hoveredPoint && (
+                    <line
+                      x1={hoveredPoint.x}
+                      y1={paddingY}
+                      x2={hoveredPoint.x}
+                      y2={svgHeight - paddingY}
+                      stroke="rgba(255,255,255,0.4)"
+                      strokeWidth="1.5"
+                      strokeDasharray="3 3"
                     />
-                  ))}
+                  )}
+
+                  {/* Interactive invisible hit areas without circle UI */}
+                  {points.map((p) => {
+                    const stepWidth = svgWidth / points.length;
+                    return (
+                      <rect
+                        key={p.day}
+                        x={p.x - stepWidth / 2}
+                        y={0}
+                        width={stepWidth}
+                        height={svgHeight}
+                        fill="transparent"
+                        className="cursor-crosshair"
+                        onMouseEnter={() => setHoveredPoint(p)}
+                        onMouseLeave={() => setHoveredPoint(null)}
+                      />
+                    );
+                  })}
                 </svg>
 
                 {/* Hover Tooltip */}
@@ -377,11 +395,10 @@ export default function StudioAnalyticsPage() {
               <div>
                 <h3 className="font-bold text-sm text-white">Realtime</h3>
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                   <span className="text-[11px] text-zinc-400">Updating live</span>
                 </div>
               </div>
-              <Radio className="h-4 w-4 text-emerald-400" />
+              <Radio className="h-4 w-4 text-zinc-400" />
             </div>
 
             <div>

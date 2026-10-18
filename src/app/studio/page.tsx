@@ -212,7 +212,7 @@ export default function StudioDashboardPage() {
             <div className="rounded-2xl bg-[#141414] border border-white/[0.08] p-5 shadow-xl hover:border-white/15 transition-all">
               <div className="flex items-center justify-between pb-4 border-b border-white/[0.06]">
                 <div className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-emerald-400" />
+                  <TrendingUp className="h-4 w-4 text-white" />
                   <h3 className="font-bold text-sm text-white">Latest video performance</h3>
                 </div>
                 <span className="text-[11px] text-zinc-400 font-mono">
@@ -359,10 +359,10 @@ export default function StudioDashboardPage() {
           <div className="rounded-2xl bg-[#141414] border border-white/[0.08] p-5 shadow-xl">
             <div className="flex items-center justify-between pb-4 border-b border-white/[0.06]">
               <div className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-purple-400" />
+                <BarChart3 className="h-4 w-4 text-white" />
                 <h3 className="font-bold text-sm text-white">Channel analytics</h3>
               </div>
-              <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+              <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-zinc-300 bg-white/5 px-2 py-0.5 rounded border border-white/10">
                 Active
               </span>
             </div>
@@ -374,7 +374,7 @@ export default function StudioDashboardPage() {
                   <span className="text-3xl font-black text-white tracking-tight font-mono">
                     {subscriberCount.toLocaleString()}
                   </span>
-                  <span className="text-xs font-semibold text-emerald-400 font-mono">+{netSubsInPeriod} in last 28 days</span>
+                  <span className="text-xs font-semibold text-zinc-400 font-mono">+{netSubsInPeriod} in last 28 days</span>
                 </div>
               </div>
 
@@ -406,7 +406,7 @@ export default function StudioDashboardPage() {
           <div className="rounded-2xl bg-[#141414] border border-white/[0.08] p-5 shadow-xl">
             <div className="flex items-center justify-between pb-4 border-b border-white/[0.06]">
               <div className="flex items-center gap-2">
-                <MessageSquare className="h-4 w-4 text-sky-400" />
+                <MessageSquare className="h-4 w-4 text-white" />
                 <h3 className="font-bold text-sm text-white">Recent comments</h3>
               </div>
               <Link
@@ -452,12 +452,12 @@ export default function StudioDashboardPage() {
                         onClick={() => handleToggleHeart(item.comment.id, item.videoId)}
                         className={`p-1 rounded-full transition-colors cursor-pointer ${
                           item.comment.isHearted
-                            ? "text-red-500 bg-red-500/10"
+                            ? "text-white bg-white/10"
                             : "text-zinc-500 hover:text-white hover:bg-white/10"
                         }`}
                         title={item.comment.isHearted ? "Unheart" : "Creator heart"}
                       >
-                        <Heart className={`h-3.5 w-3.5 ${item.comment.isHearted ? "fill-red-500" : ""}`} />
+                        <Heart className={`h-3.5 w-3.5 ${item.comment.isHearted ? "fill-white text-white" : ""}`} />
                       </button>
                     </div>
                   </div>
