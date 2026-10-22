@@ -13,16 +13,7 @@ export interface UserRecord {
 }
 
 // Built-in seed users that are always available
-export const SEED_USERS: UserRecord[] = [
-  {
-    id: "u-dj-skimmy-dew-kat",
-    name: "DJ Skimmy Dew Kat",
-    handle: "dj_skimmy_dew_kat",
-    avatarUrl: "/default-avatar.png",
-    bio: "Official channel for @dj_skimmy_dew_kat. Streaming, creating, and connecting.",
-    joinedAt: "Joined recently",
-  },
-];
+export const SEED_USERS: UserRecord[] = [];
 
 function getRedisClient(): Redis | null {
   const url =

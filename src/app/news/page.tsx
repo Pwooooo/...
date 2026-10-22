@@ -21,9 +21,17 @@ import {
   ChevronLeft,
   Tag,
   Folder,
+  Shield,
+  Lock,
+  Unlock,
+  Users,
+  RefreshCw,
+  ExternalLink,
+  Search,
 } from "lucide-react";
 import { NewsPost, CommunityComment, CommunityPollOption } from "@/types";
 import { useAuth } from "@/context/AuthContext";
+import { getRegisteredUsers, UserRecord } from "@/lib/user-validation";
 import Link from "next/link";
 
 export interface DiscourseCategory {
@@ -77,9 +85,59 @@ export default function GlobalNewsPage() {
   const [collapsedSidebar, setCollapsedSidebar] = useState(false);
   const [posts, setPosts] = useState<NewsPost[]>([]);
 
-  const [activeTab, setActiveTab] = useState<"categories" | "latest" | "top">("categories");
+  const isUserZero = (user?.handle || "").replace(/^@/, "").trim().toLowerCase() === "0";
+  const [activeTab, setActiveTab] = useState<"categories" | "latest" | "top" | "users">("categories");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [activeSubcategory, setActiveSubcategory] = useState<string | null>(null);
+
+  // Locked Users Panel state (only for @0)
+  const [isUsersUnlocked, setIsUsersUnlocked] = useState(false);
+  const [usersPasswordInput, setUsersPasswordInput] = useState("");
+  const [usersPasswordError, setUsersPasswordError] = useState("");
+  const [allPlatformUsers, setAllPlatformUsers] = useState<UserRecord[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [usersSearchQuery, setUsersSearchQuery] = useState("");
+
+  const loadAllPlatformUsers = async () => {
+    setIsLoadingUsers(true);
+    try {
+      const res = await fetch("/api/users");
+      const data = await res.json();
+      const fromServer = data.success && Array.isArray(data.users) ? data.users : [];
+      const fromLocal = getRegisteredUsers();
+      const map = new Map<string, UserRecord>();
+      fromServer.forEach((u: UserRecord) => map.set(u.handle.toLowerCase(), u));
+      fromLocal.forEach((u: UserRecord) => map.set(u.handle.toLowerCase(), u));
+      setAllPlatformUsers(Array.from(map.values()));
+    } catch {
+      setAllPlatformUsers(getRegisteredUsers());
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  };
+
+  const handleUnlockUsers = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (usersPasswordInput === "entropy67") {
+      setIsUsersUnlocked(true);
+      setUsersPasswordError("");
+      loadAllPlatformUsers();
+    } else {
+      setUsersPasswordError("Incorrect password. Access denied.");
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const sp = new URLSearchParams(window.location.search);
+      const tabParam = sp.get("tab");
+      if (tabParam === "users" && isUserZero) {
+        setActiveTab("users");
+        setActiveCategory(null);
+        setActiveSubcategory(null);
+      }
+    }
+  }, [isUserZero]);
 
   const [showComposer, setShowComposer] = useState(false);
   const [postText, setPostText] = useState("");
@@ -556,6 +614,27 @@ export default function GlobalNewsPage() {
                     >
                       Top
                     </button>
+                    {isUserZero && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab("users");
+                          setActiveCategory(null);
+                          setActiveSubcategory(null);
+                          if (!isUsersUnlocked) {
+                            loadAllPlatformUsers();
+                          }
+                        }}
+                        className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer outline-none flex items-center gap-1.5 ${
+                          activeTab === "users"
+                            ? "bg-white/[0.08] text-white shadow-sm ring-1 ring-white/10"
+                            : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
+                        }`}
+                      >
+                        <Shield className="h-3.5 w-3.5 text-zinc-300" />
+                        <span>Users Panel</span>
+                      </button>
+                    )}
                   </>
                 )}
               </div>
@@ -564,23 +643,25 @@ export default function GlobalNewsPage() {
                 <span className="text-xs text-zinc-500 font-medium hidden sm:inline">
                   {posts.length} {posts.length === 1 ? "topic" : "topics"}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!user) {
-                      openAuthModal();
-                      return;
-                    }
-                    if (activeCategory) {
-                      handleCategoryChange(activeCategory);
-                    }
-                    setShowComposer(!showComposer);
-                  }}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-white hover:bg-zinc-200 text-black px-4 py-2 text-xs font-bold transition-all cursor-pointer shadow-sm ml-auto"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  <span>New Topic</span>
-                </button>
+                {activeTab !== "users" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!user) {
+                        openAuthModal();
+                        return;
+                      }
+                      if (activeCategory) {
+                        handleCategoryChange(activeCategory);
+                      }
+                      setShowComposer(!showComposer);
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-white hover:bg-zinc-200 text-black px-4 py-2 text-xs font-bold transition-all cursor-pointer shadow-sm ml-auto"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>New Topic</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -840,6 +921,209 @@ export default function GlobalNewsPage() {
                   })}
                 </div>
               </div>
+            ) : activeTab === "users" && isUserZero ? (
+              /* Users Panel (Password Locked for @0) */
+              !isUsersUnlocked ? (
+                <div className="max-w-md mx-auto py-12 px-6 sm:px-8 rounded-3xl bg-[#141414] border border-white/[0.08] shadow-2xl text-center flex flex-col items-center animate-in fade-in zoom-in-95 duration-200">
+                  <div className="h-16 w-16 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center text-white mb-5 shadow-inner">
+                    <Lock className="h-8 w-8 text-zinc-300" />
+                  </div>
+                  <h2 className="text-xl font-bold text-white mb-2">Users Panel Locked</h2>
+                  <p className="text-xs text-zinc-400 mb-6 leading-relaxed">
+                    This panel is strictly restricted to @0. Enter the password to access the platform user database.
+                  </p>
+                  <form onSubmit={handleUnlockUsers} className="w-full space-y-4">
+                    <div>
+                      <input
+                        type="password"
+                        autoFocus
+                        value={usersPasswordInput}
+                        onChange={(e) => {
+                          setUsersPasswordInput(e.target.value);
+                          setUsersPasswordError("");
+                        }}
+                        placeholder="Enter password..."
+                        className="w-full rounded-xl bg-black border border-white/[0.1] px-4 py-2.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/30 transition-colors font-mono"
+                      />
+                      {usersPasswordError && (
+                        <p className="text-xs text-red-400 mt-2 font-medium">
+                          {usersPasswordError}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="submit"
+                      className="w-full rounded-xl bg-white text-black py-2.5 text-xs font-bold hover:bg-zinc-200 transition-colors cursor-pointer shadow-lg"
+                    >
+                      Unlock Panel
+                    </button>
+                  </form>
+                </div>
+              ) : (
+                <div className="space-y-6 animate-in fade-in duration-200">
+                  {/* Controls Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-[#141414] border border-white/[0.08] shadow-xl">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-lg font-bold text-white tracking-tight">Platform Users Registry</h2>
+                        <span className="px-2 py-0.5 rounded-full bg-white/[0.08] border border-white/10 text-[11px] font-mono text-zinc-300">
+                          {allPlatformUsers.filter((u) => {
+                            if (!usersSearchQuery.trim()) return true;
+                            const q = usersSearchQuery.toLowerCase();
+                            return (
+                              (u.name && u.name.toLowerCase().includes(q)) ||
+                              (u.handle && u.handle.toLowerCase().includes(q)) ||
+                              (u.id && u.id.toLowerCase().includes(q)) ||
+                              (u.email && u.email.toLowerCase().includes(q))
+                            );
+                          }).length} users
+                        </span>
+                      </div>
+                      <p className="text-xs text-zinc-400 mt-1">
+                        Centralized overview of all registered creator accounts across Entropy.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={loadAllPlatformUsers}
+                        disabled={isLoadingUsers}
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-zinc-300 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] transition-colors cursor-pointer"
+                        title="Refresh users"
+                      >
+                        <RefreshCw className={`h-3.5 w-3.5 ${isLoadingUsers ? "animate-spin" : ""}`} />
+                        <span>Refresh</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsUsersUnlocked(false);
+                          setUsersPasswordInput("");
+                        }}
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-zinc-300 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] transition-colors cursor-pointer"
+                        title="Lock panel"
+                      >
+                        <Lock className="h-3.5 w-3.5" />
+                        <span>Lock</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Search Filter */}
+                  <div className="relative">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                    <input
+                      type="text"
+                      value={usersSearchQuery}
+                      onChange={(e) => setUsersSearchQuery(e.target.value)}
+                      placeholder="Search users by name, handle, email, or user ID..."
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#141414] border border-white/[0.08] text-xs text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors"
+                    />
+                  </div>
+
+                  {/* Users List */}
+                  {isLoadingUsers ? (
+                    <div className="py-20 flex justify-center items-center">
+                      <div className="h-8 w-8 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+                    </div>
+                  ) : (
+                    (() => {
+                      const filtered = allPlatformUsers.filter((u) => {
+                        if (!usersSearchQuery.trim()) return true;
+                        const q = usersSearchQuery.toLowerCase();
+                        return (
+                          (u.name && u.name.toLowerCase().includes(q)) ||
+                          (u.handle && u.handle.toLowerCase().includes(q)) ||
+                          (u.id && u.id.toLowerCase().includes(q)) ||
+                          (u.email && u.email.toLowerCase().includes(q))
+                        );
+                      });
+
+                      if (filtered.length === 0) {
+                        return (
+                          <div className="py-16 text-center rounded-2xl bg-[#141414] border border-white/[0.08] p-8">
+                            <Users className="h-10 w-10 text-zinc-600 mx-auto mb-3" />
+                            <h3 className="text-sm font-bold text-white mb-1">No users found</h3>
+                            <p className="text-xs text-zinc-500">No registered accounts match your filter.</p>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="rounded-2xl bg-[#141414] border border-white/[0.08] overflow-hidden shadow-xl divide-y divide-white/[0.06]">
+                          {filtered.map((u) => {
+                            const isSelf = u.handle?.toLowerCase() === "0";
+                            return (
+                              <div
+                                key={u.id || u.handle}
+                                className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-white/[0.02] transition-colors"
+                              >
+                                <div className="flex items-center gap-3.5">
+                                  <div className="relative h-12 w-12 rounded-full border border-white/10 bg-zinc-900 overflow-hidden flex items-center justify-center font-bold text-lg text-white flex-shrink-0">
+                                    <img
+                                      src={u.avatarUrl || u.avatar || "/default-avatar.png"}
+                                      alt={u.name}
+                                      className="h-full w-full object-cover"
+                                      onError={(e) => {
+                                        (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
+                                      }}
+                                    />
+                                  </div>
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-bold text-sm text-white">{u.name}</span>
+                                      {isSelf && (
+                                        <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[10px] font-semibold">
+                                          Admin / You
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-400 mt-0.5">
+                                      <span className="font-mono text-zinc-300">@{u.handle}</span>
+                                      <span className="text-zinc-600">•</span>
+                                      <span className="font-mono text-[11px] text-zinc-500">{u.id}</span>
+                                      {u.email && (
+                                        <>
+                                          <span className="text-zinc-600">•</span>
+                                          <span className="text-zinc-400">{u.email}</span>
+                                        </>
+                                      )}
+                                      {u.joinedAt && (
+                                        <>
+                                          <span className="text-zinc-600">•</span>
+                                          <span>{u.joinedAt}</span>
+                                        </>
+                                      )}
+                                    </div>
+                                    {u.bio && (
+                                      <p className="text-xs text-zinc-400 mt-1 line-clamp-1 max-w-xl">
+                                        {u.bio}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 self-end sm:self-auto">
+                                  <Link
+                                    href={`/profile/@${u.handle}`}
+                                    target="_blank"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-xs font-semibold text-zinc-200 hover:text-white transition-colors"
+                                  >
+                                    <span>View Profile</span>
+                                    <ExternalLink className="h-3.5 w-3.5 text-zinc-400" />
+                                  </Link>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()
+                  )}
+                </div>
+              )
             ) : (
               /* Topic Feed View (Category focused, Latest, or Top) */
               <div className="space-y-6">

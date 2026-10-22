@@ -14,30 +14,18 @@ export interface UserRecord {
 
 const REGISTERED_USERS_KEY = "entropy_registered_users";
 
-export const DEFAULT_PLATFORM_USERS: UserRecord[] = [
-  {
-    id: "u-dj-skimmy-dew-kat",
-    name: "DJ Skimmy Dew Kat",
-    handle: "dj_skimmy_dew_kat",
-    avatarUrl: "/default-avatar.png",
-    bio: "Official channel for @dj_skimmy_dew_kat. Streaming, creating, and connecting.",
-    joinedAt: "Joined recently",
-  },
-];
+export const DEFAULT_PLATFORM_USERS: UserRecord[] = [];
 
 export function getRegisteredUsers(): UserRecord[] {
   if (typeof window === "undefined") return DEFAULT_PLATFORM_USERS;
   try {
     const raw = localStorage.getItem(REGISTERED_USERS_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
-    const list: UserRecord[] = Array.isArray(parsed) ? parsed : [];
+    let list: UserRecord[] = Array.isArray(parsed) ? parsed : [];
     
-    // Ensure default platform users exist
-    DEFAULT_PLATFORM_USERS.forEach((def) => {
-      if (!list.some((u) => u.handle && u.handle.toLowerCase() === def.handle.toLowerCase())) {
-        list.push(def);
-      }
-    });
+    // Purge deleted placeholder user if present
+    list = list.filter((u) => u.handle && u.handle.toLowerCase() !== "dj_skimmy_dew_kat");
+
     return list;
   } catch {}
   return DEFAULT_PLATFORM_USERS;

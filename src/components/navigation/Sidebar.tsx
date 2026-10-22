@@ -17,8 +17,10 @@ import {
   Menu,
   User,
   Bell,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
 
 interface SidebarProps {
   collapsed?: boolean;
@@ -174,10 +176,18 @@ function SidebarContent({
           : pathname === "/playlist"
           ? "WL"
           : null);
-      return Boolean(targetList && currentList === targetList);
+      if (targetList) {
+        return Boolean(currentList === targetList);
+      }
+      const targetTab = new URLSearchParams(queryStr).get("tab");
+      const currentTab = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("tab") : null;
+      return Boolean(targetTab && currentTab === targetTab);
     }
     return pathname === href || pathname.startsWith(href + "/");
   };
+
+  const { user } = useAuth();
+  const isUserZero = (user?.handle || "").replace(/^@/, "").trim().toLowerCase() === "0";
 
   const mainLinks = [
     { label: "Home", href: "/", icon: Home },
@@ -198,6 +208,9 @@ function SidebarContent({
   const exploreLinks = [
     { label: "Trending", href: "/trending", icon: Compass },
     { label: "News", href: "/news", icon: Newspaper },
+    ...(isUserZero
+      ? [{ label: "Users Panel", href: "/news?tab=users", icon: Shield }]
+      : []),
   ];
 
   if (drawer) {
