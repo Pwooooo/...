@@ -171,6 +171,14 @@ function StudioVideosContent() {
     fetchServerVideos().then(() => {
       setVideos(getAllCombinedVideos());
     });
+
+    const handleUpdate = () => {
+      setVideos(getAllCombinedVideos());
+    };
+    window.addEventListener("entropy_videos_updated", handleUpdate);
+    return () => {
+      window.removeEventListener("entropy_videos_updated", handleUpdate);
+    };
   }, []);
 
   useEffect(() => {
@@ -304,13 +312,15 @@ function StudioVideosContent() {
     showToast("Video details saved successfully");
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (!deletingVideoId) return;
-    deleteUserVideo(deletingVideoId);
-    setVideos(getAllCombinedVideos());
+    const vidId = deletingVideoId;
     setDeletingVideoId(null);
-    setSelectedVideoIds((prev) => prev.filter((id) => id !== deletingVideoId));
+    setSelectedVideoIds((prev) => prev.filter((id) => id !== vidId));
+    setVideos((prev) => prev.filter((v) => v.id !== vidId));
     showToast("Video deleted permanently");
+    await deleteUserVideo(vidId);
+    setVideos(getAllCombinedVideos());
   };
 
   const handleToggleSelectAll = () => {
@@ -327,13 +337,17 @@ function StudioVideosContent() {
     );
   };
 
-  const handleBulkDelete = () => {
+  const handleBulkDelete = async () => {
     if (selectedVideoIds.length === 0) return;
     if (confirm(`Delete ${selectedVideoIds.length} selected videos permanently?`)) {
-      selectedVideoIds.forEach((id) => deleteUserVideo(id));
-      setVideos(getAllCombinedVideos());
+      const idsToDelete = [...selectedVideoIds];
       setSelectedVideoIds([]);
-      showToast(`Deleted ${selectedVideoIds.length} videos`);
+      setVideos((prev) => prev.filter((v) => !idsToDelete.includes(v.id)));
+      showToast(`Deleted ${idsToDelete.length} videos`);
+      for (const id of idsToDelete) {
+        await deleteUserVideo(id);
+      }
+      setVideos(getAllCombinedVideos());
     }
   };
 

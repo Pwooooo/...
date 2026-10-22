@@ -92,6 +92,7 @@ export function extractVideoDetails(file: File): Promise<{
 export function isFillerVideo(video?: { id?: string; title?: string; channel?: { id?: string; handle?: string; displayName?: string } } | null): boolean {
   if (!video || typeof video !== "object") return false;
   const id = typeof video.id === "string" ? video.id : "";
+  const title = typeof video.title === "string" ? video.title.toLowerCase() : "";
 
   return (
     id.startsWith("sample-") ||
@@ -100,7 +101,10 @@ export function isFillerVideo(video?: { id?: string; title?: string; channel?: {
     id === "v-srv-1792152077838" ||
     id === "v-user-1792152077838" ||
     id === "v-srv-1792158340022" ||
-    id === "v-blob-CW scenario 1-1C6ka5PylZ6KeUnoSaJu9s82hRLYaK"
+    id === "v-blob-CW scenario 1-1C6ka5PylZ6KeUnoSaJu9s82hRLYaK" ||
+    id.toLowerCase().includes("snowy in the forest") ||
+    id.toLowerCase().includes("snowy-in-the-forest") ||
+    title.includes("snowy in the forest")
   );
 }
 
@@ -119,7 +123,7 @@ export function getBaseVideos(): VideoItem[] {
 const SERVER_CACHE_KEY = "entropy_server_videos_cache";
 const USER_UPLOADS_KEY = "entropy_user_uploaded_videos";
 const CLIENT_DELETED_KEY = "entropy_deleted_videos";
-const CACHE_PURGE_VERSION = "entropy_purge_v7";
+const CACHE_PURGE_VERSION = "entropy_purge_v8";
 
 export function getClientDeletedVideos(): Set<string> {
   if (typeof window === "undefined") return new Set();
@@ -146,6 +150,9 @@ if (typeof window !== "undefined") {
   try {
     if (localStorage.getItem(CACHE_PURGE_VERSION) !== "done") {
       localStorage.setItem(CACHE_PURGE_VERSION, "done");
+      // Add snowy to deleted videos
+      markClientDeletedVideo("snowy in the forest.1920x1080");
+      markClientDeletedVideo("snowy-in-the-forest.1920x1080");
       // Clean out any cached filler videos across all devices
       const cached = localStorage.getItem(SERVER_CACHE_KEY);
       if (cached) {

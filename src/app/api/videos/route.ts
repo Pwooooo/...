@@ -34,6 +34,7 @@ const THUMBNAILS_DIR = path.join(UPLOADS_DIR, "thumbnails");
 function isNextJsFillerVideo(video?: { id?: string; title?: string; channel?: { id?: string; handle?: string; displayName?: string } } | null): boolean {
   if (!video || typeof video !== "object") return false;
   const id = typeof video.id === "string" ? video.id : "";
+  const title = typeof video.title === "string" ? video.title.toLowerCase() : "";
 
   return (
     id.startsWith("sample-") ||
@@ -42,7 +43,10 @@ function isNextJsFillerVideo(video?: { id?: string; title?: string; channel?: { 
     id === "v-srv-1792152077838" ||
     id === "v-user-1792152077838" ||
     id === "v-srv-1792158340022" ||
-    id === "v-blob-CW scenario 1-1C6ka5PylZ6KeUnoSaJu9s82hRLYaK"
+    id === "v-blob-CW scenario 1-1C6ka5PylZ6KeUnoSaJu9s82hRLYaK" ||
+    id.toLowerCase().includes("snowy in the forest") ||
+    id.toLowerCase().includes("snowy-in-the-forest") ||
+    title.includes("snowy in the forest")
   );
 }
 
@@ -72,6 +76,8 @@ const DEFAULT_SERVER_DELETED = [
   "sample-4",
   "sample-5",
   "sample-6",
+  "snowy in the forest.1920x1080",
+  "snowy-in-the-forest.1920x1080",
 ];
 
 async function readDeletedVideoIds(): Promise<Set<string>> {
