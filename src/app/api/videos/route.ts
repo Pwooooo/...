@@ -30,38 +30,15 @@ const THUMBNAILS_DIR = path.join(UPLOADS_DIR, "thumbnails");
 function isNextJsFillerVideo(video?: { id?: string; title?: string; channel?: { id?: string; handle?: string; displayName?: string } } | null): boolean {
   if (!video || typeof video !== "object") return false;
   const id = typeof video.id === "string" ? video.id : "";
-  const title = typeof video.title === "string" ? video.title.toLowerCase() : "";
-  const channelHandle = typeof video.channel?.handle === "string" ? video.channel.handle.toLowerCase().replace(/^@/, "").trim() : "";
-  const channelId = typeof video.channel?.id === "string" ? video.channel.id.toLowerCase().trim() : "";
-  const channelName = typeof video.channel?.displayName === "string" ? video.channel.displayName.toLowerCase().trim() : "";
 
   return (
     id.startsWith("sample-") ||
-    id.startsWith("short-") ||
-    id.startsWith("v-blob-") ||
     id === "v-entropy-test-video" ||
     id === "v-entropy-test-short" ||
-    id.startsWith("v-entropy-") ||
-    id.includes("entropy-test") ||
     id === "v-srv-1792152077838" ||
     id === "v-user-1792152077838" ||
     id === "v-srv-1792158340022" ||
-    id.includes("CW scenario 1-1C6ka5PylZ6KeUnoSaJu9s82hRLYaK") ||
-    channelHandle === "creator" ||
-    channelId === "creator" ||
-    channelName === "creator" ||
-    title.includes("next.js") ||
-    title.includes("entropy 2.0 walkthrough") ||
-    title.includes("entropy mobile & theater mode demo") ||
-    title.includes("distributed video transcoder") ||
-    title.includes("operating systems are so complex") ||
-    title.includes("shaders & webgl") ||
-    title.includes("synthwave coding session") ||
-    title.includes("pro league championship") ||
-    title.includes("1 css property") ||
-    title.includes("redis handles") ||
-    title.includes("insane 3d shader") ||
-    title.includes("big buck bunny")
+    id === "v-blob-CW scenario 1-1C6ka5PylZ6KeUnoSaJu9s82hRLYaK"
   );
 }
 
@@ -869,7 +846,7 @@ export async function POST(req: NextRequest) {
     const updatedVideos = [newVideo, ...Array.from(map.values()).filter((v) => v.id !== newVideo.id)];
 
     if (isTigrisConfigured()) {
-      await saveTigrisVideosIndex(updatedVideos);
+      await saveTigrisVideosIndex(updatedVideos, newVideo);
     }
     await saveBlobVideosIndex(updatedVideos, newVideo);
     await saveR2VideosIndex(updatedVideos);

@@ -92,38 +92,15 @@ export function extractVideoDetails(file: File): Promise<{
 export function isFillerVideo(video?: { id?: string; title?: string; channel?: { id?: string; handle?: string; displayName?: string } } | null): boolean {
   if (!video || typeof video !== "object") return false;
   const id = typeof video.id === "string" ? video.id : "";
-  const title = typeof video.title === "string" ? video.title.toLowerCase() : "";
-  const channelHandle = typeof video.channel?.handle === "string" ? video.channel.handle.toLowerCase().replace(/^@/, "").trim() : "";
-  const channelId = typeof video.channel?.id === "string" ? video.channel.id.toLowerCase().trim() : "";
-  const channelName = typeof video.channel?.displayName === "string" ? video.channel.displayName.toLowerCase().trim() : "";
 
   return (
     id.startsWith("sample-") ||
-    id.startsWith("short-") ||
-    id.startsWith("v-blob-") ||
     id === "v-entropy-test-video" ||
     id === "v-entropy-test-short" ||
-    id.startsWith("v-entropy-") ||
-    id.includes("entropy-test") ||
     id === "v-srv-1792152077838" ||
     id === "v-user-1792152077838" ||
     id === "v-srv-1792158340022" ||
-    id.includes("CW scenario 1-1C6ka5PylZ6KeUnoSaJu9s82hRLYaK") ||
-    channelHandle === "creator" ||
-    channelId === "creator" ||
-    channelName === "creator" ||
-    title.includes("next.js") ||
-    title.includes("entropy 2.0 walkthrough") ||
-    title.includes("entropy mobile & theater mode demo") ||
-    title.includes("distributed video transcoder") ||
-    title.includes("operating systems are so complex") ||
-    title.includes("shaders & webgl") ||
-    title.includes("synthwave coding session") ||
-    title.includes("pro league championship") ||
-    title.includes("1 css property") ||
-    title.includes("redis handles") ||
-    title.includes("insane 3d shader") ||
-    title.includes("big buck bunny")
+    id === "v-blob-CW scenario 1-1C6ka5PylZ6KeUnoSaJu9s82hRLYaK"
   );
 }
 
@@ -299,6 +276,30 @@ export async function fetchServerVideos(): Promise<VideoItem[]> {
     });
     const data = await res.json();
     if (data.success && Array.isArray(data.videos)) {
+      const serverVideoIds = new Set(data.videos.map((v: VideoItem) => v.id));
+
+      // Auto-sync any local uploads that the server doesn't have yet so everyone else sees them
+      const userUploads = getUserUploadedVideos();
+      for (const localVid of userUploads) {
+        if (localVid && localVid.id && !serverVideoIds.has(localVid.id) && !isNextJsFillerVideo(localVid)) {
+          const syncForm = new FormData();
+          syncForm.append("id", localVid.id);
+          syncForm.append("title", localVid.title);
+          syncForm.append("description", localVid.description || "");
+          syncForm.append("category", localVid.category || "Technology");
+          syncForm.append("tags", (localVid.tags || []).join(","));
+          syncForm.append("duration", String(localVid.durationSeconds || 0));
+          syncForm.append("isShort", String(Boolean(localVid.isShort)));
+          syncForm.append(
+            "rawVideoUrl",
+            localVid.rawVideoUrl || `/api/tigris/serve?key=${encodeURIComponent(`videos/${localVid.id}.mp4`)}`
+          );
+          syncForm.append("thumbnailUrl", localVid.thumbnailUrl || "");
+          syncForm.append("channel", JSON.stringify(localVid.channel || {}));
+          fetch("/api/videos", { method: "POST", body: syncForm }).catch(() => {});
+        }
+      }
+
       const cleanVideos: VideoItem[] = data.videos.filter(
         (v: VideoItem) => v && typeof v.id === "string" && !isNextJsFillerVideo(v)
       );

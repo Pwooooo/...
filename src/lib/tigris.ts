@@ -1,4 +1,11 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+  HeadObjectCommand,
+  ListObjectsV2Command,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { VideoItem } from "@/types";
 
@@ -113,10 +120,10 @@ export async function createTigrisPresignedUploadUrl(
   if (!tigris) return null;
 
   try {
+    // We omit ContentType from the signing command so browsers can PUT with any charset/header without 403 SignatureDoesNotMatch
     const command = new PutObjectCommand({
       Bucket: tigris.bucket,
       Key: key,
-      ContentType: contentType,
     });
 
     const uploadUrl = await getSignedUrl(tigris.client, command, {
@@ -194,6 +201,9 @@ export async function fetchTigrisVideosIndex(): Promise<VideoItem[]> {
   const tigris = getTigrisClient();
   if (!tigris) return [];
 
+  const map = new Map<string, VideoItem>();
+
+  // 1. Consolidated metadata/videos.json
   try {
     const command = new GetObjectCommand({
       Bucket: tigris.bucket,
@@ -204,7 +214,9 @@ export async function fetchTigrisVideosIndex(): Promise<VideoItem[]> {
     if (bodyStr) {
       const parsed = JSON.parse(bodyStr);
       if (Array.isArray(parsed)) {
-        return parsed;
+        parsed.forEach((v: VideoItem) => {
+          if (v && v.id) map.set(v.id, v);
+        });
       }
     }
   } catch (err: unknown) {
@@ -213,14 +225,98 @@ export async function fetchTigrisVideosIndex(): Promise<VideoItem[]> {
       console.warn("Could not fetch Tigris videos index:", err);
     }
   }
-  return [];
+
+  // 2. Discover individual metadata files in metadata/videos/*.json
+  try {
+    const listCmd = new ListObjectsV2Command({
+      Bucket: tigris.bucket,
+      Prefix: "metadata/videos/",
+      MaxKeys: 500,
+    });
+    const listRes = await tigris.client.send(listCmd);
+    if (listRes.Contents && listRes.Contents.length > 0) {
+      for (const obj of listRes.Contents) {
+        if (!obj.Key || !obj.Key.endsWith(".json")) continue;
+        try {
+          const getCmd = new GetObjectCommand({
+            Bucket: tigris.bucket,
+            Key: obj.Key,
+          });
+          const res = await tigris.client.send(getCmd);
+          const str = await res.Body?.transformToString();
+          if (str) {
+            const parsed = JSON.parse(str);
+            if (parsed && parsed.id && !map.has(parsed.id)) {
+              map.set(parsed.id, parsed);
+            }
+          }
+        } catch {}
+      }
+    }
+  } catch {}
+
+  // 3. Fallback discovery: Look for raw uploaded video files in videos/
+  try {
+    const listVidCmd = new ListObjectsV2Command({
+      Bucket: tigris.bucket,
+      Prefix: "videos/",
+      MaxKeys: 500,
+    });
+    const listVidRes = await tigris.client.send(listVidCmd);
+    if (listVidRes.Contents && listVidRes.Contents.length > 0) {
+      for (const obj of listVidRes.Contents) {
+        if (!obj.Key || obj.Key.endsWith("/")) continue;
+        const filename = obj.Key.replace(/^videos\//, "");
+        const idMatch = filename.replace(/\.[^/.]+$/, "");
+        if (!idMatch || map.has(idMatch)) continue;
+
+        const cleanTitle = idMatch.replace(/^v-(user|srv)-/, "").replace(/[-_]/g, " ");
+        const inferredVideo: VideoItem = {
+          id: idMatch,
+          title: cleanTitle ? `Video ${cleanTitle}` : "Uploaded Video",
+          description: "Stored securely on Tigris Object Storage",
+          thumbnailUrl: `/api/tigris/serve?key=${encodeURIComponent(`thumbnails/${idMatch}.jpg`)}`,
+          masterPlaylistUrl: null,
+          rawVideoUrl: `/api/tigris/serve?key=${encodeURIComponent(obj.Key)}`,
+          durationSeconds: 0,
+          viewCount: 0,
+          publishedAt: new Date(obj.LastModified || Date.now()).toISOString(),
+          category: "Technology",
+          tags: ["video"],
+          channel: {
+            id: "creator",
+            handle: "creator",
+            displayName: "Creator",
+            avatarUrl: "/default-avatar.png",
+            subscribersCount: 0,
+          },
+          isShort: false,
+        };
+        map.set(idMatch, inferredVideo);
+      }
+    }
+  } catch {}
+
+  return Array.from(map.values());
 }
 
-export async function saveTigrisVideosIndex(videos: VideoItem[]): Promise<void> {
+export async function saveTigrisVideosIndex(videos: VideoItem[], newVideo?: VideoItem): Promise<void> {
   const tigris = getTigrisClient();
   if (!tigris) return;
 
   try {
+    // 1. Immediately save the new video metadata individually
+    if (newVideo && newVideo.id) {
+      const indCmd = new PutObjectCommand({
+        Bucket: tigris.bucket,
+        Key: `metadata/videos/${newVideo.id}.json`,
+        Body: Buffer.from(JSON.stringify(newVideo, null, 2)),
+        ContentType: "application/json",
+      });
+      await tigris.client.send(indCmd).catch(() => {});
+    }
+
+    // 2. Save consolidated index
     const command = new PutObjectCommand({
       Bucket: tigris.bucket,
       Key: "metadata/videos.json",
