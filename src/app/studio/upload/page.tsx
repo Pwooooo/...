@@ -16,6 +16,8 @@ import {
   Layers,
   Flame,
   Music,
+  AlertTriangle,
+  Cloud,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
@@ -71,6 +73,19 @@ export default function StudioUploadPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const thumbInputRef = useRef<HTMLInputElement>(null);
+  const [storageStatus, setStorageStatus] = useState<{ configured: boolean; bucket?: string | null } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/tigris/upload")
+      .then((r) => r.json())
+      .then((data) => {
+        setStorageStatus({
+          configured: Boolean(data.configured),
+          bucket: data.bucket,
+        });
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -427,6 +442,24 @@ export default function StudioUploadPage() {
                   </button>
                 </div>
               </div>
+
+              {storageStatus && !storageStatus.configured && (
+                <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-xs flex items-center justify-between gap-3 animate-in fade-in">
+                  <div className="flex items-center gap-2.5">
+                    <AlertTriangle className="h-4 w-4 text-amber-400 flex-shrink-0" />
+                    <span>
+                      <strong>Tigris Cloud Storage Not Configured:</strong> Missing <code>TIGRIS_ACCESS_KEY_ID</code> or <code>TIGRIS_SECRET_ACCESS_KEY</code> in environment variables. Videos will only be saved locally on this browser until configured.
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {storageStatus && storageStatus.configured && (
+                <div className="px-3.5 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-zinc-300 text-xs flex items-center gap-2 w-fit">
+                  <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Tigris Cloud Storage Connected ({storageStatus.bucket || "entropy-videos"})</span>
+                </div>
+              )}
 
               {!file ? (
                 /* Drag & Drop File Zone */

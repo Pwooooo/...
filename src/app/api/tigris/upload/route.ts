@@ -1,14 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isTigrisConfigured, createTigrisPresignedUploadUrl, getTigrisConfig } from "@/lib/tigris";
+import { isTigrisConfigured, createTigrisPresignedUploadUrl, getTigrisConfig, ensureTigrisCors } from "@/lib/tigris";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   const config = getTigrisConfig();
+  let corsApplied = false;
+  if (config) {
+    corsApplied = await ensureTigrisCors();
+  }
   return NextResponse.json({
     success: true,
     configured: Boolean(config),
+    corsApplied,
     provider: "tigris",
     bucket: config ? config.bucket : null,
     endpoint: config ? config.endpoint : null,
@@ -19,10 +24,12 @@ export async function POST(req: NextRequest) {
   try {
     if (!isTigrisConfigured()) {
       return NextResponse.json(
-        { success: false, configured: false, error: "Tigris storage is not configured" },
+        { success: false, configured: false, error: "Tigris storage is not configured. Missing TIGRIS_ACCESS_KEY_ID or TIGRIS_SECRET_ACCESS_KEY." },
         { status: 400 }
       );
     }
+
+    await ensureTigrisCors();
 
     const body = await req.json();
     const { filename, contentType, type, videoId } = body;

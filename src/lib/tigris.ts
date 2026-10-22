@@ -5,6 +5,7 @@ import {
   DeleteObjectCommand,
   HeadObjectCommand,
   ListObjectsV2Command,
+  PutBucketCorsCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { VideoItem } from "@/types";
@@ -109,6 +110,37 @@ export function getTigrisClient() {
   }
 
   return cachedTigrisClient;
+}
+
+let corsEnsured = false;
+
+export async function ensureTigrisCors(): Promise<boolean> {
+  if (corsEnsured) return true;
+  const tigris = getTigrisClient();
+  if (!tigris) return false;
+
+  try {
+    const corsCommand = new PutBucketCorsCommand({
+      Bucket: tigris.bucket,
+      CORSConfiguration: {
+        CORSRules: [
+          {
+            AllowedOrigins: ["*"],
+            AllowedMethods: ["GET", "PUT", "POST", "DELETE", "HEAD"],
+            AllowedHeaders: ["*"],
+            ExposeHeaders: ["ETag", "Content-Length", "Accept-Ranges", "Content-Range"],
+            MaxAgeSeconds: 3600,
+          },
+        ],
+      },
+    });
+    await tigris.client.send(corsCommand);
+    corsEnsured = true;
+    return true;
+  } catch (err) {
+    console.warn("Could not apply Tigris CORS configuration automatically:", err);
+    return false;
+  }
 }
 
 export async function createTigrisPresignedUploadUrl(

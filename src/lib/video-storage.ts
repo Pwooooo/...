@@ -666,39 +666,17 @@ export async function uploadVideoToServer(
         saveUserUploadedVideo(data.video);
         await fetchServerVideos();
         return { success: true, video: data.video };
+      } else if (data && !data.success) {
+        return { success: false, error: data.error || "Server rejected video save" };
       }
     } catch (netErr) {
-      console.warn("Server API error, using client-side video entry:", netErr);
+      console.warn("Server API error during video upload:", netErr);
     }
 
-    // Client fallback: register video locally if server API or Vercel Blob is maxed out
-    if (file) {
-      const rawTitle = (formData.get("title") as string) || file.name.replace(/\.[^/.]+$/, "") || "Uploaded Video";
-      const channelRaw = (formData.get("channel") as string) || "{}";
-      let channel = { id: "creator", handle: "creator", displayName: "You", avatarUrl: "/default-avatar.png" };
-      try { channel = JSON.parse(channelRaw); } catch {}
-
-      const localVideo: VideoItem = {
-        id: videoId,
-        title: rawTitle,
-        description: (formData.get("description") as string) || "",
-        thumbnailUrl: (formData.get("thumbnailDataUrl") as string) || (formData.get("thumbnailUrl") as string) || "/placeholder-thumb.jpg",
-        masterPlaylistUrl: null,
-        rawVideoUrl: (formData.get("rawVideoUrl") as string) || null,
-        durationSeconds: Number(formData.get("duration")) || 0,
-        viewCount: 0,
-        publishedAt: new Date().toISOString(),
-        category: (formData.get("category") as string) || "Technology",
-        tags: ((formData.get("tags") as string) || "").split(",").map((t) => t.trim()).filter(Boolean),
-        channel,
-        isShort: (formData.get("category") as string) === "Shorts",
-      };
-
-      saveUserUploadedVideo(localVideo);
-      return { success: true, video: localVideo };
-    }
-
-    return { success: false, error: "Upload failed" };
+    return {
+      success: false,
+      error: "Could not publish video to Tigris cloud storage. Please ensure TIGRIS_ACCESS_KEY_ID and TIGRIS_SECRET_ACCESS_KEY are added to your deployment environment variables.",
+    };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Network error during upload";
     return { success: false, error: msg };
