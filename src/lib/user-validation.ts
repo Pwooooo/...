@@ -14,16 +14,33 @@ export interface UserRecord {
 
 const REGISTERED_USERS_KEY = "entropy_registered_users";
 
+export const DEFAULT_PLATFORM_USERS: UserRecord[] = [
+  {
+    id: "u-dj-skimmy-dew-kat",
+    name: "DJ Skimmy Dew Kat",
+    handle: "dj_skimmy_dew_kat",
+    avatarUrl: "/default-avatar.png",
+    bio: "Official channel for @dj_skimmy_dew_kat. Streaming, creating, and connecting.",
+    joinedAt: "Joined recently",
+  },
+];
+
 export function getRegisteredUsers(): UserRecord[] {
-  if (typeof window === "undefined") return [];
+  if (typeof window === "undefined") return DEFAULT_PLATFORM_USERS;
   try {
     const raw = localStorage.getItem(REGISTERED_USERS_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
-    }
+    const parsed = raw ? JSON.parse(raw) : [];
+    const list: UserRecord[] = Array.isArray(parsed) ? parsed : [];
+    
+    // Ensure default platform users exist
+    DEFAULT_PLATFORM_USERS.forEach((def) => {
+      if (!list.some((u) => u.handle && u.handle.toLowerCase() === def.handle.toLowerCase())) {
+        list.push(def);
+      }
+    });
+    return list;
   } catch {}
-  return [];
+  return DEFAULT_PLATFORM_USERS;
 }
 
 export function saveRegisteredUser(user: UserRecord): void {
@@ -44,14 +61,38 @@ export function saveRegisteredUser(user: UserRecord): void {
       updated = [...existing, normalizedUser];
     }
     localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(updated));
+
+    // Asynchronously save to server Key-Value store
+    fetch("/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(normalizedUser),
+    }).catch(() => {});
   } catch {}
+}
+
+export async function fetchRemoteUserByHandle(rawHandle: string): Promise<UserRecord | null> {
+  const clean = decodeURIComponent(rawHandle).replace(/^%40|^@/, "").trim().toLowerCase();
+  if (!clean) return null;
+
+  try {
+    const res = await fetch(`/api/users?handle=${encodeURIComponent(clean)}`);
+    const data = await res.json();
+    if (data.success && data.user) {
+      // Save locally for fast subsequent loads
+      saveRegisteredUser(data.user);
+      return data.user;
+    }
+  } catch {}
+
+  return null;
 }
 
 export function findUserByHandle(rawHandle: string): UserRecord | null {
   const clean = decodeURIComponent(rawHandle).replace(/^%40|^@/, "").trim().toLowerCase();
   if (!clean) return null;
 
-  // 1. Check registered users
+  // 1. Check registered users (including seed users)
   const registered = getRegisteredUsers();
   const match = registered.find((u) => u.handle && u.handle.toLowerCase() === clean);
   if (match) return match;

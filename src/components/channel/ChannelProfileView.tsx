@@ -29,7 +29,14 @@ import { VideoItem } from "@/types";
 import Link from "next/link";
 import CommunityTab from "@/components/channel/CommunityTab";
 import { getAllCombinedVideos, fetchServerVideos, isUserVideoOwner } from "@/lib/video-storage";
-import { findUserByHandle, validateDisplayName, validateHandle, resolveChannelAvatar } from "@/lib/user-validation";
+import {
+  findUserByHandle,
+  fetchRemoteUserByHandle,
+  validateDisplayName,
+  validateHandle,
+  resolveChannelAvatar,
+  UserRecord,
+} from "@/lib/user-validation";
 
 const PROFILE_TABS = ["Videos", "Playlists", "Community", "About"];
 
@@ -61,6 +68,8 @@ export default function ChannelProfileView({
 
   const [allVideos, setAllVideos] = useState<VideoItem[]>([]);
   const [channelLinks, setChannelLinks] = useState<{ title: string; url: string }[]>([]);
+  const [remoteUser, setRemoteUser] = useState<UserRecord | null>(null);
+  const [isCheckingRemote, setIsCheckingRemote] = useState(false);
 
   // Resolve target handle
   const rawParamHandle = resolvedParams?.handle ? decodeURIComponent(resolvedParams.handle).replace(/^%40|^@/, "").trim() : "";
@@ -137,6 +146,20 @@ export default function ChannelProfileView({
     }
   }, [isOwnProfile]);
 
+  // If handle is not found locally, query Key-Value store via API
+  useEffect(() => {
+    if (cleanHandle && !isOwnProfile && !findUserByHandle(cleanHandle)) {
+      setIsCheckingRemote(true);
+      fetchRemoteUserByHandle(cleanHandle)
+        .then((found) => {
+          if (found) setRemoteUser(found);
+        })
+        .finally(() => {
+          setIsCheckingRemote(false);
+        });
+    }
+  }, [cleanHandle, isOwnProfile]);
+
   // If visiting /profile while not logged in, prompt sign in
   if (isSelfProfile && !user) {
     return (
@@ -180,9 +203,23 @@ export default function ChannelProfileView({
     return h === targetClean || id === targetClean || d === targetClean;
   });
 
-  // Check if channel exists (either logged in user, registered in localStorage, or creator of uploaded videos)
-  const registeredUser = cleanHandle ? findUserByHandle(cleanHandle) : null;
+  // Check if channel exists (either logged in user, registered in localStorage/KV, or creator of uploaded videos)
+  const registeredUser = (cleanHandle ? findUserByHandle(cleanHandle) : null) || remoteUser;
   const channelExists = isOwnProfile || Boolean(registeredUser) || channelVideos.length > 0;
+
+  if (isCheckingRemote) {
+    return (
+      <div className="min-h-screen bg-black text-zinc-100 flex flex-col">
+        <Navbar />
+        <div className="flex flex-1">
+          <Sidebar />
+          <main className="flex-1 flex items-center justify-center p-6">
+            <div className="h-8 w-8 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   // If handle does not exist anywhere, show a clean 404 screen (no fake user!)
   if (!channelExists) {
