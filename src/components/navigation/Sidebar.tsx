@@ -187,7 +187,47 @@ function SidebarContent({
   };
 
   const { user } = useAuth();
-  const isUserZero = (user?.handle || "").replace(/^@/, "").trim().toLowerCase() === "0";
+  const [localIsZero, setLocalIsZero] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkUserZero = () => {
+      try {
+        const check = (u: any) => {
+          if (!u) return false;
+          const h = String(u.handle || "").replace(/^@/, "").trim().toLowerCase();
+          const n = String(u.name || "").trim().toLowerCase();
+          const dn = String(u.displayName || "").trim().toLowerCase();
+          const id = String(u.id || "").trim().toLowerCase();
+          const em = String(u.email || "").trim().toLowerCase();
+          return h === "0" || n === "0" || dn === "0" || id === "u-1792083556851" || em.startsWith("0@");
+        };
+
+        if (check(user)) {
+          setLocalIsZero(true);
+          return;
+        }
+
+        const raw = localStorage.getItem("entropy_user");
+        if (raw && check(JSON.parse(raw))) {
+          setLocalIsZero(true);
+          return;
+        }
+        setLocalIsZero(false);
+      } catch {
+        setLocalIsZero(false);
+      }
+    };
+
+    checkUserZero();
+    window.addEventListener("entropy_user_updated", checkUserZero);
+    window.addEventListener("storage", checkUserZero);
+    return () => {
+      window.removeEventListener("entropy_user_updated", checkUserZero);
+      window.removeEventListener("storage", checkUserZero);
+    };
+  }, [user]);
+
+  const isUserZero = localIsZero;
 
   const mainLinks = [
     { label: "Home", href: "/", icon: Home },
@@ -347,6 +387,21 @@ function SidebarContent({
             </Link>
           );
         })}
+        {isUserZero && (
+          <Link
+            href="/news?tab=users"
+            className={cn(
+              "flex flex-col items-center justify-center w-16 py-3 rounded-2xl text-[10px] gap-1.5 transition-all duration-200 ease-out mt-auto mb-2",
+              isItemActive("/news?tab=users")
+                ? "bg-white/[0.08] text-white font-bold shadow-sm scale-95"
+                : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
+            )}
+            title="Users Panel"
+          >
+            <Shield className="h-5 w-5 text-zinc-300" />
+            <span>Users</span>
+          </Link>
+        )}
       </aside>
     );
   }

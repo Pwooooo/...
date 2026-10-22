@@ -85,7 +85,47 @@ export default function GlobalNewsPage() {
   const [collapsedSidebar, setCollapsedSidebar] = useState(false);
   const [posts, setPosts] = useState<NewsPost[]>([]);
 
-  const isUserZero = (user?.handle || "").replace(/^@/, "").trim().toLowerCase() === "0";
+  const [localIsZero, setLocalIsZero] = useState(false);
+
+  useEffect(() => {
+    const checkUserZero = () => {
+      try {
+        const check = (u: any) => {
+          if (!u) return false;
+          const h = String(u.handle || "").replace(/^@/, "").trim().toLowerCase();
+          const n = String(u.name || "").trim().toLowerCase();
+          const dn = String(u.displayName || "").trim().toLowerCase();
+          const id = String(u.id || "").trim().toLowerCase();
+          const em = String(u.email || "").trim().toLowerCase();
+          return h === "0" || n === "0" || dn === "0" || id === "u-1792083556851" || em.startsWith("0@");
+        };
+
+        if (check(user)) {
+          setLocalIsZero(true);
+          return;
+        }
+
+        const raw = localStorage.getItem("entropy_user");
+        if (raw && check(JSON.parse(raw))) {
+          setLocalIsZero(true);
+          return;
+        }
+        setLocalIsZero(false);
+      } catch {
+        setLocalIsZero(false);
+      }
+    };
+
+    checkUserZero();
+    window.addEventListener("entropy_user_updated", checkUserZero);
+    window.addEventListener("storage", checkUserZero);
+    return () => {
+      window.removeEventListener("entropy_user_updated", checkUserZero);
+      window.removeEventListener("storage", checkUserZero);
+    };
+  }, [user]);
+
+  const isUserZero = localIsZero;
   const [activeTab, setActiveTab] = useState<"categories" | "latest" | "top" | "users">("categories");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [activeSubcategory, setActiveSubcategory] = useState<string | null>(null);
