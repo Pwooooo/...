@@ -5,101 +5,126 @@ import { GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const MIME_BY_EXT: Record<string, string> = {
+  ".mp4": "video/mp4",
+  ".webm": "video/webm",
+  ".mov": "video/quicktime",
+  ".mkv": "video/x-matroska",
+  ".m4v": "video/mp4",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".webp": "image/webp",
+  ".json": "application/json",
+};
+
 export async function HEAD(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const key = searchParams.get("key");
+  const rawKey = searchParams.get("key");
 
-  if (!key) {
+  if (!rawKey) {
     return new Response(null, { status: 400 });
   }
 
+  const key = rawKey.replace(/^\/+/, "");
   const tigris = getTigrisClient();
   if (!tigris) {
     return new Response(null, { status: 503 });
   }
 
-  try {
-    const headCommand = new HeadObjectCommand({
-      Bucket: tigris.bucket,
-      Key: key,
-    });
-    const headRes = await tigris.client.send(headCommand);
-
-    return new Response(null, {
-      status: 200,
-      headers: {
-        "Accept-Ranges": "bytes",
-        "Content-Length": headRes.ContentLength?.toString() || "0",
-        "Content-Type": headRes.ContentType || "video/mp4",
-        "ETag": headRes.ETag || "",
-        "Cache-Control": "public, max-age=31536000, immutable",
-      },
-    });
-  } catch (err: any) {
-    if (err?.$metadata?.httpStatusCode === 404) {
-      return new Response(null, { status: 404 });
-    }
-    return new Response(null, { status: 500 });
+  const keysToTry = [key];
+  if (!key.includes(".")) {
+    keysToTry.push(`${key}.mp4`, `${key}.webm`);
   }
+
+  for (const tryKey of keysToTry) {
+    try {
+      const headCommand = new HeadObjectCommand({
+        Bucket: tigris.bucket,
+        Key: tryKey,
+      });
+      const headRes = await tigris.client.send(headCommand);
+      const ext = tryKey.slice(tryKey.lastIndexOf(".")).toLowerCase();
+
+      return new Response(null, {
+        status: 200,
+        headers: {
+          "Accept-Ranges": "bytes",
+          "Content-Length": headRes.ContentLength?.toString() || "0",
+          "Content-Type": headRes.ContentType || MIME_BY_EXT[ext] || "video/mp4",
+          "ETag": headRes.ETag || "",
+          "Cache-Control": "public, max-age=31536000, immutable",
+        },
+      });
+    } catch {}
+  }
+
+  return new Response(null, { status: 404 });
 }
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const key = searchParams.get("key");
+  const rawKey = searchParams.get("key");
 
-  if (!key) {
+  if (!rawKey) {
     return new Response("Missing 'key' parameter", { status: 400 });
   }
 
+  const key = rawKey.replace(/^\/+/, "");
   const tigris = getTigrisClient();
   if (!tigris) {
     return new Response("Tigris storage is not configured", { status: 503 });
   }
 
-  // If a public URL or CDN is configured, redirect directly
-  if (tigris.publicUrl) {
-    return NextResponse.redirect(`${tigris.publicUrl}/${key}`, 302);
+  const keysToTry = [key];
+  if (!key.includes(".")) {
+    keysToTry.push(`${key}.mp4`, `${key}.webm`, `${key}.mov`);
   }
 
-  try {
-    const rangeHeader = req.headers.get("range");
-    const command = new GetObjectCommand({
-      Bucket: tigris.bucket,
-      Key: key,
-      Range: rangeHeader || undefined,
-    });
+  const rangeHeader = req.headers.get("range");
 
-    const response = await tigris.client.send(command);
+  for (const tryKey of keysToTry) {
+    try {
+      const command = new GetObjectCommand({
+        Bucket: tigris.bucket,
+        Key: tryKey,
+        Range: rangeHeader || undefined,
+      });
 
-    if (!response.Body) {
-      return new Response("Object body is empty", { status: 404 });
-    }
+      const response = await tigris.client.send(command);
 
-    const headers: Record<string, string> = {
-      "Accept-Ranges": "bytes",
-      "Content-Type": response.ContentType || "video/mp4",
-      "Cache-Control": "public, max-age=31536000, immutable",
-    };
+      if (response.Body) {
+        const ext = tryKey.slice(tryKey.lastIndexOf(".")).toLowerCase();
+        const contentType = response.ContentType || MIME_BY_EXT[ext] || "video/mp4";
 
-    if (response.ContentLength) {
-      headers["Content-Length"] = response.ContentLength.toString();
-    }
-    if (response.ContentRange) {
-      headers["Content-Range"] = response.ContentRange;
-    }
-    if (response.ETag) {
-      headers["ETag"] = response.ETag;
-    }
+        const headers: Record<string, string> = {
+          "Accept-Ranges": "bytes",
+          "Content-Type": contentType,
+          "Cache-Control": "public, max-age=31536000, immutable",
+        };
 
-    const webStream = response.Body.transformToWebStream();
-    return new Response(webStream as unknown as BodyInit, {
-      status: rangeHeader ? 206 : 200,
-      headers,
-    });
-  } catch (err: any) {
-    if (err?.$metadata?.httpStatusCode === 404) {
-      return new Response("Object not found in Tigris", { status: 404 });
+        if (response.ContentLength) {
+          headers["Content-Length"] = response.ContentLength.toString();
+        }
+        if (response.ContentRange) {
+          headers["Content-Range"] = response.ContentRange;
+        }
+        if (response.ETag) {
+          headers["ETag"] = response.ETag;
+        }
+
+        const webStream = response.Body.transformToWebStream();
+        return new Response(webStream as unknown as BodyInit, {
+          status: rangeHeader ? 206 : 200,
+          headers,
+        });
+      }
+    } catch (err: any) {
+      if (err?.$metadata?.httpStatusCode !== 404) {
+        // Continue to try other keys
+      }
     }
-    return new Response("Error streaming from Tigris storage", { status: 500 });
   }
+
+  return new Response("Object not found in Tigris storage", { status: 404 });
 }

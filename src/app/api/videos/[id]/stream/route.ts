@@ -87,8 +87,26 @@ export async function HEAD(
   }
 
   const tigris = getTigrisClient();
-  if (tigris?.publicUrl) {
-    return NextResponse.redirect(`${tigris.publicUrl}/videos/${id}.mp4`, 302);
+  if (tigris) {
+    const { HeadObjectCommand } = await import("@aws-sdk/client-s3");
+    const exts = [".mp4", ".webm", ".mov", ".mkv", ".m4v"];
+    for (const ext of exts) {
+      try {
+        const headCmd = new HeadObjectCommand({
+          Bucket: tigris.bucket,
+          Key: `videos/${id}${ext}`,
+        });
+        const headRes = await tigris.client.send(headCmd);
+        return new Response(null, {
+          status: 200,
+          headers: {
+            "Accept-Ranges": "bytes",
+            "Content-Length": headRes.ContentLength?.toString() || "0",
+            "Content-Type": headRes.ContentType || MIME_MAP[ext] || "video/mp4",
+          },
+        });
+      } catch {}
+    }
   }
 
   const r2 = getR2Client();
@@ -160,34 +178,35 @@ export async function GET(
   // 2. Stream from Tigris Object Storage
   const tigris = getTigrisClient();
   if (tigris) {
-    if (tigris.publicUrl) {
-      return NextResponse.redirect(`${tigris.publicUrl}/videos/${id}.mp4`, 302);
-    }
+    const rangeHeader = req.headers.get("range");
+    const exts = [".mp4", ".webm", ".mov", ".mkv", ".m4v"];
 
-    try {
-      const rangeHeader = req.headers.get("range");
-      const command = new GetObjectCommand({
-        Bucket: tigris.bucket,
-        Key: `videos/${id}.mp4`,
-        Range: rangeHeader || undefined,
-      });
-
-      const response = await tigris.client.send(command);
-      if (response.Body) {
-        const webStream = response.Body.transformToWebStream();
-        return new Response(webStream as unknown as BodyInit, {
-          status: rangeHeader ? 206 : 200,
-          headers: {
-            "Content-Type": response.ContentType || "video/mp4",
-            "Content-Length": response.ContentLength?.toString() || "",
-            "Content-Range": response.ContentRange || "",
-            "Accept-Ranges": "bytes",
-            "Cache-Control": "public, max-age=3600",
-          },
+    for (const ext of exts) {
+      try {
+        const command = new GetObjectCommand({
+          Bucket: tigris.bucket,
+          Key: `videos/${id}${ext}`,
+          Range: rangeHeader || undefined,
         });
+
+        const response = await tigris.client.send(command);
+        if (response.Body) {
+          const webStream = response.Body.transformToWebStream();
+          const contentType = response.ContentType || MIME_MAP[ext] || "video/mp4";
+          return new Response(webStream as unknown as BodyInit, {
+            status: rangeHeader ? 206 : 200,
+            headers: {
+              "Content-Type": contentType,
+              "Content-Length": response.ContentLength?.toString() || "",
+              "Content-Range": response.ContentRange || "",
+              "Accept-Ranges": "bytes",
+              "Cache-Control": "public, max-age=3600",
+            },
+          });
+        }
+      } catch {
+        // try next extension
       }
-    } catch {
-      // try other extensions or fallback to R2/Blob
     }
   }
 

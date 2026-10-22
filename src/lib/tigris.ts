@@ -123,9 +123,7 @@ export async function createTigrisPresignedUploadUrl(
       expiresIn: expiresInSeconds,
     });
 
-    const fileUrl = tigris.publicUrl
-      ? `${tigris.publicUrl}/${key}`
-      : `/api/tigris/serve?key=${encodeURIComponent(key)}`;
+    const fileUrl = `/api/tigris/serve?key=${encodeURIComponent(key)}`;
 
     return { uploadUrl, fileUrl, key };
   } catch (err) {
@@ -151,9 +149,6 @@ export async function uploadBufferToTigris(
     });
     await tigris.client.send(command);
 
-    if (tigris.publicUrl) {
-      return `${tigris.publicUrl}/${key}`;
-    }
     return `/api/tigris/serve?key=${encodeURIComponent(key)}`;
   } catch (err) {
     console.error(`Failed to upload ${key} to Tigris:`, err);

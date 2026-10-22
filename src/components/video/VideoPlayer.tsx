@@ -84,6 +84,7 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     const [hoverTime, setHoverTime] = useState<number | null>(null);
     const [hoverPos, setHoverPos] = useState<number>(0);
     const [playbackError, setPlaybackError] = useState<string | null>(null);
+    const hasRetriedRef = useRef(false);
 
     // Expose seekTo method to parent components
     useImperativeHandle(ref, () => ({
@@ -113,6 +114,9 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     useEffect(() => {
       const video = videoRef.current;
       if (!video || !src) return;
+
+      hasRetriedRef.current = false;
+      setPlaybackError(null);
 
       const isHlsStream = src.endsWith(".m3u8") || src.includes(".m3u8");
 
@@ -320,7 +324,39 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
           }}
           onPause={() => setIsPlaying(false)}
           onError={() => {
-            setPlaybackError("This video uses a codec unsupported natively by your current browser (such as Apple ProRes / HEVC in .mov).");
+            const video = videoRef.current;
+            const mediaErr = video?.error;
+
+            // Auto-retry via proxy if src was an external/direct Tigris URL
+            if (src && !hasRetriedRef.current && video) {
+              hasRetriedRef.current = true;
+              if (
+                src.includes("tigrisfiles.io") ||
+                src.includes("storage.tigris.dev") ||
+                src.includes("tigrisbucket.io") ||
+                src.includes("tigrisblob.io")
+              ) {
+                try {
+                  const u = new URL(src);
+                  const key = u.pathname.replace(/^\/+/, "");
+                  const fallbackProxyUrl = `/api/tigris/serve?key=${encodeURIComponent(key)}`;
+                  video.src = fallbackProxyUrl;
+                  video.load();
+                  video.play().catch(() => {});
+                  return;
+                } catch {}
+              }
+            }
+
+            if (mediaErr?.code === 2) {
+              setPlaybackError("Network error: The storage server or video stream could not be reached.");
+            } else if (mediaErr?.code === 3) {
+              setPlaybackError("Decoding error: The video could not be decoded by your browser.");
+            } else if (mediaErr?.code === 4) {
+              setPlaybackError("Unable to play video: The media file was not found, storage access is restricted, or the codec is unsupported.");
+            } else {
+              setPlaybackError("Unable to load video stream.");
+            }
           }}
         />
 
@@ -329,17 +365,34 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
             <div className="h-12 w-12 rounded-full bg-white/10 flex items-center justify-center text-zinc-400 mb-3">
               <Play className="h-6 w-6 text-zinc-300 ml-0.5" />
             </div>
-            <p className="text-sm font-semibold text-white mb-1.5">Codec Playback Notice</p>
+            <p className="text-sm font-semibold text-white mb-1.5">Playback Notice</p>
             <p className="text-xs text-zinc-400 max-w-md mb-4">{playbackError}</p>
-            <a
-              href={src}
-              target="_blank"
-              rel="noopener noreferrer"
-              download
-              className="px-4 py-2 rounded-xl bg-white text-black text-xs font-bold hover:bg-zinc-200 transition-colors shadow-lg"
-            >
-              Download or Open Original Video
-            </a>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setPlaybackError(null);
+                  hasRetriedRef.current = false;
+                  if (videoRef.current) {
+                    videoRef.current.load();
+                    videoRef.current.play().catch(() => {});
+                  }
+                }}
+                className="px-4 py-2 rounded-xl bg-white/15 text-white text-xs font-semibold hover:bg-white/25 transition-colors flex items-center gap-1.5 cursor-pointer"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                Retry
+              </button>
+              <a
+                href={src}
+                target="_blank"
+                rel="noopener noreferrer"
+                download
+                className="px-4 py-2 rounded-xl bg-white text-black text-xs font-bold hover:bg-zinc-200 transition-colors shadow-lg"
+              >
+                Download or Open Original Video
+              </a>
+            </div>
           </div>
         )}
 

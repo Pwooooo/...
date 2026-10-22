@@ -133,8 +133,21 @@ function WatchContent() {
       }
 
       if (video.rawVideoUrl) {
-        setResolvedVideoUrl(video.rawVideoUrl);
-      } else if (video.id.startsWith("v-srv-") || video.id.startsWith("v-user-")) {
+        let streamUrl = video.rawVideoUrl;
+        if (
+          streamUrl.includes("tigrisfiles.io") ||
+          streamUrl.includes("storage.tigris.dev") ||
+          streamUrl.includes("tigrisbucket.io") ||
+          streamUrl.includes("tigrisblob.io")
+        ) {
+          try {
+            const u = new URL(streamUrl);
+            const key = u.pathname.replace(/^\/+/, "");
+            streamUrl = `/api/tigris/serve?key=${encodeURIComponent(key)}`;
+          } catch {}
+        }
+        setResolvedVideoUrl(streamUrl);
+      } else if (video.id.startsWith("v-srv-") || video.id.startsWith("v-user-") || video.id) {
         setResolvedVideoUrl(`/api/videos/${video.id}/stream`);
       } else {
         setResolvedVideoUrl(
