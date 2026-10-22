@@ -319,11 +319,99 @@ export async function deleteObjectFromTigris(keyOrUrl: string): Promise<boolean>
   }
 }
 
+export async function fetchTigrisDeletedVideos(): Promise<Set<string>> {
+  const tigris = await getVerifiedTigrisClient();
+  const set = new Set<string>();
+  if (!tigris) return set;
+
+  try {
+    const command = new GetObjectCommand({
+      Bucket: tigris.bucket,
+      Key: "metadata/deleted_videos.json",
+    });
+    const response = await tigris.client.send(command);
+    const bodyStr = await response.Body?.transformToString();
+    if (bodyStr) {
+      const parsed = JSON.parse(bodyStr);
+      if (Array.isArray(parsed)) {
+        parsed.forEach((id) => {
+          if (typeof id === "string") set.add(id);
+        });
+      }
+    }
+  } catch {}
+  return set;
+}
+
+export async function saveTigrisDeletedVideos(deletedIds: string[]): Promise<boolean> {
+  const tigris = await getVerifiedTigrisClient();
+  if (!tigris) return false;
+
+  try {
+    const command = new PutObjectCommand({
+      Bucket: tigris.bucket,
+      Key: "metadata/deleted_videos.json",
+      Body: Buffer.from(JSON.stringify(Array.from(new Set(deletedIds)), null, 2)),
+      ContentType: "application/json",
+    });
+    await tigris.client.send(command);
+    return true;
+  } catch (err) {
+    console.warn("Could not save Tigris deleted videos list:", err);
+    return false;
+  }
+}
+
+export async function deleteVideoFromTigris(id: string): Promise<boolean> {
+  const tigris = await getVerifiedTigrisClient();
+  if (!tigris || !id) return false;
+
+  try {
+    // 1. Delete individual metadata file
+    await deleteObjectFromTigris(`metadata/videos/${id}.json`);
+
+    // 2. Scan and delete all matching files in videos/ and thumbnails/
+    const prefixes = ["videos/", "thumbnails/", "metadata/videos/"];
+    for (const prefix of prefixes) {
+      try {
+        const listCmd = new ListObjectsV2Command({
+          Bucket: tigris.bucket,
+          Prefix: `${prefix}${id}`,
+        });
+        const res = await tigris.client.send(listCmd);
+        if (res.Contents && res.Contents.length > 0) {
+          for (const item of res.Contents) {
+            if (item.Key) {
+              await tigris.client.send(
+                new DeleteObjectCommand({
+                  Bucket: tigris.bucket,
+                  Key: item.Key,
+                })
+              ).catch(() => {});
+            }
+          }
+        }
+      } catch {}
+    }
+
+    // 3. Update deleted videos list in Tigris
+    const currentDeleted = await fetchTigrisDeletedVideos();
+    currentDeleted.add(id);
+    await saveTigrisDeletedVideos(Array.from(currentDeleted));
+
+    return true;
+  } catch (err) {
+    console.warn(`Error deleting video ${id} from Tigris:`, err);
+    return false;
+  }
+}
+
 export async function fetchTigrisVideosIndex(): Promise<VideoItem[]> {
   const tigris = await getVerifiedTigrisClient();
   if (!tigris) return [];
 
   const map = new Map<string, VideoItem>();
+  const deletedSet = await fetchTigrisDeletedVideos();
 
   // 1. Consolidated metadata/videos.json
   try {
@@ -337,7 +425,7 @@ export async function fetchTigrisVideosIndex(): Promise<VideoItem[]> {
       const parsed = JSON.parse(bodyStr);
       if (Array.isArray(parsed)) {
         parsed.forEach((v: VideoItem) => {
-          if (v && v.id) map.set(v.id, v);
+          if (v && v.id && !deletedSet.has(v.id)) map.set(v.id, v);
         });
       }
     }
@@ -368,7 +456,7 @@ export async function fetchTigrisVideosIndex(): Promise<VideoItem[]> {
           const str = await res.Body?.transformToString();
           if (str) {
             const parsed = JSON.parse(str);
-            if (parsed && parsed.id && !map.has(parsed.id)) {
+            if (parsed && parsed.id && !deletedSet.has(parsed.id) && !map.has(parsed.id)) {
               map.set(parsed.id, parsed);
             }
           }
@@ -392,7 +480,7 @@ export async function fetchTigrisVideosIndex(): Promise<VideoItem[]> {
         if (!obj.Key || obj.Key.endsWith("/")) continue;
         const filename = obj.Key.replace(/^videos\//, "");
         const idMatch = filename.replace(/\.[^/.]+$/, "");
-        if (!idMatch || map.has(idMatch)) continue;
+        if (!idMatch || deletedSet.has(idMatch) || map.has(idMatch)) continue;
 
         const cleanTitle = idMatch.replace(/^v-(user|srv)-/, "").replace(/[-_]/g, " ");
         const inferredVideo: VideoItem = {
@@ -423,7 +511,7 @@ export async function fetchTigrisVideosIndex(): Promise<VideoItem[]> {
     console.warn("Could not list videos/ in Tigris:", err);
   }
 
-  return Array.from(map.values());
+  return Array.from(map.values()).filter((v) => !deletedSet.has(v.id));
 }
 
 export async function saveTigrisVideosIndex(videos: VideoItem[], newVideo?: VideoItem): Promise<boolean> {

@@ -118,7 +118,29 @@ export function getBaseVideos(): VideoItem[] {
 // ----------------- Central Client Video Cache -----------------
 const SERVER_CACHE_KEY = "entropy_server_videos_cache";
 const USER_UPLOADS_KEY = "entropy_user_uploaded_videos";
-const CACHE_PURGE_VERSION = "entropy_purge_v6";
+const CLIENT_DELETED_KEY = "entropy_deleted_videos";
+const CACHE_PURGE_VERSION = "entropy_purge_v7";
+
+export function getClientDeletedVideos(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = localStorage.getItem(CLIENT_DELETED_KEY);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return new Set(arr);
+    }
+  } catch {}
+  return new Set();
+}
+
+export function markClientDeletedVideo(id: string): void {
+  if (typeof window === "undefined" || !id) return;
+  try {
+    const set = getClientDeletedVideos();
+    set.add(id);
+    localStorage.setItem(CLIENT_DELETED_KEY, JSON.stringify(Array.from(set)));
+  } catch {}
+}
 
 if (typeof window !== "undefined") {
   try {
@@ -179,11 +201,14 @@ if (typeof window !== "undefined") {
 export function getUserUploadedVideos(): VideoItem[] {
   if (typeof window === "undefined") return [];
   try {
+    const deleted = getClientDeletedVideos();
     const raw = localStorage.getItem(USER_UPLOADS_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        return parsed.filter((v: VideoItem) => v && typeof v.id === "string" && !isNextJsFillerVideo(v));
+        return parsed.filter(
+          (v: VideoItem) => v && typeof v.id === "string" && !deleted.has(v.id) && !isNextJsFillerVideo(v)
+        );
       }
     }
   } catch {}
@@ -227,6 +252,7 @@ export function isShortVideo(v: VideoItem | null | undefined): boolean {
 export function getAllCombinedVideos(): VideoItem[] {
   if (typeof window !== "undefined") {
     try {
+      const deleted = getClientDeletedVideos();
       const userUploads = getUserUploadedVideos();
       const cachedRaw = localStorage.getItem(SERVER_CACHE_KEY);
       let serverCached: VideoItem[] = [];
@@ -234,22 +260,24 @@ export function getAllCombinedVideos(): VideoItem[] {
         try {
           const parsed = JSON.parse(cachedRaw);
           if (Array.isArray(parsed)) {
-            serverCached = parsed.filter((v: VideoItem) => v && typeof v.id === "string" && !isNextJsFillerVideo(v));
+            serverCached = parsed.filter(
+              (v: VideoItem) => v && typeof v.id === "string" && !deleted.has(v.id) && !isNextJsFillerVideo(v)
+            );
           }
         } catch {}
       }
 
-      // Merge: only keep real non-filler videos
+      // Merge: only keep real non-filler non-deleted videos
       const nonSampleMap = new Map<string, VideoItem>();
 
       getBaseVideos().forEach((v) => {
-        if (!isFillerVideo(v)) nonSampleMap.set(v.id, v);
+        if (!isFillerVideo(v) && !deleted.has(v.id)) nonSampleMap.set(v.id, v);
       });
       serverCached.forEach((v) => {
-        if (!isFillerVideo(v)) nonSampleMap.set(v.id, v);
+        if (!isFillerVideo(v) && !deleted.has(v.id)) nonSampleMap.set(v.id, v);
       });
       userUploads.forEach((v) => {
-        if (!isFillerVideo(v)) nonSampleMap.set(v.id, v);
+        if (!isFillerVideo(v) && !deleted.has(v.id)) nonSampleMap.set(v.id, v);
       });
 
       return Array.from(nonSampleMap.values());
@@ -277,11 +305,18 @@ export async function fetchServerVideos(): Promise<VideoItem[]> {
     const data = await res.json();
     if (data.success && Array.isArray(data.videos)) {
       const serverVideoIds = new Set(data.videos.map((v: VideoItem) => v.id));
+      const deletedSet = getClientDeletedVideos();
 
-      // Auto-sync any local uploads that the server doesn't have yet so everyone else sees them
-      const userUploads = getUserUploadedVideos();
+      // Auto-sync ONLY items that are truly user uploads, not deleted and not already on server
+      const userUploads = getUserUploadedVideos().filter((v) => !deletedSet.has(v.id));
       for (const localVid of userUploads) {
-        if (localVid && localVid.id && !serverVideoIds.has(localVid.id) && !isNextJsFillerVideo(localVid)) {
+        if (
+          localVid &&
+          localVid.id &&
+          !deletedSet.has(localVid.id) &&
+          !serverVideoIds.has(localVid.id) &&
+          !isNextJsFillerVideo(localVid)
+        ) {
           let syncedVideoUrl = localVid.rawVideoUrl;
           try {
             const localBlob = await getVideoBlob(localVid.id);
@@ -322,7 +357,7 @@ export async function fetchServerVideos(): Promise<VideoItem[]> {
       }
 
       const cleanVideos: VideoItem[] = data.videos.filter(
-        (v: VideoItem) => v && typeof v.id === "string" && !isNextJsFillerVideo(v)
+        (v: VideoItem) => v && typeof v.id === "string" && !deletedSet.has(v.id) && !isNextJsFillerVideo(v)
       );
       try {
         localStorage.setItem(SERVER_CACHE_KEY, JSON.stringify(cleanVideos));
@@ -747,6 +782,11 @@ export async function uploadVideoToServer(
 
 export async function deleteUserVideo(videoId: string): Promise<void> {
   if (!videoId) return;
+
+  // 1. Mark permanently deleted on client immediately
+  markClientDeletedVideo(videoId);
+
+  // 2. Remove from local caches
   if (typeof window !== "undefined") {
     try {
       const uploads = getUserUploadedVideos().filter((v) => v.id !== videoId);
@@ -756,9 +796,13 @@ export async function deleteUserVideo(videoId: string): Promise<void> {
       window.dispatchEvent(new Event("entropy_videos_updated"));
     } catch {}
   }
+
+  // 3. Purge binary blob from local IndexedDB so it cannot be auto-synced
+  await deleteVideoBlob(videoId);
+
+  // 4. Send DELETE request to server
   try {
-    await fetch(`/api/videos?id=${videoId}`, { method: "DELETE" });
-    await fetchServerVideos();
+    await fetch(`/api/videos?id=${encodeURIComponent(videoId)}`, { method: "DELETE" });
   } catch (e) {
     console.warn("Could not delete video:", e);
   }
@@ -923,5 +967,10 @@ export async function deleteVideoBlob(videoId: string): Promise<void> {
   } catch {}
 }
 
-export function getDeletedVideoIds(): Set<string> { return new Set(["v-srv-1792152077838", "v-user-1792152077838", "sample-2"]); }
-export function markVideoAsDeleted(videoId: string): void {}
+export function getDeletedVideoIds(): Set<string> {
+  return getClientDeletedVideos();
+}
+
+export function markVideoAsDeleted(videoId: string): void {
+  markClientDeletedVideo(videoId);
+}

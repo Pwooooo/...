@@ -13,6 +13,9 @@ import {
   deleteObjectFromTigris,
   fetchTigrisVideosIndex,
   saveTigrisVideosIndex,
+  fetchTigrisDeletedVideos,
+  saveTigrisDeletedVideos,
+  deleteVideoFromTigris,
 } from "@/lib/tigris";
 
 export const runtime = "nodejs";
@@ -71,7 +74,7 @@ const DEFAULT_SERVER_DELETED = [
   "sample-6",
 ];
 
-function readDeletedVideoIds(): Set<string> {
+async function readDeletedVideoIds(): Promise<Set<string>> {
   safeEnsureDirs();
   const set = new Set<string>(DEFAULT_SERVER_DELETED);
   try {
@@ -83,31 +86,44 @@ function readDeletedVideoIds(): Set<string> {
       }
     }
   } catch {}
+
+  try {
+    if (isTigrisConfigured()) {
+      const tigrisDeleted = await fetchTigrisDeletedVideos();
+      tigrisDeleted.forEach((id) => set.add(id));
+    }
+  } catch {}
+
   return set;
 }
 
-function recordDeletedVideoId(id: string): void {
+async function recordDeletedVideoId(id: string): Promise<void> {
   safeEnsureDirs();
   try {
-    const set = readDeletedVideoIds();
+    const set = await readDeletedVideoIds();
     set.add(id);
     fs.writeFileSync(DELETED_VIDEOS_FILE, JSON.stringify(Array.from(set), null, 2), "utf-8");
-  } catch {}
-}
-
-function unmarkDeletedVideoId(id: string): void {
-  safeEnsureDirs();
-  try {
-    const set = readDeletedVideoIds();
-    if (set.delete(id)) {
-      fs.writeFileSync(DELETED_VIDEOS_FILE, JSON.stringify(Array.from(set), null, 2), "utf-8");
+    if (isTigrisConfigured()) {
+      await saveTigrisDeletedVideos(Array.from(set));
     }
   } catch {}
 }
 
-function readLocalVideos(): VideoItem[] {
+async function unmarkDeletedVideoId(id: string): Promise<void> {
   safeEnsureDirs();
-  const deleted = readDeletedVideoIds();
+  try {
+    const set = await readDeletedVideoIds();
+    if (set.delete(id)) {
+      fs.writeFileSync(DELETED_VIDEOS_FILE, JSON.stringify(Array.from(set), null, 2), "utf-8");
+      if (isTigrisConfigured()) {
+        await saveTigrisDeletedVideos(Array.from(set));
+      }
+    }
+  } catch {}
+}
+
+function readLocalVideosSync(deleted: Set<string>): VideoItem[] {
+  safeEnsureDirs();
   const map = new Map<string, VideoItem>();
 
   // 1. Base static videos
@@ -147,15 +163,19 @@ function readLocalVideos(): VideoItem[] {
     }
   } catch {}
 
-  const result = Array.from(map.values());
-  return result;
+  return Array.from(map.values());
 }
 
-function writeLocalVideos(videos: VideoItem[]): void {
+async function readLocalVideos(): Promise<VideoItem[]> {
+  const deleted = await readDeletedVideoIds();
+  return readLocalVideosSync(deleted);
+}
+
+function writeLocalVideos(videos: VideoItem[], deleted?: Set<string>): void {
   safeEnsureDirs();
   try {
-    const deleted = readDeletedVideoIds();
-    const filtered = videos.filter((v) => v && v.id && !deleted.has(v.id) && !isNextJsFillerVideo(v));
+    const del = deleted || new Set(DEFAULT_SERVER_DELETED);
+    const filtered = videos.filter((v) => v && v.id && !del.has(v.id) && !isNextJsFillerVideo(v));
     fs.writeFileSync(VIDEOS_FILE, JSON.stringify(filtered, null, 2), "utf-8");
 
     // Also persist user uploads to backup file so they are never lost
@@ -240,7 +260,7 @@ async function fetchBlobVideosIndex(): Promise<VideoItem[]> {
   const token = ensureBlobToken();
   if (!token) return [];
   const map = new Map<string, VideoItem>();
-  const deleted = readDeletedVideoIds();
+  const deleted = await readDeletedVideoIds();
 
   let allBlobs: Array<{ pathname: string; url: string; size: number; uploadedAt: Date }> = [];
   try {
@@ -292,7 +312,7 @@ async function fetchBlobVideosIndex(): Promise<VideoItem[]> {
 async function saveBlobVideosIndex(videos: VideoItem[], newVideo?: VideoItem): Promise<void> {
   if (!hasVercelBlob()) return;
   try {
-    const deleted = readDeletedVideoIds();
+    const deleted = await readDeletedVideoIds();
     const filtered = videos.filter((v) => v && v.id && !deleted.has(v.id) && !isNextJsFillerVideo(v));
 
     // 1. Immediately save the new video metadata individually
@@ -441,7 +461,7 @@ async function fetchR2VideosIndex(): Promise<VideoItem[]> {
     if (bodyStr) {
       const parsed = JSON.parse(bodyStr);
       if (Array.isArray(parsed)) {
-        const deleted = readDeletedVideoIds();
+        const deleted = await readDeletedVideoIds();
         return parsed.filter((v: VideoItem) => !deleted.has(v.id));
       }
     }
@@ -459,7 +479,7 @@ async function saveR2VideosIndex(videos: VideoItem[]): Promise<void> {
   if (!r2) return;
 
   try {
-    const deleted = readDeletedVideoIds();
+    const deleted = await readDeletedVideoIds();
     const filtered = videos.filter((v) => !deleted.has(v.id));
     const command = new PutObjectCommand({
       Bucket: r2.bucket,
@@ -476,11 +496,11 @@ async function saveR2VideosIndex(videos: VideoItem[]): Promise<void> {
 export async function GET() {
   try {
     ensureBlobToken();
-    const deleted = readDeletedVideoIds();
+    const deleted = await readDeletedVideoIds();
     const tigrisVideos = await fetchTigrisVideosIndex();
     const blobVideos = await fetchBlobVideosIndex();
     const r2Videos = await fetchR2VideosIndex();
-    const localVideos = readLocalVideos();
+    const localVideos = await readLocalVideos();
 
     // Priority merge: Tigris uploads take highest priority, then blob/R2, then local user uploads
     const map = new Map<string, VideoItem>();
@@ -565,12 +585,13 @@ export async function POST(req: NextRequest) {
 
     // Block all filler videos from ever being accepted or revived
     if (isNextJsFillerVideo({ id: videoId, title })) {
-      recordDeletedVideoId(videoId);
+      await recordDeletedVideoId(videoId);
       return NextResponse.json({ success: false, error: "Filler video is permanently removed" }, { status: 400 });
     }
 
-    if (!readDeletedVideoIds().has(videoId)) {
-      unmarkDeletedVideoId(videoId);
+    const currentDeleted = await readDeletedVideoIds();
+    if (currentDeleted.has(videoId)) {
+      return NextResponse.json({ success: false, error: "Video has been permanently deleted" }, { status: 400 });
     }
 
     let rawVideoUrl = (formData.get("rawVideoUrl") as string) || "";
@@ -826,7 +847,7 @@ export async function POST(req: NextRequest) {
     const tigrisVideos = await fetchTigrisVideosIndex();
     const blobVideos = await fetchBlobVideosIndex();
     const r2Videos = await fetchR2VideosIndex();
-    const localVideos = readLocalVideos();
+    const localVideos = await readLocalVideos();
     const map = new Map<string, VideoItem>();
     localVideos.forEach((v) => map.set(v.id, v));
     r2Videos.forEach((v) => map.set(v.id, v));
@@ -863,12 +884,12 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ success: false, error: "ID required" }, { status: 400 });
     }
 
-    recordDeletedVideoId(id);
+    await recordDeletedVideoId(id);
 
     const tigrisVideos = await fetchTigrisVideosIndex();
     const blobVideos = await fetchBlobVideosIndex();
     const r2Videos = await fetchR2VideosIndex();
-    const localVideos = readLocalVideos();
+    const localVideos = await readLocalVideos();
     const map = new Map<string, VideoItem>();
     localVideos.forEach((v) => map.set(v.id, v));
     r2Videos.forEach((v) => map.set(v.id, v));
@@ -943,11 +964,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     if (isTigrisConfigured()) {
-      await deleteObjectFromTigris(`videos/${id}.mp4`);
-      await deleteObjectFromTigris(`videos/${id}.webm`);
-      await deleteObjectFromTigris(`thumbnails/${id}.jpg`);
-      await deleteObjectFromTigris(`thumbnails/${id}.png`);
-      await deleteObjectFromTigris(`metadata/videos/${id}.json`);
+      await deleteVideoFromTigris(id);
     }
 
     await deleteFromCloudflareR2(`videos/${id}.mp4`);
@@ -963,7 +980,8 @@ export async function DELETE(req: NextRequest) {
     }
     await saveBlobVideosIndex(updated);
     await saveR2VideosIndex(updated);
-    writeLocalVideos(updated);
+    const delSet = await readDeletedVideoIds();
+    writeLocalVideos(updated, delSet);
 
     return NextResponse.json({ success: true });
   } catch (err: unknown) {
@@ -983,7 +1001,7 @@ export async function PATCH(req: NextRequest) {
     const tigrisVideos = await fetchTigrisVideosIndex();
     const blobVideos = await fetchBlobVideosIndex();
     const r2Videos = await fetchR2VideosIndex();
-    const localVideos = readLocalVideos();
+    const localVideos = await readLocalVideos();
     const map = new Map<string, VideoItem>();
     localVideos.forEach((v) => map.set(v.id, v));
     r2Videos.forEach((v) => map.set(v.id, v));
@@ -1012,7 +1030,8 @@ export async function PATCH(req: NextRequest) {
     }
     await saveBlobVideosIndex(updatedList);
     await saveR2VideosIndex(updatedList);
-    writeLocalVideos(updatedList);
+    const delSet = await readDeletedVideoIds();
+    writeLocalVideos(updatedList, delSet);
 
     return NextResponse.json({ success: true, video: updatedVideo });
   } catch (err: unknown) {
