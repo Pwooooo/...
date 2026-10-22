@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { VideoItem, CommentItem } from "@/types";
-import { getAllCombinedVideos, fetchServerVideos, isShortVideo } from "@/lib/video-storage";
+import { getAllCombinedVideos, fetchServerVideos, isShortVideo, isUserVideoOwner } from "@/lib/video-storage";
 import { formatViews, formatDuration, formatTimeAgo } from "@/lib/utils";
 import { resolveChannelAvatar } from "@/lib/user-validation";
 import {
@@ -44,13 +44,25 @@ export default function StudioDashboardPage() {
   };
 
   useEffect(() => {
-    const all = getAllCombinedVideos();
-    setVideos(all);
+    const loadMyVideos = () => {
+      if (!user) {
+        setVideos([]);
+        return;
+      }
+      const all = getAllCombinedVideos();
+      setVideos(all.filter((v) => isUserVideoOwner(v, user)));
+    };
 
-    fetchServerVideos().then((srv) => {
-      setVideos(getAllCombinedVideos());
+    loadMyVideos();
+    fetchServerVideos().then(() => {
+      loadMyVideos();
     });
-  }, []);
+
+    window.addEventListener("entropy_videos_updated", loadMyVideos);
+    return () => {
+      window.removeEventListener("entropy_videos_updated", loadMyVideos);
+    };
+  }, [user]);
 
   // Collect recent comments across all videos
   useEffect(() => {

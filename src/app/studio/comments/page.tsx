@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { VideoItem, CommentItem, CommentReply } from "@/types";
-import { getAllCombinedVideos, fetchServerVideos } from "@/lib/video-storage";
+import { getAllCombinedVideos, fetchServerVideos, isUserVideoOwner } from "@/lib/video-storage";
 import { formatTimeAgo } from "@/lib/utils";
 import {
   MessageSquare,
@@ -144,16 +144,27 @@ export default function StudioCommentsPage() {
   };
 
   useEffect(() => {
-    const current = getAllCombinedVideos();
-    setVideos(current);
-    loadAllComments(current);
+    const loadMyComments = () => {
+      if (!user) {
+        setVideos([]);
+        setCommentsList([]);
+        return;
+      }
+      const myVideos = getAllCombinedVideos().filter((v) => isUserVideoOwner(v, user));
+      setVideos(myVideos);
+      loadAllComments(myVideos);
+    };
 
+    loadMyComments();
     fetchServerVideos().then(() => {
-      const updated = getAllCombinedVideos();
-      setVideos(updated);
-      loadAllComments(updated);
+      loadMyComments();
     });
-  }, []);
+
+    window.addEventListener("entropy_videos_updated", loadMyComments);
+    return () => {
+      window.removeEventListener("entropy_videos_updated", loadMyComments);
+    };
+  }, [user]);
 
   // Save changes back to localStorage for that video
   const persistVideoComments = (videoId: string, updatedComment: CommentItem | null, removeId?: string) => {

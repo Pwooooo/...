@@ -886,11 +886,12 @@ export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
+    const userId = searchParams.get("userId") || req.headers.get("x-entropy-user-id");
+    const userHandle = searchParams.get("userHandle") || req.headers.get("x-entropy-user-handle");
+
     if (!id) {
       return NextResponse.json({ success: false, error: "ID required" }, { status: 400 });
     }
-
-    await recordDeletedVideoId(id);
 
     const tigrisVideos = await fetchTigrisVideosIndex();
     const blobVideos = await fetchBlobVideosIndex();
@@ -903,6 +904,33 @@ export async function DELETE(req: NextRequest) {
     tigrisVideos.forEach((v) => map.set(v.id, v));
 
     const target = map.get(id);
+
+    // Ownership verification: If the video belongs to a channel, reject if requester does not match
+    if (target && target.channel && (target.channel.id || target.channel.handle)) {
+      const chanId = (target.channel.id || "").trim().toLowerCase();
+      const chanHandle = (target.channel.handle || "").replace(/^@/, "").trim().toLowerCase();
+      const chanName = (target.channel.displayName || "").trim().toLowerCase();
+
+      const reqUserId = (userId || "").trim().toLowerCase();
+      const reqHandle = (userHandle || "").replace(/^@/, "").trim().toLowerCase();
+
+      // Only allow deletion if credentials match the video's channel owner
+      if (chanId || chanHandle) {
+        const isOwner =
+          (reqUserId && chanId && reqUserId === chanId) ||
+          (reqHandle && chanHandle && reqHandle === chanHandle) ||
+          (reqHandle && chanName && reqHandle === chanName);
+
+        if (!isOwner) {
+          return NextResponse.json(
+            { success: false, error: "Unauthorized: You do not own this video" },
+            { status: 403 }
+          );
+        }
+      }
+    }
+
+    await recordDeletedVideoId(id);
     if (target) {
       // Delete from Tigris Object Storage if applicable
       if (isTigrisConfigured()) {
@@ -1000,6 +1028,9 @@ export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json();
     const { id, title, description, category, tags, thumbnailUrl } = body;
+    const userId = body.userId || req.headers.get("x-entropy-user-id");
+    const userHandle = body.userHandle || req.headers.get("x-entropy-user-handle");
+
     if (!id) {
       return NextResponse.json({ success: false, error: "ID required" }, { status: 400 });
     }
@@ -1017,6 +1048,30 @@ export async function PATCH(req: NextRequest) {
     const existing = map.get(id);
     if (!existing) {
       return NextResponse.json({ success: false, error: "Video not found" }, { status: 404 });
+    }
+
+    // Ownership verification: If the video belongs to a channel, reject if requester does not match
+    if (existing.channel && (existing.channel.id || existing.channel.handle)) {
+      const chanId = (existing.channel.id || "").trim().toLowerCase();
+      const chanHandle = (existing.channel.handle || "").replace(/^@/, "").trim().toLowerCase();
+      const chanName = (existing.channel.displayName || "").trim().toLowerCase();
+
+      const reqUserId = (userId || "").trim().toLowerCase();
+      const reqHandle = (userHandle || "").replace(/^@/, "").trim().toLowerCase();
+
+      if (chanId || chanHandle) {
+        const isOwner =
+          (reqUserId && chanId && reqUserId === chanId) ||
+          (reqHandle && chanHandle && reqHandle === chanHandle) ||
+          (reqHandle && chanName && reqHandle === chanName);
+
+        if (!isOwner) {
+          return NextResponse.json(
+            { success: false, error: "Unauthorized: You do not own this video" },
+            { status: 403 }
+          );
+        }
+      }
     }
 
     const updatedVideo: VideoItem = {

@@ -293,8 +293,40 @@ export function getAllCombinedVideos(): VideoItem[] {
   return getBaseVideos();
 }
 
-export function getUserVideos(): VideoItem[] {
-  return getAllCombinedVideos();
+export function isUserVideoOwner(
+  video: VideoItem | null | undefined,
+  user: { id?: string | null; handle?: string | null; name?: string | null } | null | undefined
+): boolean {
+  if (!video || !user) return false;
+  const userHandle = (user.handle || "").replace(/^@/, "").trim().toLowerCase();
+  const userName = (user.name || "").trim().toLowerCase();
+  const userId = (user.id || "").trim().toLowerCase();
+
+  const vChan = video.channel;
+  if (!vChan) return false;
+
+  const vHandle = (vChan.handle || "").replace(/^@/, "").trim().toLowerCase();
+  const vName = (vChan.displayName || "").trim().toLowerCase();
+  const vId = (vChan.id || "").trim().toLowerCase();
+
+  if (userId && vId && userId === vId) return true;
+  if (userHandle && vHandle && userHandle === vHandle) return true;
+  if (userName && vName && userName === vName) return true;
+
+  return false;
+}
+
+export function getUserVideos(user?: { id?: string | null; handle?: string | null; name?: string | null } | null): VideoItem[] {
+  let currentUser = user;
+  if (!currentUser && typeof window !== "undefined") {
+    try {
+      const raw = localStorage.getItem("entropy_user");
+      if (raw) currentUser = JSON.parse(raw);
+    } catch {}
+  }
+  if (!currentUser) return [];
+  const all = getAllCombinedVideos();
+  return all.filter((v) => isUserVideoOwner(v, currentUser));
 }
 
 export function saveUserVideoMetadata(video: VideoItem): void {
@@ -787,8 +819,29 @@ export async function uploadVideoToServer(
   }
 }
 
-export async function deleteUserVideo(videoId: string): Promise<void> {
+export async function deleteUserVideo(
+  videoId: string,
+  currentUser?: { id?: string | null; handle?: string | null; name?: string | null } | null
+): Promise<void> {
   if (!videoId) return;
+
+  let user = currentUser;
+  if (!user && typeof window !== "undefined") {
+    try {
+      const saved = localStorage.getItem("entropy_user");
+      if (saved) user = JSON.parse(saved);
+    } catch {}
+  }
+
+  // Security guard: Only the owner can delete their video
+  if (user) {
+    const current = getAllCombinedVideos();
+    const target = current.find((v) => v.id === videoId);
+    if (target && !isUserVideoOwner(target, user)) {
+      console.warn("Unauthorized attempt to delete video not owned by user");
+      return;
+    }
+  }
 
   // 1. Mark permanently deleted on client immediately
   markClientDeletedVideo(videoId);
@@ -807,16 +860,42 @@ export async function deleteUserVideo(videoId: string): Promise<void> {
   // 3. Purge binary blob from local IndexedDB so it cannot be auto-synced
   await deleteVideoBlob(videoId);
 
-  // 4. Send DELETE request to server
+  // 4. Send DELETE request to server with user credentials
   try {
-    await fetch(`/api/videos?id=${encodeURIComponent(videoId)}`, { method: "DELETE" });
+    const params = new URLSearchParams({ id: videoId });
+    if (user?.id) params.set("userId", user.id);
+    if (user?.handle) params.set("userHandle", user.handle);
+    await fetch(`/api/videos?${params.toString()}`, { method: "DELETE" });
   } catch (e) {
     console.warn("Could not delete video:", e);
   }
 }
 
-export function updateUserVideo(videoId: string, updates: Partial<VideoItem>): void {
+export function updateUserVideo(
+  videoId: string,
+  updates: Partial<VideoItem>,
+  currentUser?: { id?: string | null; handle?: string | null; name?: string | null } | null
+): void {
   if (!videoId) return;
+
+  let user = currentUser;
+  if (!user && typeof window !== "undefined") {
+    try {
+      const saved = localStorage.getItem("entropy_user");
+      if (saved) user = JSON.parse(saved);
+    } catch {}
+  }
+
+  // Security guard: Only the owner can update their video
+  if (user) {
+    const current = getAllCombinedVideos();
+    const target = current.find((v) => v.id === videoId);
+    if (target && !isUserVideoOwner(target, user)) {
+      console.warn("Unauthorized attempt to update video not owned by user");
+      return;
+    }
+  }
+
   const current = getAllCombinedVideos();
   const idx = current.findIndex((v) => v.id === videoId);
   if (idx !== -1) {
@@ -837,7 +916,12 @@ export function updateUserVideo(videoId: string, updates: Partial<VideoItem>): v
   fetch("/api/videos", {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id: videoId, ...updates }),
+    body: JSON.stringify({
+      id: videoId,
+      ...updates,
+      userId: user?.id,
+      userHandle: user?.handle,
+    }),
   }).catch(() => {});
 }
 

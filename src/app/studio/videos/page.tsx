@@ -34,6 +34,7 @@ import {
   updateUserVideo,
   fetchServerVideos,
   isShortVideo,
+  isUserVideoOwner,
 } from "@/lib/video-storage";
 import StudioDropdown from "@/components/ui/StudioDropdown";
 
@@ -166,20 +167,30 @@ function StudioVideosContent() {
     setActiveActionMenuVideoId(videoId);
   };
 
+  const loadMyVideos = () => {
+    if (!user) {
+      setVideos([]);
+      return;
+    }
+    const all = getAllCombinedVideos();
+    const myVideos = all.filter((v) => isUserVideoOwner(v, user));
+    setVideos(myVideos);
+  };
+
   useEffect(() => {
-    setVideos(getAllCombinedVideos());
+    loadMyVideos();
     fetchServerVideos().then(() => {
-      setVideos(getAllCombinedVideos());
+      loadMyVideos();
     });
 
     const handleUpdate = () => {
-      setVideos(getAllCombinedVideos());
+      loadMyVideos();
     };
     window.addEventListener("entropy_videos_updated", handleUpdate);
     return () => {
       window.removeEventListener("entropy_videos_updated", handleUpdate);
     };
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (initialQuery) {
@@ -247,6 +258,10 @@ function StudioVideosContent() {
   }, [videos, activeTab, searchQuery, selectedCategory, selectedVisibility]);
 
   const handleOpenEdit = (video: VideoItem) => {
+    if (!user || !isUserVideoOwner(video, user)) {
+      showToast("You can only edit your own videos");
+      return;
+    }
     const { visibility } = getLiveStats(video.id);
     setEditingVideo(video);
     setEditTitle(video.title || "");
@@ -282,6 +297,11 @@ function StudioVideosContent() {
     e.preventDefault();
     if (!editingVideo) return;
 
+    if (!user || !isUserVideoOwner(editingVideo, user)) {
+      showToast("You can only edit your own videos");
+      return;
+    }
+
     if (!editTitle.trim()) {
       showToast("Please provide a title");
       return;
@@ -301,13 +321,13 @@ function StudioVideosContent() {
       thumbnailUrl: editThumbnailUrl,
     };
 
-    updateUserVideo(editingVideo.id, updated);
+    updateUserVideo(editingVideo.id, updated, user);
 
     try {
       localStorage.setItem(`entropy_video_vis_${editingVideo.id}`, editVisibility);
     } catch {}
 
-    setVideos(getAllCombinedVideos());
+    loadMyVideos();
     setEditingVideo(null);
     showToast("Video details saved successfully");
   };
@@ -315,12 +335,19 @@ function StudioVideosContent() {
   const handleDeleteConfirm = async () => {
     if (!deletingVideoId) return;
     const vidId = deletingVideoId;
+    const target = videos.find((v) => v.id === vidId);
+    if (!target || !user || !isUserVideoOwner(target, user)) {
+      showToast("You can only delete your own videos");
+      setDeletingVideoId(null);
+      return;
+    }
+
     setDeletingVideoId(null);
     setSelectedVideoIds((prev) => prev.filter((id) => id !== vidId));
     setVideos((prev) => prev.filter((v) => v.id !== vidId));
     showToast("Video deleted permanently");
-    await deleteUserVideo(vidId);
-    setVideos(getAllCombinedVideos());
+    await deleteUserVideo(vidId, user);
+    loadMyVideos();
   };
 
   const handleToggleSelectAll = () => {
@@ -339,23 +366,38 @@ function StudioVideosContent() {
 
   const handleBulkDelete = async () => {
     if (selectedVideoIds.length === 0) return;
-    if (confirm(`Delete ${selectedVideoIds.length} selected videos permanently?`)) {
-      const idsToDelete = [...selectedVideoIds];
+    const permittedIds = selectedVideoIds.filter((id) => {
+      const v = videos.find((vid) => vid.id === id);
+      return v && user && isUserVideoOwner(v, user);
+    });
+
+    if (permittedIds.length === 0) {
+      showToast("You can only delete your own videos");
+      return;
+    }
+
+    if (confirm(`Delete ${permittedIds.length} selected videos permanently?`)) {
+      const idsToDelete = [...permittedIds];
       setSelectedVideoIds([]);
       setVideos((prev) => prev.filter((v) => !idsToDelete.includes(v.id)));
       showToast(`Deleted ${idsToDelete.length} videos`);
       for (const id of idsToDelete) {
-        await deleteUserVideo(id);
+        await deleteUserVideo(id, user);
       }
-      setVideos(getAllCombinedVideos());
+      loadMyVideos();
     }
   };
 
   const handleInlineVisibilityChange = (videoId: string, newVis: "public" | "unlisted" | "private") => {
+    const v = videos.find((vid) => vid.id === videoId);
+    if (!v || !user || !isUserVideoOwner(v, user)) {
+      showToast("You can only modify your own videos");
+      return;
+    }
     try {
       localStorage.setItem(`entropy_video_vis_${videoId}`, newVis);
     } catch {}
-    setVideos([...getAllCombinedVideos()]);
+    loadMyVideos();
     showToast(`Visibility updated to ${newVis}`);
   };
 

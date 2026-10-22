@@ -73,6 +73,11 @@ export default function StudioLayout({ children }: StudioLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, openAuthModal } = useAuth();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -148,6 +153,78 @@ export default function StudioLayout({ children }: StudioLayoutProps) {
       router.push(`/studio/videos?q=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-[#0f0f0f] text-white flex items-center justify-center">
+        <div className="h-8 w-8 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-[#0f0f0f] text-white flex flex-col font-sans">
+        {/* Studio Top Navbar */}
+        <header className="sticky top-0 z-40 h-14 bg-[#121212]/95 backdrop-blur-md px-4 flex items-center justify-between select-none border-b border-white/[0.06]">
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <img
+              src="/entropy-icon.png"
+              alt="Entropy logo"
+              className="h-7 w-7 object-contain group-hover:scale-105 transition-transform"
+            />
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-bold text-base tracking-tight text-white">Entropy</span>
+              <span className="text-xs font-semibold text-zinc-400">Studio</span>
+            </div>
+          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/"
+              className="px-4 py-2 text-xs font-medium text-zinc-300 hover:text-white rounded-xl hover:bg-white/[0.06] transition-colors"
+            >
+              Back to Entropy
+            </Link>
+            <button
+              type="button"
+              onClick={openAuthModal}
+              className="rounded-full bg-white hover:bg-zinc-200 text-black px-5 py-2 text-xs font-bold transition-all shadow-md cursor-pointer"
+            >
+              Sign In
+            </button>
+          </div>
+        </header>
+
+        {/* Lock Screen Body */}
+        <main className="flex-1 flex items-center justify-center p-6">
+          <div className="max-w-md w-full bg-[#141414] border border-white/[0.08] rounded-3xl p-8 sm:p-10 text-center flex flex-col items-center shadow-2xl">
+            <div className="h-16 w-16 rounded-full bg-white/[0.05] border border-white/10 flex items-center justify-center text-white mb-5 shadow-inner">
+              <Shield className="h-8 w-8 text-zinc-300" />
+            </div>
+            <h2 className="text-xl font-bold text-white mb-2">Sign in to access Entropy Studio</h2>
+            <p className="text-xs text-zinc-400 mb-6 leading-relaxed">
+              Entropy Studio is reserved for creators to upload videos, manage content, inspect analytics, and customize their channels.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={openAuthModal}
+                className="w-full sm:w-auto rounded-full bg-white hover:bg-zinc-200 text-black px-6 py-2.5 text-xs font-bold transition-all cursor-pointer shadow-lg"
+              >
+                Sign In to Studio
+              </button>
+              <Link
+                href="/"
+                className="w-full sm:w-auto rounded-full bg-zinc-800 hover:bg-zinc-700 text-white px-5 py-2.5 text-xs font-medium transition-colors text-center"
+              >
+                Return to Home
+              </Link>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   const channelName = user?.name || "Creator";
   const channelHandle = user?.handle ? `@${user.handle.replace(/^@/, "")}` : "@creator";

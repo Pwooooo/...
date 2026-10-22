@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { VideoItem } from "@/types";
-import { getAllCombinedVideos, fetchServerVideos } from "@/lib/video-storage";
+import { getAllCombinedVideos, fetchServerVideos, isUserVideoOwner } from "@/lib/video-storage";
 import { formatDuration } from "@/lib/utils";
 import {
   BarChart3,
@@ -66,11 +66,25 @@ export default function StudioAnalyticsPage() {
   const [hoveredPoint, setHoveredPoint] = useState<{ day: number; value: number; x: number; y: number } | null>(null);
 
   useEffect(() => {
-    setVideos(getAllCombinedVideos());
+    const loadMyVideos = () => {
+      if (!user) {
+        setVideos([]);
+        return;
+      }
+      const all = getAllCombinedVideos();
+      setVideos(all.filter((v) => isUserVideoOwner(v, user)));
+    };
+
+    loadMyVideos();
     fetchServerVideos().then(() => {
-      setVideos(getAllCombinedVideos());
+      loadMyVideos();
     });
-  }, []);
+
+    window.addEventListener("entropy_videos_updated", loadMyVideos);
+    return () => {
+      window.removeEventListener("entropy_videos_updated", loadMyVideos);
+    };
+  }, [user]);
 
   // Format numbers cleanly without duplicating "views"
   const formatNumber = (num: number): string => {
