@@ -314,6 +314,69 @@ export async function fetchServerVideos(): Promise<VideoItem[]> {
   return getAllCombinedVideos();
 }
 
+async function uploadToTigrisPresigned(
+  file: File | Blob,
+  filename: string,
+  contentType: string,
+  type: "video" | "thumbnail",
+  videoId: string,
+  onProgress?: (percent: number) => void
+): Promise<{ success: boolean; fileUrl?: string; key?: string; configured?: boolean }> {
+  try {
+    const res = await fetch("/api/tigris/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ filename, contentType, type, videoId }),
+    });
+    const data = await res.json();
+    if (!data.configured) {
+      return { success: false, configured: false };
+    }
+    if (!data.success || !data.uploadUrl) {
+      return { success: false, configured: true };
+    }
+
+    const uploaded = await new Promise<boolean>((resolve) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("PUT", data.uploadUrl);
+      xhr.setRequestHeader("Content-Type", contentType);
+
+      if (xhr.upload && onProgress) {
+        xhr.upload.onprogress = (evt) => {
+          if (evt.lengthComputable) {
+            const pct = Math.round((evt.loaded / evt.total) * 100);
+            onProgress(pct);
+          }
+        };
+      }
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(true);
+        } else {
+          console.warn("Direct Tigris upload failed with status:", xhr.status);
+          resolve(false);
+        }
+      };
+
+      xhr.onerror = () => {
+        console.warn("Direct Tigris upload network error");
+        resolve(false);
+      };
+
+      xhr.send(file);
+    });
+
+    if (uploaded) {
+      return { success: true, fileUrl: data.fileUrl, key: data.key, configured: true };
+    }
+    return { success: false, configured: true };
+  } catch (err) {
+    console.warn("Tigris presigned upload error:", err);
+    return { success: false };
+  }
+}
+
 async function uploadToR2Presigned(
   file: File | Blob,
   filename: string,
@@ -395,7 +458,69 @@ export async function uploadVideoToServer(
 
     let isCloudUploaded = false;
 
-    // 1. Try Cloudflare R2 direct browser upload first (highest capacity, zero egress fees)
+    // 1. Try Tigris direct browser upload first (globally distributed S3 object storage)
+    if (file && typeof window !== "undefined") {
+      try {
+        if (onProgress) onProgress("Uploading to Tigris Storage", 10);
+        const tigrisRes = await uploadToTigrisPresigned(
+          file,
+          file.name,
+          file.type || "video/mp4",
+          "video",
+          videoId,
+          (pct) => {
+            const currentPct = Math.min(85, Math.max(10, Math.round(10 + pct * 0.75)));
+            if (onProgress) onProgress("Uploading to Tigris Storage", currentPct);
+          }
+        );
+
+        if (tigrisRes.success && tigrisRes.fileUrl) {
+          formData.set("rawVideoUrl", tigrisRes.fileUrl);
+          formData.delete("file");
+          isCloudUploaded = true;
+
+          // Also upload thumbnail to Tigris
+          if (thumbFile) {
+            try {
+              const thumbTigris = await uploadToTigrisPresigned(
+                thumbFile,
+                thumbFile.name,
+                thumbFile.type || "image/jpeg",
+                "thumbnail",
+                videoId
+              );
+              if (thumbTigris.success && thumbTigris.fileUrl) {
+                formData.set("thumbnailUrl", thumbTigris.fileUrl);
+                formData.delete("thumbnailFile");
+              }
+            } catch {}
+          } else {
+            const thumbDataUrl = formData.get("thumbnailDataUrl") as string | null;
+            if (thumbDataUrl && thumbDataUrl.startsWith("data:image")) {
+              try {
+                const resBlob = await fetch(thumbDataUrl);
+                const imgBlob = await resBlob.blob();
+                const thumbTigris = await uploadToTigrisPresigned(
+                  imgBlob,
+                  `thumb-${videoId}.jpg`,
+                  "image/jpeg",
+                  "thumbnail",
+                  videoId
+                );
+                if (thumbTigris.success && thumbTigris.fileUrl) {
+                  formData.set("thumbnailUrl", thumbTigris.fileUrl);
+                  formData.delete("thumbnailDataUrl");
+                }
+              } catch {}
+            }
+          }
+        }
+      } catch (tigrisErr) {
+        console.warn("Tigris upload attempt error:", tigrisErr);
+      }
+    }
+
+    // 2. Try Cloudflare R2 direct browser upload second
     if (file && typeof window !== "undefined") {
       try {
         if (onProgress) onProgress("Uploading to Cloudflare R2", 10);

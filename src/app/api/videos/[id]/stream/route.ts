@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { Readable } from "stream";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getTigrisClient } from "@/lib/tigris";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -85,6 +86,11 @@ export async function HEAD(
     });
   }
 
+  const tigris = getTigrisClient();
+  if (tigris?.publicUrl) {
+    return NextResponse.redirect(`${tigris.publicUrl}/videos/${id}.mp4`, 302);
+  }
+
   const r2 = getR2Client();
   if (r2?.publicUrl) {
     return NextResponse.redirect(`${r2.publicUrl}/videos/${id}.mp4`, 302);
@@ -151,7 +157,41 @@ export async function GET(
     });
   }
 
-  // 2. Stream from Cloudflare R2 / S3
+  // 2. Stream from Tigris Object Storage
+  const tigris = getTigrisClient();
+  if (tigris) {
+    if (tigris.publicUrl) {
+      return NextResponse.redirect(`${tigris.publicUrl}/videos/${id}.mp4`, 302);
+    }
+
+    try {
+      const rangeHeader = req.headers.get("range");
+      const command = new GetObjectCommand({
+        Bucket: tigris.bucket,
+        Key: `videos/${id}.mp4`,
+        Range: rangeHeader || undefined,
+      });
+
+      const response = await tigris.client.send(command);
+      if (response.Body) {
+        const webStream = response.Body.transformToWebStream();
+        return new Response(webStream as unknown as BodyInit, {
+          status: rangeHeader ? 206 : 200,
+          headers: {
+            "Content-Type": response.ContentType || "video/mp4",
+            "Content-Length": response.ContentLength?.toString() || "",
+            "Content-Range": response.ContentRange || "",
+            "Accept-Ranges": "bytes",
+            "Cache-Control": "public, max-age=3600",
+          },
+        });
+      }
+    } catch {
+      // try other extensions or fallback to R2/Blob
+    }
+  }
+
+  // 3. Stream from Cloudflare R2 / S3
   const r2 = getR2Client();
   if (r2) {
     if (r2.publicUrl) {

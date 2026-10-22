@@ -5,6 +5,14 @@ import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } fro
 import { put, del, list, get } from "@vercel/blob";
 import { VideoItem } from "@/types";
 import { ALL_VIDEOS } from "@/lib/mock-data";
+import {
+  isTigrisConfigured,
+  getTigrisConfig,
+  uploadBufferToTigris,
+  deleteObjectFromTigris,
+  fetchTigrisVideosIndex,
+  saveTigrisVideosIndex,
+} from "@/lib/tigris";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -497,14 +505,18 @@ export async function GET() {
   try {
     ensureBlobToken();
     const deleted = readDeletedVideoIds();
+    const tigrisVideos = await fetchTigrisVideosIndex();
     const blobVideos = await fetchBlobVideosIndex();
     const r2Videos = await fetchR2VideosIndex();
     const localVideos = readLocalVideos();
 
-    // Priority merge: blob/R2 uploads take highest priority, then local user uploads, then base samples
+    // Priority merge: Tigris uploads take highest priority, then blob/R2, then local user uploads
     const map = new Map<string, VideoItem>();
-    blobVideos.forEach((v) => {
+    tigrisVideos.forEach((v) => {
       if (!deleted.has(v.id)) map.set(v.id, v);
+    });
+    blobVideos.forEach((v) => {
+      if (!deleted.has(v.id) && !map.has(v.id)) map.set(v.id, v);
     });
     r2Videos.forEach((v) => {
       if (!deleted.has(v.id) && !map.has(v.id)) map.set(v.id, v);
@@ -520,16 +532,22 @@ export async function GET() {
     const all = [...userCloudVideos, ...sampleVideos];
 
     // Keep local store warm if running locally and cloud had new items
-    if (r2Videos.length > 0 || blobVideos.length > 0) {
+    if (tigrisVideos.length > 0 || r2Videos.length > 0 || blobVideos.length > 0) {
       writeLocalVideos(all);
     }
 
     // Automatically sync sanitized index back to cloud storage
+    if (isTigrisConfigured()) {
+      saveTigrisVideosIndex(all).catch(() => {});
+    }
     if (hasVercelBlob()) {
       saveBlobVideosIndex(all).catch(() => {});
     }
 
     const storageStatus = {
+      tigrisConfigured: isTigrisConfigured(),
+      tigrisBucket: getTigrisConfig()?.bucket || null,
+      tigrisVideosCount: tigrisVideos.length,
       blobConfigured: hasVercelBlob(),
       r2Configured: Boolean(getR2Config()),
       totalVideos: all.length,
@@ -589,13 +607,30 @@ export async function POST(req: NextRequest) {
 
     let rawVideoUrl = (formData.get("rawVideoUrl") as string) || "";
 
-    // 1. Video file handling (Vercel Blob -> Cloudflare R2 -> local disk fallback)
+    // 1. Video file handling (Tigris -> Vercel Blob -> Cloudflare R2 -> local disk fallback)
     if (file) {
       const ext = file.name.split(".").pop()?.toLowerCase() || "mp4";
       const videoBuffer = Buffer.from(await file.arrayBuffer());
 
+      // Try Tigris Object Storage first
+      if (isTigrisConfigured()) {
+        try {
+          const tigrisVideoKey = `videos/${videoId}.${ext}`;
+          const tigrisVideoUrl = await uploadBufferToTigris(
+            videoBuffer,
+            tigrisVideoKey,
+            file.type || "video/mp4"
+          );
+          if (tigrisVideoUrl) {
+            rawVideoUrl = tigrisVideoUrl;
+          }
+        } catch (err) {
+          console.warn("Could not upload video to Tigris:", err);
+        }
+      }
+
       // Try Vercel Blob (private or public)
-      if (hasVercelBlob()) {
+      if (!rawVideoUrl && hasVercelBlob()) {
         try {
           const blob = await putSafeBlob(
             `videos/${videoId}.${ext}`,
@@ -642,14 +677,30 @@ export async function POST(req: NextRequest) {
       rawVideoUrl = `/api/videos/${videoId}/stream`;
     }
 
-    // 2. Thumbnail handling (Vercel Blob -> Cloudflare R2 -> local disk fallback)
+    // 2. Thumbnail handling (Tigris -> Vercel Blob -> Cloudflare R2 -> local disk fallback)
     let thumbnailUrl = (formData.get("thumbnailUrl") as string) || "";
 
     if (thumbnailFile) {
       const thumbExt = thumbnailFile.name.split(".").pop()?.toLowerCase() || "jpg";
       const thumbBuffer = Buffer.from(await thumbnailFile.arrayBuffer());
 
-      if (hasVercelBlob()) {
+      if (isTigrisConfigured()) {
+        try {
+          const tigrisThumbKey = `thumbnails/${videoId}.${thumbExt}`;
+          const tigrisThumbUrl = await uploadBufferToTigris(
+            thumbBuffer,
+            tigrisThumbKey,
+            thumbnailFile.type || "image/jpeg"
+          );
+          if (tigrisThumbUrl) {
+            thumbnailUrl = tigrisThumbUrl;
+          }
+        } catch (err) {
+          console.warn("Could not upload thumbnail to Tigris:", err);
+        }
+      }
+
+      if (!thumbnailUrl && hasVercelBlob()) {
         try {
           const blob = await putSafeBlob(
             `thumbnails/${videoId}.${thumbExt}`,
@@ -690,7 +741,23 @@ export async function POST(req: NextRequest) {
         try {
           const thumbBuffer = Buffer.from(matches[2], "base64");
 
-          if (hasVercelBlob()) {
+          if (isTigrisConfigured()) {
+            try {
+              const tigrisThumbKey = `thumbnails/${videoId}.jpg`;
+              const tigrisThumbUrl = await uploadBufferToTigris(
+                thumbBuffer,
+                tigrisThumbKey,
+                "image/jpeg"
+              );
+              if (tigrisThumbUrl) {
+                thumbnailUrl = tigrisThumbUrl;
+              }
+            } catch (err) {
+              console.warn("Could not upload dataUrl thumbnail to Tigris:", err);
+            }
+          }
+
+          if (!thumbnailUrl && hasVercelBlob()) {
             try {
               const blob = await putSafeBlob(
                 `thumbnails/${videoId}.jpg`,
@@ -787,7 +854,8 @@ export async function POST(req: NextRequest) {
       songName,
     };
 
-    // Merge into Vercel Blob, R2, and local disk stores
+    // Merge into Tigris, Vercel Blob, R2, and local disk stores
+    const tigrisVideos = await fetchTigrisVideosIndex();
     const blobVideos = await fetchBlobVideosIndex();
     const r2Videos = await fetchR2VideosIndex();
     const localVideos = readLocalVideos();
@@ -795,10 +863,14 @@ export async function POST(req: NextRequest) {
     localVideos.forEach((v) => map.set(v.id, v));
     r2Videos.forEach((v) => map.set(v.id, v));
     blobVideos.forEach((v) => map.set(v.id, v));
+    tigrisVideos.forEach((v) => map.set(v.id, v));
     map.set(newVideo.id, newVideo);
 
     const updatedVideos = [newVideo, ...Array.from(map.values()).filter((v) => v.id !== newVideo.id)];
 
+    if (isTigrisConfigured()) {
+      await saveTigrisVideosIndex(updatedVideos);
+    }
     await saveBlobVideosIndex(updatedVideos, newVideo);
     await saveR2VideosIndex(updatedVideos);
     writeLocalVideos(updatedVideos);
@@ -821,6 +893,7 @@ export async function DELETE(req: NextRequest) {
 
     recordDeletedVideoId(id);
 
+    const tigrisVideos = await fetchTigrisVideosIndex();
     const blobVideos = await fetchBlobVideosIndex();
     const r2Videos = await fetchR2VideosIndex();
     const localVideos = readLocalVideos();
@@ -828,9 +901,24 @@ export async function DELETE(req: NextRequest) {
     localVideos.forEach((v) => map.set(v.id, v));
     r2Videos.forEach((v) => map.set(v.id, v));
     blobVideos.forEach((v) => map.set(v.id, v));
+    tigrisVideos.forEach((v) => map.set(v.id, v));
 
     const target = map.get(id);
     if (target) {
+      // Delete from Tigris Object Storage if applicable
+      if (isTigrisConfigured()) {
+        try {
+          if (target.rawVideoUrl) {
+            await deleteObjectFromTigris(target.rawVideoUrl);
+          }
+          if (target.thumbnailUrl) {
+            await deleteObjectFromTigris(target.thumbnailUrl);
+          }
+        } catch (err) {
+          console.warn(`Could not delete Tigris media for video ${id}:`, err);
+        }
+      }
+
       // Delete from Vercel Blob if applicable
       if (hasVercelBlob()) {
         try {
@@ -882,6 +970,14 @@ export async function DELETE(req: NextRequest) {
       }
     }
 
+    if (isTigrisConfigured()) {
+      await deleteObjectFromTigris(`videos/${id}.mp4`);
+      await deleteObjectFromTigris(`videos/${id}.webm`);
+      await deleteObjectFromTigris(`thumbnails/${id}.jpg`);
+      await deleteObjectFromTigris(`thumbnails/${id}.png`);
+      await deleteObjectFromTigris(`metadata/videos/${id}.json`);
+    }
+
     await deleteFromCloudflareR2(`videos/${id}.mp4`);
     await deleteFromCloudflareR2(`videos/${id}.webm`);
     await deleteFromCloudflareR2(`thumbnails/${id}.jpg`);
@@ -890,6 +986,9 @@ export async function DELETE(req: NextRequest) {
     map.delete(id);
     const updated = Array.from(map.values()).filter((v) => v.id !== id);
 
+    if (isTigrisConfigured()) {
+      await saveTigrisVideosIndex(updated);
+    }
     await saveBlobVideosIndex(updated);
     await saveR2VideosIndex(updated);
     writeLocalVideos(updated);
@@ -909,6 +1008,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ success: false, error: "ID required" }, { status: 400 });
     }
 
+    const tigrisVideos = await fetchTigrisVideosIndex();
     const blobVideos = await fetchBlobVideosIndex();
     const r2Videos = await fetchR2VideosIndex();
     const localVideos = readLocalVideos();
@@ -916,6 +1016,7 @@ export async function PATCH(req: NextRequest) {
     localVideos.forEach((v) => map.set(v.id, v));
     r2Videos.forEach((v) => map.set(v.id, v));
     blobVideos.forEach((v) => map.set(v.id, v));
+    tigrisVideos.forEach((v) => map.set(v.id, v));
 
     const existing = map.get(id);
     if (!existing) {
@@ -934,6 +1035,9 @@ export async function PATCH(req: NextRequest) {
     map.set(id, updatedVideo);
     const updatedList = Array.from(map.values());
 
+    if (isTigrisConfigured()) {
+      await saveTigrisVideosIndex(updatedList);
+    }
     await saveBlobVideosIndex(updatedList);
     await saveR2VideosIndex(updatedList);
     writeLocalVideos(updatedList);
