@@ -8,6 +8,7 @@ import { ALL_VIDEOS } from "@/lib/mock-data";
 import {
   isTigrisConfigured,
   getTigrisConfig,
+  getVerifiedTigrisClient,
   uploadBufferToTigris,
   deleteObjectFromTigris,
   fetchTigrisVideosIndex,
@@ -509,9 +510,11 @@ export async function GET() {
       writeLocalVideos(all);
     }
 
+    const verifiedTigris = await getVerifiedTigrisClient();
     const storageStatus = {
       tigrisConfigured: isTigrisConfigured(),
-      tigrisBucket: getTigrisConfig()?.bucket || null,
+      tigrisVerified: Boolean(verifiedTigris),
+      tigrisBucket: verifiedTigris ? verifiedTigris.bucket : getTigrisConfig()?.bucket || null,
       tigrisVideosCount: tigrisVideos.length,
       blobConfigured: hasVercelBlob(),
       r2Configured: Boolean(getR2Config()),
@@ -834,7 +837,11 @@ export async function POST(req: NextRequest) {
     const updatedVideos = [newVideo, ...Array.from(map.values()).filter((v) => v.id !== newVideo.id)];
 
     if (isTigrisConfigured()) {
-      await saveTigrisVideosIndex(updatedVideos, newVideo);
+      try {
+        await saveTigrisVideosIndex(updatedVideos, newVideo);
+      } catch (tigrisSaveErr) {
+        console.error("Failed to save Tigris videos index:", tigrisSaveErr);
+      }
     }
     await saveBlobVideosIndex(updatedVideos, newVideo);
     await saveR2VideosIndex(updatedVideos);

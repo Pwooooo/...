@@ -282,6 +282,25 @@ export async function fetchServerVideos(): Promise<VideoItem[]> {
       const userUploads = getUserUploadedVideos();
       for (const localVid of userUploads) {
         if (localVid && localVid.id && !serverVideoIds.has(localVid.id) && !isNextJsFillerVideo(localVid)) {
+          let syncedVideoUrl = localVid.rawVideoUrl;
+          try {
+            const localBlob = await getVideoBlob(localVid.id);
+            if (localBlob && (!syncedVideoUrl || syncedVideoUrl.includes("/stream"))) {
+              const directForm = new FormData();
+              directForm.append("file", localBlob, `${localVid.id}.mp4`);
+              directForm.append("type", "video");
+              directForm.append("videoId", localVid.id);
+              const directRes = await fetch("/api/tigris/direct-upload", {
+                method: "POST",
+                body: directForm,
+              });
+              const directData = await directRes.json();
+              if (directData.success && directData.fileUrl) {
+                syncedVideoUrl = directData.fileUrl;
+              }
+            }
+          } catch {}
+
           const syncForm = new FormData();
           syncForm.append("id", localVid.id);
           syncForm.append("title", localVid.title);
@@ -292,7 +311,7 @@ export async function fetchServerVideos(): Promise<VideoItem[]> {
           syncForm.append("isShort", String(Boolean(localVid.isShort)));
           syncForm.append(
             "rawVideoUrl",
-            localVid.rawVideoUrl || `/api/tigris/serve?key=${encodeURIComponent(`videos/${localVid.id}.mp4`)}`
+            syncedVideoUrl || `/api/tigris/serve?key=${encodeURIComponent(`videos/${localVid.id}.mp4`)}`
           );
           syncForm.append("thumbnailUrl", localVid.thumbnailUrl || "");
           syncForm.append("channel", JSON.stringify(localVid.channel || {}));
@@ -324,7 +343,7 @@ async function uploadToTigrisPresigned(
   type: "video" | "thumbnail",
   videoId: string,
   onProgress?: (percent: number) => void
-): Promise<{ success: boolean; fileUrl?: string; key?: string; configured?: boolean }> {
+): Promise<{ success: boolean; fileUrl?: string; key?: string; configured?: boolean; error?: string }> {
   try {
     const res = await fetch("/api/tigris/upload", {
       method: "POST",
@@ -336,13 +355,15 @@ async function uploadToTigrisPresigned(
       return { success: false, configured: false };
     }
     if (!data.success || !data.uploadUrl) {
-      return { success: false, configured: true };
+      return { success: false, configured: true, error: data.error || "Failed to create upload URL" };
     }
 
-    const uploaded = await new Promise<boolean>((resolve) => {
+    const uploaded = await new Promise<{ success: boolean; error?: string }>((resolve) => {
       const xhr = new XMLHttpRequest();
       xhr.open("PUT", data.uploadUrl);
-      xhr.setRequestHeader("Content-Type", contentType);
+      if (contentType) {
+        xhr.setRequestHeader("Content-Type", contentType);
+      }
 
       if (xhr.upload && onProgress) {
         xhr.upload.onprogress = (evt) => {
@@ -355,28 +376,51 @@ async function uploadToTigrisPresigned(
 
       xhr.onload = () => {
         if (xhr.status >= 200 && xhr.status < 300) {
-          resolve(true);
+          resolve({ success: true });
         } else {
-          console.warn("Direct Tigris upload failed with status:", xhr.status);
-          resolve(false);
+          const errMsg = `Direct Tigris upload failed with status ${xhr.status}: ${xhr.responseText || xhr.statusText}`;
+          console.warn(errMsg);
+          resolve({ success: false, error: errMsg });
         }
       };
 
       xhr.onerror = () => {
-        console.warn("Direct Tigris upload network error");
-        resolve(false);
+        const errMsg = "Direct Tigris upload failed due to network or CORS issue.";
+        console.warn(errMsg);
+        resolve({ success: false, error: errMsg });
       };
 
       xhr.send(file);
     });
 
-    if (uploaded) {
+    if (uploaded.success) {
       return { success: true, fileUrl: data.fileUrl, key: data.key, configured: true };
     }
-    return { success: false, configured: true };
-  } catch (err) {
+
+    // Direct upload fallback through server gateway (bypasses browser CORS completely)
+    if (file.size < 4.5 * 1024 * 1024) {
+      try {
+        const directForm = new FormData();
+        directForm.append("file", file, filename);
+        directForm.append("type", type);
+        directForm.append("videoId", videoId);
+        const directRes = await fetch("/api/tigris/direct-upload", {
+          method: "POST",
+          body: directForm,
+        });
+        const directData = await directRes.json();
+        if (directData.success && directData.fileUrl) {
+          return { success: true, fileUrl: directData.fileUrl, key: directData.key, configured: true };
+        }
+      } catch (directErr) {
+        console.warn("Direct upload gateway fallback error:", directErr);
+      }
+    }
+
+    return { success: false, configured: true, error: uploaded.error };
+  } catch (err: any) {
     console.warn("Tigris presigned upload error:", err);
-    return { success: false };
+    return { success: false, error: err?.message || String(err) };
   }
 }
 
@@ -460,6 +504,8 @@ export async function uploadVideoToServer(
     }
 
     let isCloudUploaded = false;
+    let isTigrisConfigured = false;
+    let tigrisError: string | null = null;
 
     // 1. Try Tigris direct browser upload first (globally distributed S3 object storage)
     if (file && typeof window !== "undefined") {
@@ -476,6 +522,10 @@ export async function uploadVideoToServer(
             if (onProgress) onProgress("Uploading to Tigris Storage", currentPct);
           }
         );
+
+        if (tigrisRes.configured) {
+          isTigrisConfigured = true;
+        }
 
         if (tigrisRes.success && tigrisRes.fileUrl) {
           formData.set("rawVideoUrl", tigrisRes.fileUrl);
@@ -517,10 +567,20 @@ export async function uploadVideoToServer(
               } catch {}
             }
           }
+        } else if (tigrisRes.configured) {
+          tigrisError = tigrisRes.error || "Tigris storage rejected upload";
         }
-      } catch (tigrisErr) {
+      } catch (tigrisErr: any) {
         console.warn("Tigris upload attempt error:", tigrisErr);
+        tigrisError = tigrisErr?.message || String(tigrisErr);
       }
+    }
+
+    if (isTigrisConfigured && !isCloudUploaded) {
+      return {
+        success: false,
+        error: `Could not upload to Tigris: ${tigrisError || "Storage connection failed. Please verify Tigris bucket credentials."}`,
+      };
     }
 
     // 2. Try Cloudflare R2 direct browser upload second

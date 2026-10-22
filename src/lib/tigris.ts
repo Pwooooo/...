@@ -6,6 +6,9 @@ import {
   HeadObjectCommand,
   ListObjectsV2Command,
   PutBucketCorsCommand,
+  ListBucketsCommand,
+  CreateBucketCommand,
+  HeadBucketCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { VideoItem } from "@/types";
@@ -20,19 +23,16 @@ export interface TigrisConfig {
 }
 
 export function getTigrisConfig(): TigrisConfig | null {
+  // Only accept genuine Tigris or AWS environment variables (do NOT use MinIO S3_ACCESS_KEY)
   const accessKeyId =
     process.env.TIGRIS_ACCESS_KEY_ID ||
     process.env.TIGRIS_STORAGE_ACCESS_KEY_ID ||
-    process.env.AWS_ACCESS_KEY_ID ||
-    process.env.CLOUDFLARE_R2_ACCESS_KEY_ID ||
-    process.env.S3_ACCESS_KEY;
+    process.env.AWS_ACCESS_KEY_ID;
 
   const secretAccessKey =
     process.env.TIGRIS_SECRET_ACCESS_KEY ||
     process.env.TIGRIS_STORAGE_SECRET_ACCESS_KEY ||
-    process.env.AWS_SECRET_ACCESS_KEY ||
-    process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY ||
-    process.env.S3_SECRET_KEY;
+    process.env.AWS_SECRET_ACCESS_KEY;
 
   if (!accessKeyId || !secretAccessKey) {
     return null;
@@ -42,17 +42,13 @@ export function getTigrisConfig(): TigrisConfig | null {
     process.env.TIGRIS_ENDPOINT ||
     process.env.TIGRIS_STORAGE_ENDPOINT ||
     process.env.AWS_ENDPOINT_URL_S3 ||
-    (process.env.CLOUDFLARE_R2_ACCOUNT_ID
-      ? `https://${process.env.CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com`
-      : "https://fly.storage.tigris.dev");
+    "https://fly.storage.tigris.dev";
 
   const bucket =
     process.env.TIGRIS_BUCKET ||
     process.env.TIGRIS_BUCKET_NAME ||
     process.env.TIGRIS_STORAGE_BUCKET ||
     process.env.BUCKET_NAME ||
-    process.env.CLOUDFLARE_R2_BUCKET_NAME ||
-    process.env.S3_BUCKET_NAME ||
     "entropy-videos";
 
   const region =
@@ -63,8 +59,6 @@ export function getTigrisConfig(): TigrisConfig | null {
   const publicUrl = (
     process.env.TIGRIS_PUBLIC_URL ||
     process.env.PUBLIC_URL ||
-    process.env.CLOUDFLARE_R2_PUBLIC_URL ||
-    process.env.S3_PUBLIC_DOMAIN ||
     ""
   ).replace(/\/$/, "");
 
@@ -75,20 +69,40 @@ export function isTigrisConfigured(): boolean {
   return Boolean(getTigrisConfig());
 }
 
-let cachedTigrisClient: {
+let verifiedClientCache: {
   client: S3Client;
   bucket: string;
   publicUrl: string;
   endpoint: string;
 } | null = null;
 
-export function getTigrisClient() {
+let isVerifyingPromise: Promise<{
+  client: S3Client;
+  bucket: string;
+  publicUrl: string;
+  endpoint: string;
+} | null> | null = null;
+
+export async function getVerifiedTigrisClient(): Promise<{
+  client: S3Client;
+  bucket: string;
+  publicUrl: string;
+  endpoint: string;
+} | null> {
   const config = getTigrisConfig();
   if (!config) return null;
 
-  if (!cachedTigrisClient || cachedTigrisClient.bucket !== config.bucket || cachedTigrisClient.endpoint !== config.endpoint) {
+  if (verifiedClientCache && verifiedClientCache.endpoint === config.endpoint) {
+    return verifiedClientCache;
+  }
+
+  if (isVerifyingPromise) {
+    return isVerifyingPromise;
+  }
+
+  isVerifyingPromise = (async () => {
     try {
-      const client = new S3Client({
+      const rawClient = new S3Client({
         region: config.region,
         endpoint: config.endpoint,
         forcePathStyle: false,
@@ -97,65 +111,141 @@ export function getTigrisClient() {
           secretAccessKey: config.secretAccessKey,
         },
       });
-      cachedTigrisClient = {
-        client,
-        bucket: config.bucket,
+
+      let activeBucket = config.bucket;
+      let bucketVerified = false;
+
+      // 1. Check if the candidate bucket exists and is accessible
+      if (activeBucket) {
+        try {
+          await rawClient.send(new HeadBucketCommand({ Bucket: activeBucket }));
+          bucketVerified = true;
+        } catch (headErr: any) {
+          console.warn(`Tigris HeadBucket on "${activeBucket}" failed:`, headErr?.name || headErr?.message);
+        }
+      }
+
+      // 2. If specified bucket not found, query user's actual buckets in their Tigris account
+      if (!bucketVerified) {
+        try {
+          const listRes = await rawClient.send(new ListBucketsCommand({}));
+          if (listRes.Buckets && listRes.Buckets.length > 0) {
+            const match = listRes.Buckets.find(
+              (b) => b.Name && activeBucket && b.Name.toLowerCase() === activeBucket.toLowerCase()
+            );
+            if (match?.Name) {
+              activeBucket = match.Name;
+              bucketVerified = true;
+            } else if (listRes.Buckets[0].Name) {
+              activeBucket = listRes.Buckets[0].Name;
+              bucketVerified = true;
+            }
+            console.log(`Auto-discovered verified Tigris bucket: "${activeBucket}"`);
+          }
+        } catch (listErr: any) {
+          console.warn("Could not list Tigris buckets:", listErr?.name || listErr?.message);
+        }
+      }
+
+      // 3. If no bucket exists in account, try to create one
+      if (!bucketVerified) {
+        const targetToCreate = activeBucket || "entropy-videos";
+        try {
+          await rawClient.send(new CreateBucketCommand({ Bucket: targetToCreate }));
+          activeBucket = targetToCreate;
+          bucketVerified = true;
+          console.log(`Created new Tigris bucket: "${activeBucket}"`);
+        } catch (createErr: any) {
+          console.warn(`Could not create Tigris bucket "${targetToCreate}":`, createErr?.name || createErr?.message);
+          activeBucket = targetToCreate;
+        }
+      }
+
+      // 4. Ensure CORS on the verified bucket
+      try {
+        await rawClient.send(
+          new PutBucketCorsCommand({
+            Bucket: activeBucket,
+            CORSConfiguration: {
+              CORSRules: [
+                {
+                  AllowedOrigins: ["*"],
+                  AllowedMethods: ["GET", "PUT", "POST", "DELETE", "HEAD"],
+                  AllowedHeaders: ["*"],
+                  ExposeHeaders: ["ETag", "Content-Length", "Accept-Ranges", "Content-Range"],
+                  MaxAgeSeconds: 3600,
+                },
+              ],
+            },
+          })
+        );
+      } catch (corsErr: any) {
+        console.warn("Tigris CORS setup note:", corsErr?.message || corsErr);
+      }
+
+      verifiedClientCache = {
+        client: rawClient,
+        bucket: activeBucket,
         publicUrl: config.publicUrl,
         endpoint: config.endpoint,
       };
-    } catch (err) {
-      console.warn("Could not create Tigris storage client:", err);
-      return null;
-    }
-  }
 
-  return cachedTigrisClient;
+      return verifiedClientCache;
+    } catch (err) {
+      console.warn("Could not initialize verified Tigris client:", err);
+      return null;
+    } finally {
+      isVerifyingPromise = null;
+    }
+  })();
+
+  return isVerifyingPromise;
 }
 
-let corsEnsured = false;
-
-export async function ensureTigrisCors(): Promise<boolean> {
-  if (corsEnsured) return true;
-  const tigris = getTigrisClient();
-  if (!tigris) return false;
+export function getTigrisClient() {
+  if (verifiedClientCache) return verifiedClientCache;
+  const config = getTigrisConfig();
+  if (!config) return null;
 
   try {
-    const corsCommand = new PutBucketCorsCommand({
-      Bucket: tigris.bucket,
-      CORSConfiguration: {
-        CORSRules: [
-          {
-            AllowedOrigins: ["*"],
-            AllowedMethods: ["GET", "PUT", "POST", "DELETE", "HEAD"],
-            AllowedHeaders: ["*"],
-            ExposeHeaders: ["ETag", "Content-Length", "Accept-Ranges", "Content-Range"],
-            MaxAgeSeconds: 3600,
-          },
-        ],
+    const client = new S3Client({
+      region: config.region,
+      endpoint: config.endpoint,
+      forcePathStyle: false,
+      credentials: {
+        accessKeyId: config.accessKeyId,
+        secretAccessKey: config.secretAccessKey,
       },
     });
-    await tigris.client.send(corsCommand);
-    corsEnsured = true;
-    return true;
-  } catch (err) {
-    console.warn("Could not apply Tigris CORS configuration automatically:", err);
-    return false;
+    return {
+      client,
+      bucket: config.bucket,
+      publicUrl: config.publicUrl,
+      endpoint: config.endpoint,
+    };
+  } catch {
+    return null;
   }
+}
+
+export async function ensureTigrisCors(): Promise<boolean> {
+  const verified = await getVerifiedTigrisClient();
+  return Boolean(verified);
 }
 
 export async function createTigrisPresignedUploadUrl(
   key: string,
   contentType: string,
   expiresInSeconds: number = 3600
-): Promise<{ uploadUrl: string; fileUrl: string; key: string } | null> {
-  const tigris = getTigrisClient();
+): Promise<{ uploadUrl: string; fileUrl: string; key: string; bucket: string } | null> {
+  const tigris = await getVerifiedTigrisClient();
   if (!tigris) return null;
 
   try {
-    // We omit ContentType from the signing command so browsers can PUT with any charset/header without 403 SignatureDoesNotMatch
     const command = new PutObjectCommand({
       Bucket: tigris.bucket,
       Key: key,
+      ContentType: contentType,
     });
 
     const uploadUrl = await getSignedUrl(tigris.client, command, {
@@ -164,7 +254,7 @@ export async function createTigrisPresignedUploadUrl(
 
     const fileUrl = `/api/tigris/serve?key=${encodeURIComponent(key)}`;
 
-    return { uploadUrl, fileUrl, key };
+    return { uploadUrl, fileUrl, key, bucket: tigris.bucket };
   } catch (err) {
     console.error("Failed to generate presigned Tigris upload URL:", err);
     return null;
@@ -176,7 +266,7 @@ export async function uploadBufferToTigris(
   key: string,
   contentType: string
 ): Promise<string | null> {
-  const tigris = getTigrisClient();
+  const tigris = await getVerifiedTigrisClient();
   if (!tigris) return null;
 
   try {
@@ -196,7 +286,7 @@ export async function uploadBufferToTigris(
 }
 
 export async function deleteObjectFromTigris(keyOrUrl: string): Promise<boolean> {
-  const tigris = getTigrisClient();
+  const tigris = await getVerifiedTigrisClient();
   if (!tigris || !keyOrUrl) return false;
 
   try {
@@ -230,7 +320,7 @@ export async function deleteObjectFromTigris(keyOrUrl: string): Promise<boolean>
 }
 
 export async function fetchTigrisVideosIndex(): Promise<VideoItem[]> {
-  const tigris = getTigrisClient();
+  const tigris = await getVerifiedTigrisClient();
   if (!tigris) return [];
 
   const map = new Map<string, VideoItem>();
@@ -285,7 +375,9 @@ export async function fetchTigrisVideosIndex(): Promise<VideoItem[]> {
         } catch {}
       }
     }
-  } catch {}
+  } catch (err) {
+    console.warn("Could not list metadata/videos/ in Tigris:", err);
+  }
 
   // 3. Fallback discovery: Look for raw uploaded video files in videos/
   try {
@@ -327,14 +419,16 @@ export async function fetchTigrisVideosIndex(): Promise<VideoItem[]> {
         map.set(idMatch, inferredVideo);
       }
     }
-  } catch {}
+  } catch (err) {
+    console.warn("Could not list videos/ in Tigris:", err);
+  }
 
   return Array.from(map.values());
 }
 
-export async function saveTigrisVideosIndex(videos: VideoItem[], newVideo?: VideoItem): Promise<void> {
-  const tigris = getTigrisClient();
-  if (!tigris) return;
+export async function saveTigrisVideosIndex(videos: VideoItem[], newVideo?: VideoItem): Promise<boolean> {
+  const tigris = await getVerifiedTigrisClient();
+  if (!tigris) return false;
 
   try {
     // 1. Immediately save the new video metadata individually
@@ -345,7 +439,7 @@ export async function saveTigrisVideosIndex(videos: VideoItem[], newVideo?: Vide
         Body: Buffer.from(JSON.stringify(newVideo, null, 2)),
         ContentType: "application/json",
       });
-      await tigris.client.send(indCmd).catch(() => {});
+      await tigris.client.send(indCmd);
     }
 
     // 2. Save consolidated index
@@ -356,7 +450,9 @@ export async function saveTigrisVideosIndex(videos: VideoItem[], newVideo?: Vide
       ContentType: "application/json",
     });
     await tigris.client.send(command);
+    return true;
   } catch (err) {
-    console.warn("Could not save Tigris videos index:", err);
+    console.error("Could not save Tigris videos index:", err);
+    throw err;
   }
 }

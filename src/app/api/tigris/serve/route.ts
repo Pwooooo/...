@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getTigrisClient } from "@/lib/tigris";
+import { getVerifiedTigrisClient } from "@/lib/tigris";
 import { GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 
 export const runtime = "nodejs";
@@ -27,7 +27,7 @@ export async function HEAD(req: NextRequest) {
   }
 
   const key = rawKey.replace(/^\/+/, "");
-  const tigris = getTigrisClient();
+  const tigris = await getVerifiedTigrisClient();
   if (!tigris) {
     return new Response(null, { status: 503 });
   }
@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
   }
 
   const key = rawKey.replace(/^\/+/, "");
-  const tigris = getTigrisClient();
+  const tigris = await getVerifiedTigrisClient();
   if (!tigris) {
     return new Response("Tigris storage is not configured", { status: 503 });
   }
