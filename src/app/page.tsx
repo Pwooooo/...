@@ -35,8 +35,12 @@ export default function HomePage() {
     setAllVideos(getAllCombinedVideos());
 
     // Fetch server videos
-    fetchServerVideos().then(() => {
-      setAllVideos(getAllCombinedVideos());
+    fetchServerVideos().then((vids) => {
+      if (Array.isArray(vids) && vids.length > 0) {
+        setAllVideos(vids);
+      } else {
+        setAllVideos(getAllCombinedVideos());
+      }
     });
 
     const loadVideos = () => {

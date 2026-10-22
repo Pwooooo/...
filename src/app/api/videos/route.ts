@@ -68,12 +68,6 @@ const DEFAULT_SERVER_DELETED = [
   "sample-4",
   "sample-5",
   "sample-6",
-  "v-entropy-test-video",
-  "v-entropy-test-short",
-  "v-srv-1792152077838",
-  "v-user-1792152077838",
-  "v-srv-1792158340022",
-  "v-blob-CW scenario 1-1C6ka5PylZ6KeUnoSaJu9s82hRLYaK",
 ];
 
 function readDeletedVideoIds(): Set<string> {
@@ -490,7 +484,9 @@ export async function GET() {
     // Priority merge: Tigris uploads take highest priority, then blob/R2, then local user uploads
     const map = new Map<string, VideoItem>();
     tigrisVideos.forEach((v) => {
-      if (!deleted.has(v.id)) map.set(v.id, v);
+      if (v && v.id && !v.id.startsWith("sample-")) {
+        map.set(v.id, v);
+      }
     });
     blobVideos.forEach((v) => {
       if (!deleted.has(v.id) && !map.has(v.id)) map.set(v.id, v);
@@ -502,7 +498,7 @@ export async function GET() {
       if (!deleted.has(v.id) && !map.has(v.id)) map.set(v.id, v);
     });
 
-    const allItems = Array.from(map.values()).filter((v) => !deleted.has(v.id));
+    const allItems = Array.from(map.values()).filter((v) => !v.id.startsWith("sample-") || !deleted.has(v.id));
     // Sort so user/cloud uploaded videos appear first before sample videos
     const userCloudVideos = allItems.filter((v) => !v.id.startsWith("sample-"));
     const sampleVideos = allItems.filter((v) => v.id.startsWith("sample-"));
@@ -511,14 +507,6 @@ export async function GET() {
     // Keep local store warm if running locally and cloud had new items
     if (tigrisVideos.length > 0 || r2Videos.length > 0 || blobVideos.length > 0) {
       writeLocalVideos(all);
-    }
-
-    // Automatically sync sanitized index back to cloud storage
-    if (isTigrisConfigured()) {
-      saveTigrisVideosIndex(all).catch(() => {});
-    }
-    if (hasVercelBlob()) {
-      saveBlobVideosIndex(all).catch(() => {});
     }
 
     const storageStatus = {

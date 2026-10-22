@@ -296,7 +296,9 @@ export async function fetchServerVideos(): Promise<VideoItem[]> {
           );
           syncForm.append("thumbnailUrl", localVid.thumbnailUrl || "");
           syncForm.append("channel", JSON.stringify(localVid.channel || {}));
-          fetch("/api/videos", { method: "POST", body: syncForm }).catch(() => {});
+          try {
+            await fetch("/api/videos", { method: "POST", body: syncForm });
+          } catch {}
         }
       }
 
@@ -307,7 +309,7 @@ export async function fetchServerVideos(): Promise<VideoItem[]> {
         localStorage.setItem(SERVER_CACHE_KEY, JSON.stringify(cleanVideos));
       } catch {}
       window.dispatchEvent(new Event("entropy_videos_updated"));
-      return getAllCombinedVideos();
+      return cleanVideos.length > 0 ? cleanVideos : getAllCombinedVideos();
     }
   } catch (err) {
     console.warn("Could not fetch server videos:", err);
