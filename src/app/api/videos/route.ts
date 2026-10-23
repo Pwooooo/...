@@ -34,7 +34,6 @@ const THUMBNAILS_DIR = path.join(UPLOADS_DIR, "thumbnails");
 function isNextJsFillerVideo(video?: { id?: string; title?: string; channel?: { id?: string; handle?: string; displayName?: string } } | null): boolean {
   if (!video || typeof video !== "object") return false;
   const id = typeof video.id === "string" ? video.id : "";
-  const title = typeof video.title === "string" ? video.title.toLowerCase() : "";
 
   return (
     id.startsWith("sample-") ||
@@ -43,10 +42,7 @@ function isNextJsFillerVideo(video?: { id?: string; title?: string; channel?: { 
     id === "v-srv-1792152077838" ||
     id === "v-user-1792152077838" ||
     id === "v-srv-1792158340022" ||
-    id === "v-blob-CW scenario 1-1C6ka5PylZ6KeUnoSaJu9s82hRLYaK" ||
-    id.toLowerCase().includes("snowy in the forest") ||
-    id.toLowerCase().includes("snowy-in-the-forest") ||
-    title.includes("snowy in the forest")
+    id === "v-blob-CW scenario 1-1C6ka5PylZ6KeUnoSaJu9s82hRLYaK"
   );
 }
 
@@ -76,8 +72,6 @@ const DEFAULT_SERVER_DELETED = [
   "sample-4",
   "sample-5",
   "sample-6",
-  "snowy in the forest.1920x1080",
-  "snowy-in-the-forest.1920x1080",
 ];
 
 async function readDeletedVideoIds(): Promise<Set<string>> {
@@ -99,6 +93,10 @@ async function readDeletedVideoIds(): Promise<Set<string>> {
       tigrisDeleted.forEach((id) => set.add(id));
     }
   } catch {}
+
+  // Explicitly ensure legitimate upload IDs are not blocked as deleted
+  set.delete("snowy in the forest.1920x1080");
+  set.delete("snowy-in-the-forest.1920x1080");
 
   return set;
 }
@@ -587,7 +585,7 @@ export async function POST(req: NextRequest) {
     const thumbnailDataUrl = (formData.get("thumbnailDataUrl") as string) || "";
 
     const requestedId = (formData.get("id") as string) || "";
-    const videoId = requestedId || `v-srv-${Date.now()}`;
+    let videoId = requestedId || `v-srv-${Date.now()}`;
 
     // Block all filler videos from ever being accepted or revived
     if (isNextJsFillerVideo({ id: videoId, title })) {
@@ -597,7 +595,12 @@ export async function POST(req: NextRequest) {
 
     const currentDeleted = await readDeletedVideoIds();
     if (currentDeleted.has(videoId)) {
-      return NextResponse.json({ success: false, error: "Video has been permanently deleted" }, { status: 400 });
+      if (file || formData.get("rawVideoUrl")) {
+        // If an upload payload carries a previously deleted ID, assign a fresh ID
+        videoId = `v-srv-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      } else {
+        return NextResponse.json({ success: false, error: "Video has been permanently deleted" }, { status: 400 });
+      }
     }
 
     let rawVideoUrl = (formData.get("rawVideoUrl") as string) || "";

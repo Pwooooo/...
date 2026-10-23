@@ -92,7 +92,6 @@ export function extractVideoDetails(file: File): Promise<{
 export function isFillerVideo(video?: { id?: string; title?: string; channel?: { id?: string; handle?: string; displayName?: string } } | null): boolean {
   if (!video || typeof video !== "object") return false;
   const id = typeof video.id === "string" ? video.id : "";
-  const title = typeof video.title === "string" ? video.title.toLowerCase() : "";
 
   return (
     id.startsWith("sample-") ||
@@ -101,10 +100,7 @@ export function isFillerVideo(video?: { id?: string; title?: string; channel?: {
     id === "v-srv-1792152077838" ||
     id === "v-user-1792152077838" ||
     id === "v-srv-1792158340022" ||
-    id === "v-blob-CW scenario 1-1C6ka5PylZ6KeUnoSaJu9s82hRLYaK" ||
-    id.toLowerCase().includes("snowy in the forest") ||
-    id.toLowerCase().includes("snowy-in-the-forest") ||
-    title.includes("snowy in the forest")
+    id === "v-blob-CW scenario 1-1C6ka5PylZ6KeUnoSaJu9s82hRLYaK"
   );
 }
 
@@ -123,7 +119,7 @@ export function getBaseVideos(): VideoItem[] {
 const SERVER_CACHE_KEY = "entropy_server_videos_cache";
 const USER_UPLOADS_KEY = "entropy_user_uploaded_videos";
 const CLIENT_DELETED_KEY = "entropy_deleted_videos";
-const CACHE_PURGE_VERSION = "entropy_purge_v8";
+const CACHE_PURGE_VERSION = "entropy_purge_v9";
 
 export function getClientDeletedVideos(): Set<string> {
   if (typeof window === "undefined") return new Set();
@@ -146,13 +142,23 @@ export function markClientDeletedVideo(id: string): void {
   } catch {}
 }
 
+export function unmarkClientDeletedVideo(id: string): void {
+  if (typeof window === "undefined" || !id) return;
+  try {
+    const set = getClientDeletedVideos();
+    if (set.delete(id)) {
+      localStorage.setItem(CLIENT_DELETED_KEY, JSON.stringify(Array.from(set)));
+    }
+  } catch {}
+}
+
 if (typeof window !== "undefined") {
   try {
     if (localStorage.getItem(CACHE_PURGE_VERSION) !== "done") {
       localStorage.setItem(CACHE_PURGE_VERSION, "done");
-      // Add snowy to deleted videos
-      markClientDeletedVideo("snowy in the forest.1920x1080");
-      markClientDeletedVideo("snowy-in-the-forest.1920x1080");
+      // Unmark snowy if previously marked as deleted on client
+      unmarkClientDeletedVideo("snowy in the forest.1920x1080");
+      unmarkClientDeletedVideo("snowy-in-the-forest.1920x1080");
       // Clean out any cached filler videos across all devices
       const cached = localStorage.getItem(SERVER_CACHE_KEY);
       if (cached) {
@@ -569,7 +575,10 @@ export async function uploadVideoToServer(
     const file = formData.get("file") as File | null;
     const thumbFile = formData.get("thumbnailFile") as File | null;
     const requestedId = (formData.get("id") as string) || "";
-    const videoId = requestedId || `v-user-${Date.now()}`;
+    const deletedVideos = getClientDeletedVideos();
+    const videoId = (!requestedId || deletedVideos.has(requestedId))
+      ? `v-user-${Date.now()}`
+      : requestedId;
     formData.set("id", videoId);
 
     // Save full original video into local IndexedDB immediately (instant playability & zero bandwidth cost)
