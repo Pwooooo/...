@@ -249,6 +249,7 @@ function WatchContent() {
     id: string;
     user: string;
     userHandle?: string;
+    userId?: string;
     avatar: string;
     content: string;
     timeAgo: string;
@@ -265,6 +266,7 @@ function WatchContent() {
     id: string;
     user: string;
     userHandle?: string;
+    userId?: string;
     avatar: string;
     content: string;
     timeAgo: string;
@@ -280,6 +282,18 @@ function WatchContent() {
     heartedByHandle?: string;
     replies?: CommentReply[];
   }
+
+  const isCommentAuthor = (item?: { user?: string; userHandle?: string; userId?: string } | null): boolean => {
+    if (!user || !item) return false;
+    if (item.userId && user.id && user.id !== "u-user" && item.userId === user.id) return true;
+    const itemH = (item.userHandle || "").replace(/^@/, "").trim().toLowerCase();
+    const curH = (user.handle || "").replace(/^@/, "").trim().toLowerCase();
+    if (itemH && curH && itemH !== "guest" && itemH === curH) return true;
+    const itemU = (item.user || "").trim().toLowerCase();
+    const curN = (user.name || "").trim().toLowerCase();
+    if (!itemH && itemU && itemU !== "guest user" && (itemU === curN || itemU === curH)) return true;
+    return false;
+  };
 
   const [commentText, setCommentText] = useState("");
   const [commentVotes, setCommentVotes] = useState<Record<string, "like" | "dislike">>({});
@@ -662,7 +676,7 @@ function WatchContent() {
   };
 
   const handleTogglePin = (commentId: string) => {
-    if (!currentVideo) return;
+    if (!currentVideo || !isChannelOwner) return;
     const vidId = currentVideo.id;
     const target = comments.find((c) => c.id === commentId);
     if (!target) return;
@@ -686,7 +700,7 @@ function WatchContent() {
   };
 
   const handleToggleHeart = (commentId: string) => {
-    if (!currentVideo) return;
+    if (!currentVideo || !isChannelOwner) return;
     const vidId = currentVideo.id;
     const creatorName = (isChannelOwner && user?.name) ? user.name : (currentVideo.channel?.displayName || currentVideo.channel?.handle || "Creator");
     const creatorHandle = (isChannelOwner && user?.handle) ? user.handle : (currentVideo.channel?.handle || creatorName);
@@ -715,7 +729,7 @@ function WatchContent() {
   };
 
   const handleToggleReplyHeart = (commentId: string, replyId: string) => {
-    if (!currentVideo) return;
+    if (!currentVideo || !isChannelOwner) return;
     const vidId = currentVideo.id;
     const creatorName = (isChannelOwner && user?.name) ? user.name : (currentVideo.channel?.displayName || currentVideo.channel?.handle || "Creator");
     const creatorHandle = (isChannelOwner && user?.handle) ? user.handle : (currentVideo.channel?.handle || creatorName);
@@ -750,6 +764,8 @@ function WatchContent() {
 
   const handleDeleteComment = (commentId: string) => {
     if (!currentVideo) return;
+    const target = comments.find((c) => c.id === commentId);
+    if (!target || (!isCommentAuthor(target) && !isChannelOwner)) return;
     const vidId = currentVideo.id;
     const updated = comments.filter((c) => c.id !== commentId);
     setComments(updated);
@@ -759,6 +775,8 @@ function WatchContent() {
 
   const handleSaveEdit = (commentId: string) => {
     if (!currentVideo || !editingContent.trim()) return;
+    const target = comments.find((c) => c.id === commentId);
+    if (!target || !isCommentAuthor(target)) return;
     const vidId = currentVideo.id;
     const updated = comments.map((c) => {
       if (c.id === commentId) {
@@ -779,6 +797,9 @@ function WatchContent() {
 
   const handleDeleteReply = (commentId: string, replyId: string) => {
     if (!currentVideo) return;
+    const parent = comments.find((c) => c.id === commentId);
+    const targetReply = parent?.replies?.find((r) => r.id === replyId);
+    if (!targetReply || (!isCommentAuthor(targetReply) && !isChannelOwner)) return;
     const vidId = currentVideo.id;
     const updated = comments.map((c) => {
       if (c.id === commentId && c.replies) {
@@ -796,6 +817,9 @@ function WatchContent() {
 
   const handleSaveReplyEdit = (commentId: string, replyId: string) => {
     if (!currentVideo || !editingReplyContent.trim()) return;
+    const parent = comments.find((c) => c.id === commentId);
+    const targetReply = parent?.replies?.find((r) => r.id === replyId);
+    if (!targetReply || !isCommentAuthor(targetReply)) return;
     const vidId = currentVideo.id;
     const updated = comments.map((c) => {
       if (c.id === commentId && c.replies) {
@@ -840,6 +864,7 @@ function WatchContent() {
       id: `r-${now}`,
       user: user ? user.name : "Guest User",
       userHandle,
+      userId: user?.id,
       avatar: user?.avatarUrl || user?.avatar || "/default-avatar.png",
       content: replyText.trim(),
       createdAt: now,
@@ -1014,6 +1039,7 @@ function WatchContent() {
       id: `c-${now}`,
       user: user ? user.name : "Guest User",
       userHandle,
+      userId: user?.id,
       avatar: user?.avatarUrl || user?.avatar || "/default-avatar.png",
       content: commentText.trim(),
       createdAt: now,
@@ -1457,81 +1483,90 @@ function WatchContent() {
                             <span className="text-zinc-500">{getCommentDisplayTime(comment.timeAgo, comment.createdAt, comment.id)}</span>
                           </div>
 
-                          {/* 3-Dots Action Menu (Pin, Heart, Edit, Delete) */}
-                          <div className="relative flex-shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => setActiveMenuCommentId(activeMenuCommentId === comment.id ? null : comment.id)}
-                              className="p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer flex items-center justify-center"
-                              title="Action menu"
-                              aria-label="Comment options"
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </button>
+                          {/* 3-Dots Action Menu (Pin, Heart for Creator; Edit for Author; Delete for Author or Creator) */}
+                          {(isChannelOwner || isCommentAuthor(comment)) && (
+                            <div className="relative flex-shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => setActiveMenuCommentId(activeMenuCommentId === comment.id ? null : comment.id)}
+                                className="p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer flex items-center justify-center"
+                                title="Action menu"
+                                aria-label="Comment options"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </button>
 
-                            {activeMenuCommentId === comment.id && (
-                              <>
-                                <div
-                                  className="fixed inset-0 z-40"
-                                  onClick={() => setActiveMenuCommentId(null)}
-                                />
-                                <div className="absolute right-0 top-8 z-50 w-36 rounded-2xl bg-[#212121] border border-white/[0.12] p-1.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 select-none">
-                                  {/* Pin option */}
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      handleTogglePin(comment.id);
-                                      setActiveMenuCommentId(null);
-                                    }}
-                                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:bg-[#272727] hover:text-white transition-colors cursor-pointer text-left"
-                                  >
-                                    <Pin className={cn("h-4 w-4 rotate-45", comment.isPinned ? "fill-sky-400 text-sky-400" : "")} />
-                                    <span>{comment.isPinned ? "Unpin" : "Pin"}</span>
-                                  </button>
+                              {activeMenuCommentId === comment.id && (
+                                <>
+                                  <div
+                                    className="fixed inset-0 z-40"
+                                    onClick={() => setActiveMenuCommentId(null)}
+                                  />
+                                  <div className="absolute right-0 top-8 z-50 w-36 rounded-2xl bg-[#212121] border border-white/[0.12] p-1.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 select-none">
+                                    {/* Pin & Heart options — Creator Only */}
+                                    {isChannelOwner && (
+                                      <>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            handleTogglePin(comment.id);
+                                            setActiveMenuCommentId(null);
+                                          }}
+                                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:bg-[#272727] hover:text-white transition-colors cursor-pointer text-left"
+                                        >
+                                          <Pin className={cn("h-4 w-4 rotate-45", comment.isPinned ? "fill-sky-400 text-sky-400" : "")} />
+                                          <span>{comment.isPinned ? "Unpin" : "Pin"}</span>
+                                        </button>
 
-                                  {/* Heart option */}
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      handleToggleHeart(comment.id);
-                                      setActiveMenuCommentId(null);
-                                    }}
-                                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:bg-[#272727] hover:text-white transition-colors cursor-pointer text-left"
-                                  >
-                                    <Heart className={cn("h-4 w-4", comment.isHearted ? "fill-rose-500 text-rose-500" : "")} />
-                                    <span>{comment.isHearted ? "Remove heart" : "Heart"}</span>
-                                  </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            handleToggleHeart(comment.id);
+                                            setActiveMenuCommentId(null);
+                                          }}
+                                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:bg-[#272727] hover:text-white transition-colors cursor-pointer text-left"
+                                        >
+                                          <Heart className={cn("h-4 w-4", comment.isHearted ? "fill-rose-500 text-rose-500" : "")} />
+                                          <span>{comment.isHearted ? "Remove heart" : "Heart"}</span>
+                                        </button>
+                                      </>
+                                    )}
 
-                                  {/* Edit option */}
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setEditingCommentId(comment.id);
-                                      setEditingContent(comment.content);
-                                      setActiveMenuCommentId(null);
-                                    }}
-                                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:bg-[#272727] hover:text-white transition-colors cursor-pointer text-left"
-                                  >
-                                    <Pencil className="h-4 w-4" />
-                                    <span>Edit</span>
-                                  </button>
+                                    {/* Edit option — Comment Author Only */}
+                                    {isCommentAuthor(comment) && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setEditingCommentId(comment.id);
+                                          setEditingContent(comment.content);
+                                          setActiveMenuCommentId(null);
+                                        }}
+                                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:bg-[#272727] hover:text-white transition-colors cursor-pointer text-left"
+                                      >
+                                        <Pencil className="h-4 w-4" />
+                                        <span>Edit</span>
+                                      </button>
+                                    )}
 
-                                  {/* Delete option */}
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      handleDeleteComment(comment.id);
-                                      setActiveMenuCommentId(null);
-                                    }}
-                                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors cursor-pointer text-left"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                    <span>Delete</span>
-                                  </button>
-                                </div>
-                              </>
-                            )}
-                          </div>
+                                    {/* Delete option — Comment Author or Video Creator */}
+                                    {(isCommentAuthor(comment) || isChannelOwner) && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          handleDeleteComment(comment.id);
+                                          setActiveMenuCommentId(null);
+                                        }}
+                                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors cursor-pointer text-left"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                        <span>Delete</span>
+                                      </button>
+                                    )}
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          )}
                         </div>
 
                         {/* Comment Content or Inline Edit Box */}
@@ -1605,12 +1640,15 @@ function WatchContent() {
                             <span>{comment.dislikes ?? 0}</span>
                           </button>
 
-                          {/* Heart icon button directly in action bar matching screenshot */}
+                          {/* Heart icon button directly in action bar */}
                           {comment.isHearted ? (
                             <button
                               type="button"
-                              onClick={() => handleToggleHeart(comment.id)}
-                              className="flex items-center cursor-pointer group transition-transform hover:scale-110"
+                              onClick={() => isChannelOwner && handleToggleHeart(comment.id)}
+                              className={cn(
+                                "flex items-center group transition-transform",
+                                isChannelOwner ? "cursor-pointer hover:scale-110" : "cursor-default"
+                              )}
                               title={`Hearted by @${comment.heartedBy || currentVideo.channel?.displayName || "Creator"}${isChannelOwner ? " (click to remove)" : ""}`}
                             >
                               <div className="relative flex items-center justify-center">
@@ -1629,7 +1667,7 @@ function WatchContent() {
                                 <Heart className="h-2.5 w-2.5 fill-rose-500 text-rose-500 absolute -bottom-0.5 -right-1 drop-shadow-sm" />
                               </div>
                             </button>
-                          ) : (
+                          ) : isChannelOwner ? (
                             <button
                               type="button"
                               onClick={() => handleToggleHeart(comment.id)}
@@ -1638,7 +1676,7 @@ function WatchContent() {
                             >
                               <Heart className="h-4 w-4" />
                             </button>
-                          )}
+                          ) : null}
 
                           {/* Reply Button (Colored white like the icons and count) */}
                           <button
@@ -1767,65 +1805,73 @@ function WatchContent() {
                                         </div>
 
                                         {/* 3-Dots Action Menu for Reply */}
-                                        <div className="relative flex-shrink-0">
-                                          <button
-                                            type="button"
-                                            onClick={() => setActiveMenuReplyId(activeMenuReplyId === reply.id ? null : reply.id)}
-                                            className="p-1 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer flex items-center justify-center"
-                                            title="Action menu"
-                                            aria-label="Reply options"
-                                          >
-                                            <MoreVertical className="h-3.5 w-3.5" />
-                                          </button>
+                                        {(isChannelOwner || isCommentAuthor(reply)) && (
+                                          <div className="relative flex-shrink-0">
+                                            <button
+                                              type="button"
+                                              onClick={() => setActiveMenuReplyId(activeMenuReplyId === reply.id ? null : reply.id)}
+                                              className="p-1 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer flex items-center justify-center"
+                                              title="Action menu"
+                                              aria-label="Reply options"
+                                            >
+                                              <MoreVertical className="h-3.5 w-3.5" />
+                                            </button>
 
-                                          {activeMenuReplyId === reply.id && (
-                                            <>
-                                              <div
-                                                className="fixed inset-0 z-40"
-                                                onClick={() => setActiveMenuReplyId(null)}
-                                              />
-                                              <div className="absolute right-0 top-6 z-50 w-36 rounded-2xl bg-[#212121] border border-white/[0.12] p-1.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 select-none">
-                                                {/* Heart option */}
-                                                <button
-                                                  type="button"
-                                                  onClick={() => {
-                                                    handleToggleReplyHeart(comment.id, reply.id);
-                                                    setActiveMenuReplyId(null);
-                                                  }}
-                                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:bg-[#272727] hover:text-white transition-colors cursor-pointer text-left"
-                                                >
-                                                  <Heart className={cn("h-3.5 w-3.5", reply.isHearted ? "fill-rose-500 text-rose-500" : "")} />
-                                                  <span>{reply.isHearted ? "Remove heart" : "Heart"}</span>
-                                                </button>
-                                                {/* Edit option */}
-                                                <button
-                                                  type="button"
-                                                  onClick={() => {
-                                                    setEditingReplyId(reply.id);
-                                                    setEditingReplyContent(reply.content);
-                                                    setActiveMenuReplyId(null);
-                                                  }}
-                                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:bg-[#272727] hover:text-white transition-colors cursor-pointer text-left"
-                                                >
-                                                  <Pencil className="h-3.5 w-3.5" />
-                                                  <span>Edit</span>
-                                                </button>
-                                                {/* Delete option */}
-                                                <button
-                                                  type="button"
-                                                  onClick={() => {
-                                                    handleDeleteReply(comment.id, reply.id);
-                                                    setActiveMenuReplyId(null);
-                                                  }}
-                                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors cursor-pointer text-left"
-                                                >
-                                                  <Trash2 className="h-3.5 w-3.5" />
-                                                  <span>Delete</span>
-                                                </button>
-                                              </div>
-                                            </>
-                                          )}
-                                        </div>
+                                            {activeMenuReplyId === reply.id && (
+                                              <>
+                                                <div
+                                                  className="fixed inset-0 z-40"
+                                                  onClick={() => setActiveMenuReplyId(null)}
+                                                />
+                                                <div className="absolute right-0 top-6 z-50 w-36 rounded-2xl bg-[#212121] border border-white/[0.12] p-1.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 select-none">
+                                                  {/* Heart option — Creator Only */}
+                                                  {isChannelOwner && (
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => {
+                                                        handleToggleReplyHeart(comment.id, reply.id);
+                                                        setActiveMenuReplyId(null);
+                                                      }}
+                                                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:bg-[#272727] hover:text-white transition-colors cursor-pointer text-left"
+                                                    >
+                                                      <Heart className={cn("h-3.5 w-3.5", reply.isHearted ? "fill-rose-500 text-rose-500" : "")} />
+                                                      <span>{reply.isHearted ? "Remove heart" : "Heart"}</span>
+                                                    </button>
+                                                  )}
+                                                  {/* Edit option — Reply Author Only */}
+                                                  {isCommentAuthor(reply) && (
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => {
+                                                        setEditingReplyId(reply.id);
+                                                        setEditingReplyContent(reply.content);
+                                                        setActiveMenuReplyId(null);
+                                                      }}
+                                                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-200 hover:bg-[#272727] hover:text-white transition-colors cursor-pointer text-left"
+                                                    >
+                                                      <Pencil className="h-3.5 w-3.5" />
+                                                      <span>Edit</span>
+                                                    </button>
+                                                  )}
+                                                  {/* Delete option — Reply Author or Video Creator */}
+                                                  {(isCommentAuthor(reply) || isChannelOwner) && (
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => {
+                                                        handleDeleteReply(comment.id, reply.id);
+                                                        setActiveMenuReplyId(null);
+                                                      }}
+                                                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors cursor-pointer text-left"
+                                                    >
+                                                      <Trash2 className="h-3.5 w-3.5" />
+                                                      <span>Delete</span>
+                                                    </button>
+                                                  )}
+                                                </div>
+                                              </>
+                                            )}
+                                          </div>
+                                        )}
                                       </div>
 
                                       {/* Reply Content or Edit Area */}
@@ -1902,8 +1948,11 @@ function WatchContent() {
                                         {reply.isHearted ? (
                                           <button
                                             type="button"
-                                            onClick={() => handleToggleReplyHeart(comment.id, reply.id)}
-                                            className="flex items-center cursor-pointer group transition-transform hover:scale-110 ml-0.5"
+                                            onClick={() => isChannelOwner && handleToggleReplyHeart(comment.id, reply.id)}
+                                            className={cn(
+                                              "flex items-center group transition-transform ml-0.5",
+                                              isChannelOwner ? "cursor-pointer hover:scale-110" : "cursor-default"
+                                            )}
                                             title={`Hearted by @${reply.heartedBy || currentVideo.channel?.displayName || "Creator"}${isChannelOwner ? " (click to remove)" : ""}`}
                                           >
                                             <div className="relative flex items-center justify-center">
@@ -1922,7 +1971,7 @@ function WatchContent() {
                                               <Heart className="h-2 w-2 fill-rose-500 text-rose-500 absolute -bottom-0.5 -right-0.5 drop-shadow-sm" />
                                             </div>
                                           </button>
-                                        ) : (
+                                        ) : isChannelOwner ? (
                                           <button
                                             type="button"
                                             onClick={() => handleToggleReplyHeart(comment.id, reply.id)}
@@ -1931,7 +1980,7 @@ function WatchContent() {
                                           >
                                             <Heart className="h-3.5 w-3.5" />
                                           </button>
-                                        )}
+                                        ) : null}
                                       </div>
                                     </div>
                                   </div>
