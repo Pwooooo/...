@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getVerifiedTigrisClient } from "@/lib/tigris";
 import { GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+// 3 MB max chunk when proxying through Vercel Serverless Functions (safely under Vercel's 4.5 MB limit)
+const MAX_PROXY_CHUNK_BYTES = 3 * 1024 * 1024;
 
 const MIME_BY_EXT: Record<string, string> = {
   ".mp4": "video/mp4",
@@ -17,6 +21,28 @@ const MIME_BY_EXT: Record<string, string> = {
   ".webp": "image/webp",
   ".json": "application/json",
 };
+
+function clampRangeHeader(rangeHeader: string | null, totalSize: number): string | undefined {
+  if (!totalSize || totalSize <= 0) return rangeHeader || undefined;
+  if (!rangeHeader) {
+    if (totalSize > MAX_PROXY_CHUNK_BYTES) {
+      return `bytes=0-${MAX_PROXY_CHUNK_BYTES - 1}`;
+    }
+    return undefined;
+  }
+
+  const match = rangeHeader.match(/bytes=(\d+)-(\d*)/);
+  if (!match) return rangeHeader;
+
+  const start = parseInt(match[1], 10);
+  if (isNaN(start) || start >= totalSize) return rangeHeader;
+
+  const requestedEnd = match[2] ? parseInt(match[2], 10) : totalSize - 1;
+  const maxAllowedEnd = Math.min(start + MAX_PROXY_CHUNK_BYTES - 1, totalSize - 1);
+  const clampedEnd = isNaN(requestedEnd) ? maxAllowedEnd : Math.min(requestedEnd, maxAllowedEnd);
+
+  return `bytes=${start}-${clampedEnd}`;
+}
 
 export async function HEAD(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -65,6 +91,7 @@ export async function HEAD(req: NextRequest) {
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const rawKey = searchParams.get("key");
+  const forceProxy = searchParams.get("proxy") === "1";
 
   if (!rawKey) {
     return new Response("Missing 'key' parameter", { status: 400 });
@@ -85,18 +112,39 @@ export async function GET(req: NextRequest) {
 
   for (const tryKey of keysToTry) {
     try {
+      const headCommand = new HeadObjectCommand({
+        Bucket: tigris.bucket,
+        Key: tryKey,
+      });
+      const headRes = await tigris.client.send(headCommand);
+      const totalSize = headRes.ContentLength || 0;
+      const ext = tryKey.slice(tryKey.lastIndexOf(".")).toLowerCase();
+      const contentType = headRes.ContentType || MIME_BY_EXT[ext] || "video/mp4";
+      const isVideo = contentType.startsWith("video/") || tryKey.startsWith("videos/");
+
+      // Redirect large videos directly to presigned Tigris S3 URL to bypass Vercel's 4.5MB response limit & timeouts
+      if (!forceProxy && (isVideo || totalSize > MAX_PROXY_CHUNK_BYTES)) {
+        try {
+          const getCmd = new GetObjectCommand({
+            Bucket: tigris.bucket,
+            Key: tryKey,
+            ResponseContentType: contentType,
+          });
+          const signedUrl = await getSignedUrl(tigris.client, getCmd, { expiresIn: 14400 });
+          return NextResponse.redirect(signedUrl, 307);
+        } catch {}
+      }
+
+      const effectiveRange = clampRangeHeader(rangeHeader, totalSize);
       const command = new GetObjectCommand({
         Bucket: tigris.bucket,
         Key: tryKey,
-        Range: rangeHeader || undefined,
+        Range: effectiveRange,
       });
 
       const response = await tigris.client.send(command);
 
       if (response.Body) {
-        const ext = tryKey.slice(tryKey.lastIndexOf(".")).toLowerCase();
-        const contentType = response.ContentType || MIME_BY_EXT[ext] || "video/mp4";
-
         const headers: Record<string, string> = {
           "Accept-Ranges": "bytes",
           "Content-Type": contentType,
@@ -115,7 +163,7 @@ export async function GET(req: NextRequest) {
 
         const webStream = response.Body.transformToWebStream();
         return new Response(webStream as unknown as BodyInit, {
-          status: rangeHeader ? 206 : 200,
+          status: effectiveRange ? 206 : 200,
           headers,
         });
       }

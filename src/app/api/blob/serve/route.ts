@@ -177,7 +177,25 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const rangeHeader = request.headers.get("range");
+    let rangeHeader = request.headers.get("range");
+    const inferredMime = inferMimeType(raw);
+    const MAX_CHUNK = 3 * 1024 * 1024; // 3 MB chunk to stay under Vercel 4.5 MB limit
+
+    if (inferredMime.startsWith("video/")) {
+      if (!rangeHeader) {
+        rangeHeader = `bytes=0-${MAX_CHUNK - 1}`;
+      } else {
+        const m = rangeHeader.match(/bytes=(\d+)-(\d*)/);
+        if (m) {
+          const start = parseInt(m[1], 10);
+          const end = m[2] ? parseInt(m[2], 10) : NaN;
+          if (!isNaN(start) && (isNaN(end) || end - start >= MAX_CHUNK)) {
+            rangeHeader = `bytes=${start}-${start + MAX_CHUNK - 1}`;
+          }
+        }
+      }
+    }
+
     const result = await resolveBlob(raw, rangeHeader);
 
     if (result === null) {

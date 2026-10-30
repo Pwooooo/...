@@ -175,35 +175,29 @@ export async function GET(
     });
   }
 
-  // 2. Stream from Tigris Object Storage
+  // 2. Stream from Tigris Object Storage (redirect to presigned URL or /api/tigris/serve)
   const tigris = getTigrisClient();
   if (tigris) {
-    const rangeHeader = req.headers.get("range");
+    const { HeadObjectCommand } = await import("@aws-sdk/client-s3");
+    const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
     const exts = [".mp4", ".webm", ".mov", ".mkv", ".m4v"];
 
     for (const ext of exts) {
       try {
-        const command = new GetObjectCommand({
+        const key = `videos/${id}${ext}`;
+        const headCmd = new HeadObjectCommand({
           Bucket: tigris.bucket,
-          Key: `videos/${id}${ext}`,
-          Range: rangeHeader || undefined,
+          Key: key,
         });
-
-        const response = await tigris.client.send(command);
-        if (response.Body) {
-          const webStream = response.Body.transformToWebStream();
-          const contentType = response.ContentType || MIME_MAP[ext] || "video/mp4";
-          return new Response(webStream as unknown as BodyInit, {
-            status: rangeHeader ? 206 : 200,
-            headers: {
-              "Content-Type": contentType,
-              "Content-Length": response.ContentLength?.toString() || "",
-              "Content-Range": response.ContentRange || "",
-              "Accept-Ranges": "bytes",
-              "Cache-Control": "public, max-age=3600",
-            },
-          });
-        }
+        const headRes = await tigris.client.send(headCmd);
+        const contentType = headRes.ContentType || MIME_MAP[ext] || "video/mp4";
+        const getCmd = new GetObjectCommand({
+          Bucket: tigris.bucket,
+          Key: key,
+          ResponseContentType: contentType,
+        });
+        const signedUrl = await getSignedUrl(tigris.client, getCmd, { expiresIn: 14400 });
+        return NextResponse.redirect(signedUrl, 307);
       } catch {
         // try next extension
       }

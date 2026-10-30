@@ -327,9 +327,16 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
             const video = videoRef.current;
             const mediaErr = video?.error;
 
-            // Auto-retry via proxy if src was an external/direct Tigris URL
+            // Auto-retry via chunked proxy if direct URL or redirect had an issue
             if (src && !hasRetriedRef.current && video) {
               hasRetriedRef.current = true;
+              if (src.includes("/api/tigris/serve") && !src.includes("proxy=1")) {
+                const fallbackProxyUrl = `${src}${src.includes("?") ? "&" : "?"}proxy=1`;
+                video.src = fallbackProxyUrl;
+                video.load();
+                video.play().catch(() => {});
+                return;
+              }
               if (
                 src.includes("tigrisfiles.io") ||
                 src.includes("storage.tigris.dev") ||
@@ -339,7 +346,7 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
                 try {
                   const u = new URL(src);
                   const key = u.pathname.replace(/^\/+/, "");
-                  const fallbackProxyUrl = `/api/tigris/serve?key=${encodeURIComponent(key)}`;
+                  const fallbackProxyUrl = `/api/tigris/serve?key=${encodeURIComponent(key)}&proxy=1`;
                   video.src = fallbackProxyUrl;
                   video.load();
                   video.play().catch(() => {});
