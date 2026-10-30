@@ -198,25 +198,35 @@ function StudioVideosContent() {
     }
   }, [initialQuery]);
 
-  // Read live comments and likes counts from localStorage
-  const getLiveStats = (videoId: string, fallbackViews = 0) => {
+  // Read live comments and likes counts from video metadata and localStorage
+  const getLiveStats = (videoId: string, _fallbackViews = 0) => {
     let commentCount = 0;
     let likeCount = 0;
     let visibility: "public" | "unlisted" | "private" = "public";
 
-    if (typeof window !== "undefined") {
-      try {
-        const rawComments = localStorage.getItem(`entropy_comments_${videoId}`);
-        if (rawComments) {
-          const parsed = JSON.parse(rawComments);
-          if (Array.isArray(parsed)) commentCount = parsed.length;
-        }
-      } catch {}
+    const matchVid = videos.find((v) => v.id === videoId);
+    if (matchVid) {
+      if (Array.isArray(matchVid.comments)) commentCount = matchVid.comments.length;
+      if (typeof matchVid.likesCount === "number") likeCount = matchVid.likesCount;
+    }
 
-      try {
-        const rawLikes = localStorage.getItem(`entropy_video_likes_${videoId}`);
-        if (rawLikes) likeCount = parseInt(rawLikes, 10) || 0;
-      } catch {}
+    if (typeof window !== "undefined") {
+      if (commentCount === 0) {
+        try {
+          const rawComments = localStorage.getItem(`entropy_comments_${videoId}`);
+          if (rawComments) {
+            const parsed = JSON.parse(rawComments);
+            if (Array.isArray(parsed)) commentCount = parsed.length;
+          }
+        } catch {}
+      }
+
+      if (likeCount === 0) {
+        try {
+          const rawLikes = localStorage.getItem(`entropy_video_likes_${videoId}`);
+          if (rawLikes) likeCount = parseInt(rawLikes, 10) || 0;
+        } catch {}
+      }
 
       try {
         const rawVis = localStorage.getItem(`entropy_video_vis_${videoId}`);

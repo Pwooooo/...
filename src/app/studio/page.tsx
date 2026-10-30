@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { VideoItem, CommentItem } from "@/types";
-import { getAllCombinedVideos, fetchServerVideos, isShortVideo, isUserVideoOwner } from "@/lib/video-storage";
+import { getAllCombinedVideos, fetchServerVideos, isShortVideo, isUserVideoOwner, syncVideoComments } from "@/lib/video-storage";
 import { formatViews, formatDuration, formatTimeAgo } from "@/lib/utils";
 import { resolveChannelAvatar } from "@/lib/user-validation";
 import {
@@ -72,62 +72,30 @@ export default function StudioDashboardPage() {
 
     videos.slice(0, 10).forEach((v) => {
       try {
-        const raw = localStorage.getItem(`entropy_comments_${v.id}`);
-        if (raw) {
-          const parsed: CommentItem[] = JSON.parse(raw);
-          if (Array.isArray(parsed)) {
-            parsed.forEach((c) => {
-              collected.push({
-                comment: c,
-                videoId: v.id,
-                videoTitle: v.title,
-                videoThumb: v.thumbnailUrl || "/placeholder-thumb.jpg",
-              });
-            });
+        let parsed: CommentItem[] = [];
+        if (Array.isArray(v.comments) && v.comments.length > 0) {
+          parsed = v.comments;
+        } else {
+          const raw = localStorage.getItem(`entropy_comments_${v.id}`);
+          if (raw) {
+            const loc = JSON.parse(raw);
+            if (Array.isArray(loc)) parsed = loc;
           }
         }
+        parsed.forEach((c) => {
+          collected.push({
+            comment: {
+              ...c,
+              user: c.user || c.author || "Viewer",
+              userHandle: c.userHandle || c.authorHandle,
+            },
+            videoId: v.id,
+            videoTitle: v.title,
+            videoThumb: v.thumbnailUrl || "/placeholder-thumb.jpg",
+          });
+        });
       } catch {}
     });
-
-    // If no localStorage comments, provide friendly starter studio feedback
-    if (collected.length === 0 && videos.length > 0) {
-      const firstVid = videos[0];
-      collected.push(
-        {
-          comment: {
-            id: "dash-c1",
-            user: "Alex Rivera",
-            userHandle: "alex_r",
-            avatar: "/default-avatar.png",
-            content: "The theater mode and mini player workflow is insanely smooth! Huge release.",
-            createdAt: Date.now() - 3600000 * 2,
-            timeAgo: "2 hours ago",
-            likes: 14,
-            dislikes: 0,
-            isHearted: true,
-          },
-          videoId: firstVid.id,
-          videoTitle: firstVid.title,
-          videoThumb: firstVid.thumbnailUrl || "",
-        },
-        {
-          comment: {
-            id: "dash-c2",
-            user: "Devon Tech",
-            userHandle: "devon_tech",
-            avatar: "/default-avatar.png",
-            content: "Zero cloud storage offline video test was brilliant. Love the dark studio UI.",
-            createdAt: Date.now() - 3600000 * 8,
-            timeAgo: "8 hours ago",
-            likes: 7,
-            dislikes: 0,
-          },
-          videoId: firstVid.id,
-          videoTitle: firstVid.title,
-          videoThumb: firstVid.thumbnailUrl || "",
-        }
-      );
-    }
 
     setRecentComments(collected.slice(0, 5));
   }, [videos]);
@@ -156,16 +124,19 @@ export default function StudioDashboardPage() {
       prev.map((item) => {
         if (item.comment.id === commentId) {
           const nextState = !item.comment.isHearted;
-          // Sync with localStorage
           try {
+            const targetVid = videos.find((v) => v.id === videoId);
             const raw = localStorage.getItem(`entropy_comments_${videoId}`);
-            if (raw) {
-              const list: CommentItem[] = JSON.parse(raw);
-              const updated = list.map((c) =>
-                c.id === commentId ? { ...c, isHearted: nextState } : c
-              );
-              localStorage.setItem(`entropy_comments_${videoId}`, JSON.stringify(updated));
-            }
+            const list: CommentItem[] =
+              targetVid && Array.isArray(targetVid.comments) && targetVid.comments.length > 0
+                ? [...targetVid.comments]
+                : raw
+                ? JSON.parse(raw)
+                : [];
+            const updated = list.map((c) =>
+              c.id === commentId ? { ...c, isHearted: nextState } : c
+            );
+            syncVideoComments(videoId, updated);
           } catch {}
           showToast(nextState ? "Hearted comment" : "Unhearted comment");
           return {

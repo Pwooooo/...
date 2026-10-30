@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { VideoItem, CommentItem, CommentReply } from "@/types";
-import { getAllCombinedVideos, fetchServerVideos, isUserVideoOwner } from "@/lib/video-storage";
+import { getAllCombinedVideos, fetchServerVideos, isUserVideoOwner, syncVideoComments } from "@/lib/video-storage";
 import { formatTimeAgo } from "@/lib/utils";
 import {
   MessageSquare,
@@ -54,91 +54,30 @@ export default function StudioCommentsPage() {
 
     currentVideos.forEach((v) => {
       try {
-        const raw = localStorage.getItem(`entropy_comments_${v.id}`);
-        if (raw) {
-          const parsed: CommentItem[] = JSON.parse(raw);
-          if (Array.isArray(parsed)) {
-            parsed.forEach((c) => {
-              collected.push({
-                videoId: v.id,
-                videoTitle: v.title,
-                videoThumb: v.thumbnailUrl || "/placeholder-thumb.jpg",
-                comment: c,
-              });
-            });
+        let parsed: CommentItem[] = [];
+        if (Array.isArray(v.comments) && v.comments.length > 0) {
+          parsed = v.comments;
+        } else {
+          const raw = localStorage.getItem(`entropy_comments_${v.id}`);
+          if (raw) {
+            const loc = JSON.parse(raw);
+            if (Array.isArray(loc)) parsed = loc;
           }
         }
+        parsed.forEach((c) => {
+          collected.push({
+            videoId: v.id,
+            videoTitle: v.title,
+            videoThumb: v.thumbnailUrl || "/placeholder-thumb.jpg",
+            comment: {
+              ...c,
+              user: c.user || c.author || "Viewer",
+              userHandle: c.userHandle || c.authorHandle,
+            },
+          });
+        });
       } catch {}
     });
-
-    // Provide default initial comments if empty
-    if (collected.length === 0 && currentVideos.length > 0) {
-      const firstVid = currentVideos[0];
-      collected.push(
-        {
-          videoId: firstVid.id,
-          videoTitle: firstVid.title,
-          videoThumb: firstVid.thumbnailUrl || "",
-          comment: {
-            id: "studio-c1",
-            user: "Sarah Chen",
-            userHandle: "sarah_c",
-            avatar: "/default-avatar.png",
-            content: "The custom in-app floating mini player and theater mode are super responsive! Best video release so far.",
-            createdAt: Date.now() - 3600000 * 3,
-            timeAgo: "3 hours ago",
-            likes: 18,
-            dislikes: 0,
-            isHearted: true,
-            replies: [
-              {
-                id: "r-demo-1",
-                user: user?.name || "Entropy Team",
-                userHandle: user?.handle || "entropy",
-                avatar: user?.avatarUrl || "/entropy-icon.png",
-                content: "Thank you Sarah! Theater mode and persistent background playback took a lot of care to tune.",
-                createdAt: Date.now() - 3600000 * 2,
-                timeAgo: "2 hours ago",
-                likes: 5,
-                dislikes: 0,
-              },
-            ],
-          },
-        },
-        {
-          videoId: firstVid.id,
-          videoTitle: firstVid.title,
-          videoThumb: firstVid.thumbnailUrl || "",
-          comment: {
-            id: "studio-c2",
-            user: "Marcus Brody",
-            userHandle: "m_brody",
-            avatar: "/default-avatar.png",
-            content: "Love that test videos run locally without consuming full cloud storage. Excited for more studio features!",
-            createdAt: Date.now() - 3600000 * 7,
-            timeAgo: "7 hours ago",
-            likes: 9,
-            dislikes: 0,
-          },
-        },
-        {
-          videoId: firstVid.id,
-          videoTitle: firstVid.title,
-          videoThumb: firstVid.thumbnailUrl || "",
-          comment: {
-            id: "studio-c3",
-            user: "Elena Rostova",
-            userHandle: "elena_code",
-            avatar: "/default-avatar.png",
-            content: "Can you add an option for default video quality in studio settings next?",
-            createdAt: Date.now() - 3600000 * 18,
-            timeAgo: "18 hours ago",
-            likes: 4,
-            dislikes: 0,
-          },
-        }
-      );
-    }
 
     setCommentsList(collected);
   };
@@ -166,11 +105,17 @@ export default function StudioCommentsPage() {
     };
   }, [user]);
 
-  // Save changes back to localStorage for that video
+  // Save changes back to server and localStorage for that video
   const persistVideoComments = (videoId: string, updatedComment: CommentItem | null, removeId?: string) => {
     try {
+      const targetVid = videos.find((v) => v.id === videoId);
       const raw = localStorage.getItem(`entropy_comments_${videoId}`);
-      let list: CommentItem[] = raw ? JSON.parse(raw) : [];
+      let list: CommentItem[] =
+        targetVid && Array.isArray(targetVid.comments) && targetVid.comments.length > 0
+          ? [...targetVid.comments]
+          : raw
+          ? JSON.parse(raw)
+          : [];
 
       if (removeId) {
         list = list.filter((c) => c.id !== removeId);
@@ -183,7 +128,7 @@ export default function StudioCommentsPage() {
         }
       }
 
-      localStorage.setItem(`entropy_comments_${videoId}`, JSON.stringify(list));
+      syncVideoComments(videoId, list);
     } catch {}
   };
 

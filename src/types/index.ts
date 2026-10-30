@@ -32,6 +32,9 @@ export interface VideoItem {
   rawVideoUrl?: string | null;
   durationSeconds: number;
   viewCount: number;
+  likesCount?: number;
+  dislikesCount?: number;
+  comments?: CommentItem[];
   publishedAt: string | Date;
   channel: ChannelBasic;
   featured?: boolean;
@@ -100,28 +103,40 @@ export interface CommentReply {
   id: string;
   user: string;
   userHandle?: string;
+  userId?: string;
   avatar: string;
   content: string;
-  createdAt: number;
+  createdAt?: number;
   timeAgo: string;
   likes: number;
   dislikes?: number;
   isEdited?: boolean;
+  isHearted?: boolean;
+  heartedBy?: string;
+  heartedByHandle?: string;
 }
 
 export interface CommentItem {
   id: string;
   user: string;
   userHandle?: string;
+  userId?: string;
+  author?: string;
+  authorId?: string;
+  authorHandle?: string;
   avatar: string;
   content: string;
-  createdAt: number;
+  createdAt?: number;
   timeAgo: string;
   likes: number;
   dislikes?: number;
   isPinned?: boolean;
   isHearted?: boolean;
   isEdited?: boolean;
+  pinnedBy?: string;
+  pinnedByHandle?: string;
+  heartedBy?: string;
+  heartedByHandle?: string;
   replies?: CommentReply[];
 }
 

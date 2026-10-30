@@ -4,8 +4,16 @@ import React, { useState, useEffect, useRef } from "react";
 import Navbar from "@/components/navigation/Navbar";
 import Sidebar from "@/components/navigation/Sidebar";
 import { ShortItem } from "@/lib/mock-data";
-import { getAllCombinedVideos, fetchServerVideos, isShortVideo, getVideoBlob } from "@/lib/video-storage";
-import { VideoItem } from "@/types";
+import {
+  getAllCombinedVideos,
+  fetchServerVideos,
+  isShortVideo,
+  getVideoBlob,
+  recordVideoView,
+  syncVideoVote,
+  syncVideoComments,
+} from "@/lib/video-storage";
+import { VideoItem, CommentItem } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import { findUserByHandle, resolveChannelAvatar } from "@/lib/user-validation";
 import { formatTimeAgo } from "@/lib/utils";
@@ -140,8 +148,8 @@ export default function ShortsPage() {
         id: v.id,
         title: v.title,
         videoUrl: v.rawVideoUrl || v.masterPlaylistUrl || "",
-        likesCount: v.viewCount ? Math.round(v.viewCount * 0.1) : 0,
-        commentsCount: 0,
+        likesCount: typeof v.likesCount === "number" ? v.likesCount : 0,
+        commentsCount: Array.isArray(v.comments) ? v.comments.length : 0,
         channel: v.channel || {
           id: "creator",
           handle: "creator",
@@ -163,29 +171,50 @@ export default function ShortsPage() {
         }
       }
 
-      // Restore saved vote states
+      // Restore saved vote states and server counts
       try {
         const storedLiked: Record<string, boolean> = {};
         const storedDisliked: Record<string, boolean> = {};
         const storedLikes: Record<string, number> = {};
         const storedDislikes: Record<string, number> = {};
+        const nextCommentsMap: Record<string, ShortComment[]> = {};
 
-        mapped.forEach((s) => {
-          const vote = localStorage.getItem(`entropy_video_vote_${s.id}`);
-          if (vote === "like") storedLiked[s.id] = true;
-          if (vote === "dislike") storedDisliked[s.id] = true;
+        shortsOnly.forEach((v) => {
+          const vote = localStorage.getItem(`entropy_video_vote_${v.id}`);
+          if (vote === "like") storedLiked[v.id] = true;
+          if (vote === "dislike") storedDisliked[v.id] = true;
 
-          const l = localStorage.getItem(`entropy_video_likes_${s.id}`);
-          if (l) storedLikes[s.id] = parseInt(l, 10);
+          const l = localStorage.getItem(`entropy_video_likes_${v.id}`);
+          const localL = l ? parseInt(l, 10) || 0 : 0;
+          storedLikes[v.id] = typeof v.likesCount === "number" && v.likesCount > 0 ? v.likesCount : localL;
 
-          const d = localStorage.getItem(`entropy_video_dislikes_${s.id}`);
-          if (d) storedDislikes[s.id] = parseInt(d, 10);
+          const d = localStorage.getItem(`entropy_video_dislikes_${v.id}`);
+          const localD = d ? parseInt(d, 10) || 0 : 0;
+          storedDislikes[v.id] = typeof v.dislikesCount === "number" && v.dislikesCount > 0 ? v.dislikesCount : localD;
+
+          if (Array.isArray(v.comments) && v.comments.length > 0) {
+            nextCommentsMap[v.id] = v.comments.map((c: any) => ({
+              id: c.id,
+              author: c.author || c.user || "Viewer",
+              authorId: c.authorId || c.userId,
+              authorHandle: c.authorHandle || c.userHandle,
+              avatar: c.avatar || "/default-avatar.png",
+              content: c.content || "",
+              timeAgo: c.timeAgo || "Just now",
+              createdAt: c.createdAt,
+              likes: Number(c.likes) || 0,
+              dislikes: Number(c.dislikes) || 0,
+            }));
+          }
         });
 
         setLikedMap(storedLiked);
         setDislikedMap(storedDisliked);
         setLikes(storedLikes);
         setDislikes(storedDislikes);
+        if (Object.keys(nextCommentsMap).length > 0) {
+          setCommentsMap((prev) => ({ ...prev, ...nextCommentsMap }));
+        }
       } catch {}
     };
 
@@ -205,21 +234,62 @@ export default function ShortsPage() {
 
   const currentShort = shortsList[currentIndex] || null;
 
-  // Restore comments for current short
+  // Restore comments and record view for current short
   useEffect(() => {
     if (!currentShort) return;
+    recordVideoView(currentShort.id);
     try {
+      const allVids = getAllCombinedVideos();
+      const fullVid = allVids.find((v) => v.id === currentShort.id);
+      const srvComments = Array.isArray(fullVid?.comments) ? fullVid!.comments : null;
+
       const stored = localStorage.getItem(`entropy_comments_${currentShort.id}`);
+      let localList: ShortComment[] = [];
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
-          // Remove any legacy seeded filler comments
-          const cleaned = parsed.filter(
-            (c) => c && !c.id?.startsWith("c-1-") && c.content !== "Check out this short!"
-          );
-          setCommentsMap((prev) => ({ ...prev, [currentShort.id]: cleaned }));
-          return;
+          localList = parsed
+            .filter((c) => c && !c.id?.startsWith("c-1-") && c.content !== "Check out this short!")
+            .map((c: any) => ({
+              id: c.id,
+              author: c.author || c.user || "Viewer",
+              authorId: c.authorId || c.userId,
+              authorHandle: c.authorHandle || c.userHandle,
+              avatar: c.avatar || "/default-avatar.png",
+              content: c.content || "",
+              timeAgo: c.timeAgo || "Just now",
+              createdAt: c.createdAt,
+              likes: Number(c.likes) || 0,
+              dislikes: Number(c.dislikes) || 0,
+            }));
         }
+      }
+
+      if (srvComments && srvComments.length > 0) {
+        const mappedSrv: ShortComment[] = srvComments.map((c: any) => ({
+          id: c.id,
+          author: c.author || c.user || "Viewer",
+          authorId: c.authorId || c.userId,
+          authorHandle: c.authorHandle || c.userHandle,
+          avatar: c.avatar || "/default-avatar.png",
+          content: c.content || "",
+          timeAgo: c.timeAgo || "Just now",
+          createdAt: c.createdAt,
+          likes: Number(c.likes) || 0,
+          dislikes: Number(c.dislikes) || 0,
+        }));
+        const srvIds = new Set(mappedSrv.map((c) => c.id));
+        const unsynced = localList.filter((c) => c.id && !srvIds.has(c.id));
+        const merged = [...unsynced, ...mappedSrv];
+        setCommentsMap((prev) => ({ ...prev, [currentShort.id]: merged }));
+        if (unsynced.length > 0) {
+          syncVideoComments(currentShort.id, merged as unknown as CommentItem[]);
+        }
+        return;
+      } else if (localList.length > 0) {
+        setCommentsMap((prev) => ({ ...prev, [currentShort.id]: localList }));
+        syncVideoComments(currentShort.id, localList as unknown as CommentItem[]);
+        return;
       }
     } catch {}
 
@@ -333,15 +403,19 @@ export default function ShortsPage() {
   const toggleLike = (id: string) => {
     const isLiked = likedMap[id];
     const newLiked = !isLiked;
+    const likeDelta = newLiked ? 1 : -1;
+    let dislikeDelta = 0;
     setLikedMap((prev) => ({ ...prev, [id]: newLiked }));
 
     const baseLikes = likes[id] ?? currentShort?.likesCount ?? 0;
-    const newCount = Math.max(0, baseLikes + (newLiked ? 1 : -1));
+    const newCount = Math.max(0, baseLikes + likeDelta);
     setLikes((prev) => ({ ...prev, [id]: newCount }));
 
+    let newDCount = dislikes[id] ?? 0;
     if (dislikedMap[id]) {
       setDislikedMap((prev) => ({ ...prev, [id]: false }));
-      const newDCount = Math.max(0, (dislikes[id] ?? 0) - 1);
+      dislikeDelta = -1;
+      newDCount = Math.max(0, newDCount - 1);
       setDislikes((prev) => ({ ...prev, [id]: newDCount }));
       try {
         localStorage.setItem(`entropy_video_dislikes_${id}`, newDCount.toString());
@@ -356,20 +430,26 @@ export default function ShortsPage() {
         localStorage.removeItem(`entropy_video_vote_${id}`);
       }
     } catch {}
+
+    syncVideoVote(id, likeDelta, dislikeDelta, newCount, newDCount);
   };
 
   const toggleDislike = (id: string) => {
     const isDisliked = dislikedMap[id];
     const newDisliked = !isDisliked;
+    const dislikeDelta = newDisliked ? 1 : -1;
+    let likeDelta = 0;
     setDislikedMap((prev) => ({ ...prev, [id]: newDisliked }));
 
     const baseDislikes = dislikes[id] ?? 0;
-    const newDCount = Math.max(0, baseDislikes + (newDisliked ? 1 : -1));
+    const newDCount = Math.max(0, baseDislikes + dislikeDelta);
     setDislikes((prev) => ({ ...prev, [id]: newDCount }));
 
+    let newLCount = likes[id] ?? currentShort?.likesCount ?? 0;
     if (likedMap[id]) {
       setLikedMap((prev) => ({ ...prev, [id]: false }));
-      const newLCount = Math.max(0, (likes[id] ?? currentShort?.likesCount ?? 0) - 1);
+      likeDelta = -1;
+      newLCount = Math.max(0, newLCount - 1);
       setLikes((prev) => ({ ...prev, [id]: newLCount }));
       try {
         localStorage.setItem(`entropy_video_likes_${id}`, newLCount.toString());
@@ -384,6 +464,8 @@ export default function ShortsPage() {
         localStorage.removeItem(`entropy_video_vote_${id}`);
       }
     } catch {}
+
+    syncVideoVote(id, likeDelta, dislikeDelta, newLCount, newDCount);
   };
 
   const toggleSubscribe = (handle: string) => {
@@ -395,11 +477,15 @@ export default function ShortsPage() {
     if (!commentInput.trim() || !currentShort) return;
 
     const now = Date.now();
-    const newComment: ShortComment = {
+    const authorName = user?.name || user?.handle || "Viewer";
+    const newComment: ShortComment & { user?: string; userHandle?: string; userId?: string } = {
       id: `c-${now}`,
-      author: user?.name || user?.handle || "Viewer",
+      author: authorName,
+      user: authorName,
       authorId: user?.id,
+      userId: user?.id,
       authorHandle: user?.handle,
+      userHandle: user?.handle,
       avatar: user?.avatarUrl || user?.avatar || "/default-avatar.png",
       content: commentInput.trim(),
       createdAt: now,
@@ -413,9 +499,7 @@ export default function ShortsPage() {
     setCommentsMap((prev) => ({ ...prev, [currentShort.id]: updated }));
     setCommentInput("");
 
-    try {
-      localStorage.setItem(`entropy_comments_${currentShort.id}`, JSON.stringify(updated));
-    } catch {}
+    syncVideoComments(currentShort.id, updated as unknown as CommentItem[]);
   };
 
   const canDeleteComment = (comment: ShortComment): boolean => {
@@ -444,9 +528,7 @@ export default function ShortsPage() {
     const currentList = commentsMap[currentShort.id] || [];
     const updated = currentList.filter((c) => c.id !== commentId);
     setCommentsMap((prev) => ({ ...prev, [currentShort.id]: updated }));
-    try {
-      localStorage.setItem(`entropy_comments_${currentShort.id}`, JSON.stringify(updated));
-    } catch {}
+    syncVideoComments(currentShort.id, updated as unknown as CommentItem[]);
     showToast("Comment deleted");
   };
 
@@ -477,9 +559,7 @@ export default function ShortsPage() {
 
         return { ...c, likes: l, dislikes: d };
       });
-      try {
-        localStorage.setItem(`entropy_comments_${currentShort.id}`, JSON.stringify(updated));
-      } catch {}
+      syncVideoComments(currentShort.id, updated as unknown as CommentItem[]);
       return { ...prev, [currentShort.id]: updated };
     });
   };

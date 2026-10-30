@@ -1030,7 +1030,20 @@ export async function DELETE(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json();
-    const { id, title, description, category, tags, thumbnailUrl } = body;
+    const {
+      id,
+      action,
+      title,
+      description,
+      category,
+      tags,
+      thumbnailUrl,
+      likeDelta,
+      dislikeDelta,
+      likesCount,
+      dislikesCount,
+      comments,
+    } = body;
     const userId = body.userId || req.headers.get("x-entropy-user-id");
     const userHandle = body.userHandle || req.headers.get("x-entropy-user-handle");
 
@@ -1053,8 +1066,15 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Video not found" }, { status: 404 });
     }
 
-    // Ownership verification: If the video belongs to a channel, reject if requester does not match
-    if (existing.channel && (existing.channel.id || existing.channel.handle)) {
+    const isEditingOwnerFields =
+      title !== undefined ||
+      description !== undefined ||
+      category !== undefined ||
+      tags !== undefined ||
+      thumbnailUrl !== undefined;
+
+    // Ownership verification: Only required when modifying video metadata (title, description, category, tags, thumbnailUrl)
+    if (isEditingOwnerFields && existing.channel && (existing.channel.id || existing.channel.handle)) {
       const chanId = (existing.channel.id || "").trim().toLowerCase();
       const chanHandle = (existing.channel.handle || "").replace(/^@/, "").trim().toLowerCase();
       const chanName = (existing.channel.displayName || "").trim().toLowerCase();
@@ -1064,7 +1084,7 @@ export async function PATCH(req: NextRequest) {
 
       if (chanId || chanHandle) {
         const isOwner =
-          (reqUserId && chanId && reqUserId === chanId) ||
+          (reqUserId && chanId && reqUserId !== "u-user" && reqUserId === chanId) ||
           (reqHandle && chanHandle && reqHandle === chanHandle) ||
           (reqHandle && chanName && reqHandle === chanName);
 
@@ -1077,6 +1097,27 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
+    let nextViews = Number(existing.viewCount) || 0;
+    if (action === "view" || body.incrementView === true) {
+      nextViews += 1;
+    }
+
+    let nextLikes = Number(existing.likesCount) || 0;
+    if (likeDelta !== undefined) {
+      nextLikes = Math.max(0, nextLikes + (Number(likeDelta) || 0));
+    } else if (likesCount !== undefined) {
+      nextLikes = Math.max(0, Number(likesCount) || 0);
+    }
+
+    let nextDislikes = Number(existing.dislikesCount) || 0;
+    if (dislikeDelta !== undefined) {
+      nextDislikes = Math.max(0, nextDislikes + (Number(dislikeDelta) || 0));
+    } else if (dislikesCount !== undefined) {
+      nextDislikes = Math.max(0, Number(dislikesCount) || 0);
+    }
+
+    const nextComments = Array.isArray(comments) ? comments : existing.comments;
+
     const updatedVideo: VideoItem = {
       ...existing,
       title: title !== undefined ? title : existing.title,
@@ -1084,13 +1125,17 @@ export async function PATCH(req: NextRequest) {
       category: category !== undefined ? category : existing.category,
       tags: tags !== undefined ? tags : existing.tags,
       thumbnailUrl: thumbnailUrl !== undefined ? thumbnailUrl : existing.thumbnailUrl,
+      viewCount: nextViews,
+      likesCount: nextLikes,
+      dislikesCount: nextDislikes,
+      comments: nextComments,
     };
 
     map.set(id, updatedVideo);
     const updatedList = Array.from(map.values());
 
     if (isTigrisConfigured()) {
-      await saveTigrisVideosIndex(updatedList);
+      await saveTigrisVideosIndex(updatedList, updatedVideo);
     }
     await saveBlobVideosIndex(updatedList);
     await saveR2VideosIndex(updatedList);

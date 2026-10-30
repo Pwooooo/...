@@ -1,6 +1,6 @@
 "use client";
 
-import { VideoItem } from "@/types";
+import { VideoItem, CommentItem } from "@/types";
 import { ALL_VIDEOS } from "@/lib/mock-data";
 
 // ----------------- Video Frame Extraction (for upload preview) -----------------
@@ -929,6 +929,144 @@ export function updateUserVideo(
       userHandle: user?.handle,
     }),
   }).catch(() => {});
+}
+
+function updateCachedVideoEntry(videoId: string, updater: (v: VideoItem) => VideoItem): void {
+  if (typeof window === "undefined" || !videoId) return;
+  try {
+    const cachedRaw = localStorage.getItem(SERVER_CACHE_KEY);
+    if (cachedRaw) {
+      const parsed = JSON.parse(cachedRaw);
+      if (Array.isArray(parsed)) {
+        const updated = parsed.map((v: VideoItem) => (v && v.id === videoId ? updater(v) : v));
+        localStorage.setItem(SERVER_CACHE_KEY, JSON.stringify(updated));
+      }
+    }
+    const uploads = getUserUploadedVideos();
+    if (uploads.some((v) => v.id === videoId)) {
+      const updatedUploads = uploads.map((v) => (v.id === videoId ? updater(v) : v));
+      localStorage.setItem(USER_UPLOADS_KEY, JSON.stringify(updatedUploads));
+    }
+  } catch {}
+}
+
+/**
+ * Increments a video's view count once per session and persists to the server.
+ */
+export async function recordVideoView(videoId: string): Promise<number | null> {
+  if (typeof window === "undefined" || !videoId) return null;
+  try {
+    const sessionKey = `entropy_viewed_${videoId}`;
+    if (sessionStorage.getItem(sessionKey) === "1") {
+      return null;
+    }
+    sessionStorage.setItem(sessionKey, "1");
+  } catch {}
+
+  let optimisticViews: number | null = null;
+  updateCachedVideoEntry(videoId, (v) => {
+    const next = (Number(v.viewCount) || 0) + 1;
+    optimisticViews = next;
+    return { ...v, viewCount: next };
+  });
+
+  try {
+    const res = await fetch("/api/videos", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: videoId, action: "view" }),
+    });
+    const data = await res.json();
+    if (data.success && data.video) {
+      updateCachedVideoEntry(videoId, () => data.video);
+      window.dispatchEvent(new Event("entropy_videos_updated"));
+      return Number(data.video.viewCount) || optimisticViews;
+    }
+  } catch {}
+
+  window.dispatchEvent(new Event("entropy_videos_updated"));
+  return optimisticViews;
+}
+
+/**
+ * Synchronizes video like/dislike deltas globally to the server.
+ */
+export async function syncVideoVote(
+  videoId: string,
+  likeDelta: number,
+  dislikeDelta: number,
+  newLikesCount?: number,
+  newDislikesCount?: number
+): Promise<void> {
+  if (typeof window === "undefined" || !videoId) return;
+
+  updateCachedVideoEntry(videoId, (v) => ({
+    ...v,
+    likesCount:
+      newLikesCount !== undefined
+        ? newLikesCount
+        : Math.max(0, (Number(v.likesCount) || 0) + likeDelta),
+    dislikesCount:
+      newDislikesCount !== undefined
+        ? newDislikesCount
+        : Math.max(0, (Number(v.dislikesCount) || 0) + dislikeDelta),
+  }));
+
+  try {
+    const res = await fetch("/api/videos", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: videoId,
+        action: "vote",
+        likeDelta,
+        dislikeDelta,
+      }),
+    });
+    const data = await res.json();
+    if (data.success && data.video) {
+      updateCachedVideoEntry(videoId, () => data.video);
+      try {
+        if (typeof data.video.likesCount === "number") {
+          localStorage.setItem(`entropy_video_likes_${videoId}`, String(data.video.likesCount));
+        }
+        if (typeof data.video.dislikesCount === "number") {
+          localStorage.setItem(`entropy_video_dislikes_${videoId}`, String(data.video.dislikesCount));
+        }
+      } catch {}
+    }
+  } catch {}
+}
+
+/**
+ * Synchronizes video comments globally to the server and localStorage.
+ */
+export async function syncVideoComments(videoId: string, comments: CommentItem[]): Promise<void> {
+  if (typeof window === "undefined" || !videoId) return;
+  try {
+    localStorage.setItem(`entropy_comments_${videoId}`, JSON.stringify(comments));
+  } catch {}
+
+  updateCachedVideoEntry(videoId, (v) => ({
+    ...v,
+    comments,
+  }));
+
+  try {
+    const res = await fetch("/api/videos", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: videoId,
+        action: "comments",
+        comments,
+      }),
+    });
+    const data = await res.json();
+    if (data.success && data.video) {
+      updateCachedVideoEntry(videoId, () => data.video);
+    }
+  } catch {}
 }
 
 /**

@@ -39,7 +39,17 @@ import { ALL_VIDEOS, SAMPLE_CHAPTERS, SAMPLE_HIGHLIGHTS } from "@/lib/mock-data"
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { findUserByHandle, resolveChannelAvatar } from "@/lib/user-validation";
-import { getUserVideos, getVideoBlob, getAllCombinedVideos, getBaseVideos, fetchServerVideos, isShortVideo } from "@/lib/video-storage";
+import {
+  getUserVideos,
+  getVideoBlob,
+  getAllCombinedVideos,
+  getBaseVideos,
+  fetchServerVideos,
+  isShortVideo,
+  recordVideoView,
+  syncVideoVote,
+  syncVideoComments,
+} from "@/lib/video-storage";
 import { VideoItem } from "@/types";
 
 function WatchContent() {
@@ -421,37 +431,77 @@ function WatchContent() {
       return;
     }
 
+    // Record a view once per session when watching a video
+    recordVideoView(currentVideo.id).then((newViewCount) => {
+      if (typeof newViewCount === "number") {
+        setCurrentVideo((prev) => (prev && prev.id === currentVideo.id ? { ...prev, viewCount: newViewCount } : prev));
+      }
+    });
+
     try {
-      const storedLikes = localStorage.getItem(`entropy_video_likes_${currentVideo.id}`);
-      const storedDislikes = localStorage.getItem(`entropy_video_dislikes_${currentVideo.id}`);
+      const storedLikesRaw = localStorage.getItem(`entropy_video_likes_${currentVideo.id}`);
+      const storedDislikesRaw = localStorage.getItem(`entropy_video_dislikes_${currentVideo.id}`);
       const userVote = localStorage.getItem(`entropy_video_vote_${currentVideo.id}`);
-      setLikes(storedLikes ? parseInt(storedLikes, 10) : 0);
-      setDislikes(storedDislikes ? parseInt(storedDislikes, 10) : 0);
+
+      const srvLikes = typeof currentVideo.likesCount === "number" ? currentVideo.likesCount : null;
+      const srvDislikes = typeof currentVideo.dislikesCount === "number" ? currentVideo.dislikesCount : null;
+      const localLikes = storedLikesRaw ? parseInt(storedLikesRaw, 10) || 0 : 0;
+      const localDislikes = storedDislikesRaw ? parseInt(storedDislikesRaw, 10) || 0 : 0;
+
+      const resolvedLikes = srvLikes !== null && srvLikes > 0 ? srvLikes : Math.max(srvLikes ?? 0, localLikes);
+      const resolvedDislikes = srvDislikes !== null && srvDislikes > 0 ? srvDislikes : Math.max(srvDislikes ?? 0, localDislikes);
+
+      setLikes(resolvedLikes);
+      setDislikes(resolvedDislikes);
       setHasLiked(userVote === "like");
       setHasDisliked(userVote === "dislike");
 
+      // If local had likes/dislikes not yet on server, sync them once
+      if ((srvLikes === null || srvLikes === 0) && localLikes > 0) {
+        syncVideoVote(currentVideo.id, localLikes, 0, localLikes, resolvedDislikes);
+      }
+
+      const cleanCommentList = (arr: CommentItem[]) =>
+        arr.filter((c: CommentItem) => {
+          if (!c || typeof c !== "object") return false;
+          if (c.id?.startsWith("c-pinned-") && c.content?.includes("Welcome to the video")) return false;
+          if (c.user === "alex_dev" || c.userHandle === "alex_dev") return false;
+          if (c.user === "design_lead" || c.userHandle === "design_lead") return false;
+          if (c.user === "Entropy Fan" || c.userHandle === "entropy_fan") return false;
+          return true;
+        });
+
+      const srvComments = Array.isArray(currentVideo.comments) ? cleanCommentList(currentVideo.comments as CommentItem[]) : null;
+      let localComments: CommentItem[] = [];
       const stored = localStorage.getItem(`entropy_comments_${currentVideo.id}`);
       if (stored) {
         try {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed)) {
-            // Remove any legacy seeded filler comments
-            const cleaned = parsed.filter((c: CommentItem) => {
-              if (!c || typeof c !== "object") return false;
-              if (c.id?.startsWith("c-pinned-") && c.content?.includes("Welcome to the video")) return false;
-              if (c.user === "alex_dev" || c.userHandle === "alex_dev") return false;
-              if (c.user === "design_lead" || c.userHandle === "design_lead") return false;
-              if (c.user === "Entropy Fan" || c.userHandle === "entropy_fan") return false;
-              return true;
-            });
-            setComments(cleaned);
-            try {
-              localStorage.setItem(`entropy_comments_${currentVideo.id}`, JSON.stringify(cleaned));
-            } catch {}
-            return;
+            localComments = cleanCommentList(parsed);
           }
         } catch {}
       }
+
+      if (srvComments && srvComments.length > 0) {
+        // Merge any unsynced local comments with server comments
+        const srvIds = new Set(srvComments.map((c) => c.id));
+        const unsyncedLocal = localComments.filter((c) => c.id && !srvIds.has(c.id));
+        const merged = [...unsyncedLocal, ...srvComments];
+        setComments(merged);
+        localStorage.setItem(`entropy_comments_${currentVideo.id}`, JSON.stringify(merged));
+        if (unsyncedLocal.length > 0) {
+          syncVideoComments(currentVideo.id, merged);
+        }
+        return;
+      } else if (localComments.length > 0) {
+        setComments(localComments);
+        localStorage.setItem(`entropy_comments_${currentVideo.id}`, JSON.stringify(localComments));
+        // Auto-sync pre-existing local comments to the server
+        syncVideoComments(currentVideo.id, localComments);
+        return;
+      }
+
       setComments([]);
     } catch {
       setLikes(0);
@@ -460,7 +510,7 @@ function WatchContent() {
       setHasDisliked(false);
       setComments([]);
     }
-  }, [currentVideo?.id]);
+  }, [currentVideo?.id, currentVideo?.likesCount, currentVideo?.dislikesCount, currentVideo?.comments]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -471,17 +521,22 @@ function WatchContent() {
     if (!currentVideo) return;
     let newLikes = likes;
     let newDislikes = dislikes;
+    let likeDelta = 0;
+    let dislikeDelta = 0;
     let newVote: "like" | null = null;
 
     if (hasLiked) {
       setHasLiked(false);
+      likeDelta = -1;
       newLikes = Math.max(0, likes - 1);
       setLikes(newLikes);
     } else {
       setHasLiked(true);
       newVote = "like";
+      likeDelta = 1;
       if (hasDisliked) {
         setHasDisliked(false);
+        dislikeDelta = -1;
         newDislikes = Math.max(0, dislikes - 1);
         setDislikes(newDislikes);
       }
@@ -499,23 +554,30 @@ function WatchContent() {
         localStorage.removeItem(`entropy_video_vote_${currentVideo.id}`);
       }
     } catch {}
+
+    syncVideoVote(currentVideo.id, likeDelta, dislikeDelta, newLikes, newDislikes);
   };
 
   const handleDislike = () => {
     if (!currentVideo) return;
     let newLikes = likes;
     let newDislikes = dislikes;
+    let likeDelta = 0;
+    let dislikeDelta = 0;
     let newVote: "dislike" | null = null;
 
     if (hasDisliked) {
       setHasDisliked(false);
+      dislikeDelta = -1;
       newDislikes = Math.max(0, dislikes - 1);
       setDislikes(newDislikes);
     } else {
       setHasDisliked(true);
       newVote = "dislike";
+      dislikeDelta = 1;
       if (hasLiked) {
         setHasLiked(false);
+        likeDelta = -1;
         newLikes = Math.max(0, likes - 1);
         setLikes(newLikes);
       }
@@ -533,6 +595,8 @@ function WatchContent() {
         localStorage.removeItem(`entropy_video_vote_${currentVideo.id}`);
       }
     } catch {}
+
+    syncVideoVote(currentVideo.id, likeDelta, dislikeDelta, newLikes, newDislikes);
   };
 
   const handleCommentLike = (commentId: string) => {
@@ -561,9 +625,7 @@ function WatchContent() {
         });
       }
       setComments(updatedComments);
-      try {
-        localStorage.setItem(`entropy_comments_${vidId}`, JSON.stringify(updatedComments));
-      } catch {}
+      syncVideoComments(vidId, updatedComments);
       return newVotes;
     });
   };
@@ -594,9 +656,7 @@ function WatchContent() {
         });
       }
       setComments(updatedComments);
-      try {
-        localStorage.setItem(`entropy_comments_${vidId}`, JSON.stringify(updatedComments));
-      } catch {}
+      syncVideoComments(vidId, updatedComments);
       return newVotes;
     });
   };
@@ -621,9 +681,7 @@ function WatchContent() {
     });
 
     setComments(updated);
-    try {
-      localStorage.setItem(`entropy_comments_${vidId}`, JSON.stringify(updated));
-    } catch {}
+    syncVideoComments(vidId, updated);
     showToast(willBePinned ? "📌 Comment pinned to the top" : "Comment unpinned");
   };
 
@@ -650,9 +708,7 @@ function WatchContent() {
         return c;
       });
 
-      try {
-        localStorage.setItem(`entropy_comments_${vidId}`, JSON.stringify(updated));
-      } catch {}
+      syncVideoComments(vidId, updated);
       return updated;
     });
     showToast("❤️ Creator heart updated");
@@ -686,9 +742,7 @@ function WatchContent() {
         return { ...c, replies: updatedReplies };
       });
 
-      try {
-        localStorage.setItem(`entropy_comments_${vidId}`, JSON.stringify(updated));
-      } catch {}
+      syncVideoComments(vidId, updated);
       return updated;
     });
     showToast("❤️ Creator heart updated");
@@ -699,9 +753,7 @@ function WatchContent() {
     const vidId = currentVideo.id;
     const updated = comments.filter((c) => c.id !== commentId);
     setComments(updated);
-    try {
-      localStorage.setItem(`entropy_comments_${vidId}`, JSON.stringify(updated));
-    } catch {}
+    syncVideoComments(vidId, updated);
     showToast("Comment deleted");
   };
 
@@ -719,9 +771,7 @@ function WatchContent() {
       return c;
     });
     setComments(updated);
-    try {
-      localStorage.setItem(`entropy_comments_${vidId}`, JSON.stringify(updated));
-    } catch {}
+    syncVideoComments(vidId, updated);
     setEditingCommentId(null);
     setEditingContent("");
     showToast("Comment edited");
@@ -740,9 +790,7 @@ function WatchContent() {
       return c;
     });
     setComments(updated);
-    try {
-      localStorage.setItem(`entropy_comments_${vidId}`, JSON.stringify(updated));
-    } catch {}
+    syncVideoComments(vidId, updated);
     showToast("Reply deleted");
   };
 
@@ -763,9 +811,7 @@ function WatchContent() {
       return c;
     });
     setComments(updated);
-    try {
-      localStorage.setItem(`entropy_comments_${vidId}`, JSON.stringify(updated));
-    } catch {}
+    syncVideoComments(vidId, updated);
     setEditingReplyId(null);
     setEditingReplyContent("");
     showToast("Reply edited");
@@ -813,9 +859,7 @@ function WatchContent() {
     });
 
     setComments(updated);
-    try {
-      localStorage.setItem(`entropy_comments_${vidId}`, JSON.stringify(updated));
-    } catch {}
+    syncVideoComments(vidId, updated);
     setReplyText("");
     setReplyingToId(null);
     setExpandedReplies((prev) => ({ ...prev, [commentId]: true }));
@@ -870,9 +914,7 @@ function WatchContent() {
       }
 
       setComments(updatedComments);
-      try {
-        localStorage.setItem(`entropy_comments_${vidId}`, JSON.stringify(updatedComments));
-      } catch {}
+      syncVideoComments(vidId, updatedComments);
       return newVotes;
     });
   };
@@ -921,9 +963,7 @@ function WatchContent() {
       }
 
       setComments(updatedComments);
-      try {
-        localStorage.setItem(`entropy_comments_${vidId}`, JSON.stringify(updatedComments));
-      } catch {}
+      syncVideoComments(vidId, updatedComments);
       return newVotes;
     });
   };
@@ -984,9 +1024,7 @@ function WatchContent() {
 
     const updated = [newComment, ...comments];
     setComments(updated);
-    try {
-      localStorage.setItem(`entropy_comments_${currentVideo.id}`, JSON.stringify(updated));
-    } catch {}
+    syncVideoComments(currentVideo.id, updated);
     setCommentText("");
     showToast("Comment published");
   };
