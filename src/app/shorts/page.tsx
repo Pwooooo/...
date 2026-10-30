@@ -85,12 +85,16 @@ export default function ShortsPage() {
 
     if (
       user &&
-      ((userId && user.id === userId) ||
-        (cleanHandle && cleanHandle === currentCleanHandle) ||
-        (cleanName && (cleanName === currentCleanName || cleanName === currentCleanHandle)))
+      ((userId && user.id && user.id !== "u-user" && user.id === userId) ||
+        (cleanHandle && currentCleanHandle && cleanHandle === currentCleanHandle) ||
+        (!cleanHandle && cleanName && currentCleanName && (cleanName === currentCleanName || cleanName === currentCleanHandle)))
     ) {
       if (user.avatarUrl && user.avatarUrl !== "/default-avatar.png") return user.avatarUrl;
       if (user.avatar && user.avatar !== "/default-avatar.png") return user.avatar;
+    }
+
+    if (rawAvatar && rawAvatar !== "/default-avatar.png") {
+      return rawAvatar;
     }
 
     if (cleanHandle || cleanName) {
@@ -99,7 +103,7 @@ export default function ShortsPage() {
       if (found?.avatar && found.avatar !== "/default-avatar.png") return found.avatar;
     }
 
-    return rawAvatar || "/default-avatar.png";
+    return "/default-avatar.png";
   };
 
   const getCommentDisplayTime = (timeAgo?: string, createdAt?: number | string, id?: string): string => {

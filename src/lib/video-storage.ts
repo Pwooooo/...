@@ -119,7 +119,7 @@ export function getBaseVideos(): VideoItem[] {
 const SERVER_CACHE_KEY = "entropy_server_videos_cache";
 const USER_UPLOADS_KEY = "entropy_user_uploaded_videos";
 const CLIENT_DELETED_KEY = "entropy_deleted_videos";
-const CACHE_PURGE_VERSION = "entropy_purge_v9";
+const CACHE_PURGE_VERSION = "entropy_purge_v10";
 
 export function getClientDeletedVideos(): Set<string> {
   if (typeof window === "undefined") return new Set();
@@ -159,27 +159,9 @@ if (typeof window !== "undefined") {
       // Unmark snowy if previously marked as deleted on client
       unmarkClientDeletedVideo("snowy in the forest.1920x1080");
       unmarkClientDeletedVideo("snowy-in-the-forest.1920x1080");
-      // Clean out any cached filler videos across all devices
-      const cached = localStorage.getItem(SERVER_CACHE_KEY);
-      if (cached) {
-        try {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed)) {
-            const cleaned = parsed.filter((v: VideoItem) => v && typeof v.id === "string" && !isFillerVideo(v));
-            localStorage.setItem(SERVER_CACHE_KEY, JSON.stringify(cleaned));
-          }
-        } catch {}
-      }
-      const uploads = localStorage.getItem(USER_UPLOADS_KEY);
-      if (uploads) {
-        try {
-          const parsed = JSON.parse(uploads);
-          if (Array.isArray(parsed)) {
-            const cleaned = parsed.filter((v: VideoItem) => v && typeof v.id === "string" && !isFillerVideo(v));
-            localStorage.setItem(USER_UPLOADS_KEY, JSON.stringify(cleaned));
-          }
-        } catch {}
-      }
+      // Clear local video caches so clean per-channel avatars/metadata are reloaded from server
+      localStorage.removeItem(SERVER_CACHE_KEY);
+      localStorage.removeItem(USER_UPLOADS_KEY);
       // Purge any entropy_comments_* with filler comments
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -286,10 +268,10 @@ export function getAllCombinedVideos(): VideoItem[] {
       getBaseVideos().forEach((v) => {
         if (!isFillerVideo(v) && !deleted.has(v.id)) nonSampleMap.set(v.id, v);
       });
-      serverCached.forEach((v) => {
+      userUploads.forEach((v) => {
         if (!isFillerVideo(v) && !deleted.has(v.id)) nonSampleMap.set(v.id, v);
       });
-      userUploads.forEach((v) => {
+      serverCached.forEach((v) => {
         if (!isFillerVideo(v) && !deleted.has(v.id)) nonSampleMap.set(v.id, v);
       });
 
@@ -297,6 +279,21 @@ export function getAllCombinedVideos(): VideoItem[] {
     } catch {}
   }
   return getBaseVideos();
+}
+
+function isGenericId(id: string): boolean {
+  if (!id) return true;
+  const lower = id.trim().toLowerCase();
+  return (
+    !lower ||
+    lower === "u-user" ||
+    lower === "creator" ||
+    lower === "unknown" ||
+    lower === "u-guest" ||
+    lower === "user" ||
+    lower === "anonymous" ||
+    lower.startsWith("ch-")
+  );
 }
 
 export function isUserVideoOwner(
@@ -315,9 +312,9 @@ export function isUserVideoOwner(
   const vName = (vChan.displayName || "").trim().toLowerCase();
   const vId = (vChan.id || "").trim().toLowerCase();
 
-  if (userId && vId && userId === vId) return true;
+  if (!isGenericId(userId) && !isGenericId(vId) && userId === vId) return true;
   if (userHandle && vHandle && userHandle === vHandle) return true;
-  if (userName && vName && userName === vName) return true;
+  if (!vHandle && userName && vName && userName === vName) return true;
 
   return false;
 }
@@ -941,23 +938,13 @@ export function updateUserVideo(
 export function syncUserChannelInfo(user: { id?: string | null; handle?: string | null; name?: string | null; avatarUrl?: string | null; avatar?: string | null }): void {
   if (typeof window === "undefined" || !user) return;
   const targetAvatar = user.avatarUrl || user.avatar || "";
-  const targetHandle = (user.handle || "").replace(/^@/, "").trim().toLowerCase();
-  const targetName = (user.name || "").trim();
-  const targetId = (user.id || "").trim().toLowerCase();
 
   const updateList = (videos: VideoItem[]): { updated: VideoItem[]; changed: boolean } => {
     let changed = false;
     const updated = videos.map((v) => {
       if (!v) return v;
       const vChan = v.channel || { id: "", handle: "", displayName: "", avatarUrl: "" };
-      const vChanHandle = (vChan.handle || "").replace(/^@/, "").trim().toLowerCase();
-      const vChanName = (vChan.displayName || "").trim().toLowerCase();
-      const vChanId = (vChan.id || "").trim().toLowerCase();
-      const isUserVideo =
-        (targetId && vChanId && targetId === vChanId) ||
-        (targetHandle && vChanHandle === targetHandle) ||
-        (targetName && (vChanName === targetName.toLowerCase() || vChanName === targetHandle)) ||
-        (v.id && (v.id.startsWith("v-user-") || v.id.startsWith("v-custom-")));
+      const isUserVideo = isUserVideoOwner(v, user);
 
       if (isUserVideo) {
         changed = true;

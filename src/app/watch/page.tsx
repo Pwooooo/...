@@ -215,21 +215,13 @@ function WatchContent() {
   const isOwnVideo = Boolean(
     user &&
       ((vHandle && uHandle && vHandle === uHandle) ||
-        (currentVideo?.channel?.id && user?.id && currentVideo.channel.id === user.id))
+        (currentVideo?.channel?.id &&
+          user?.id &&
+          user.id !== "u-user" &&
+          currentVideo.channel.id === user.id))
   );
 
-  const isChannelOwner = Boolean(
-    isOwnVideo ||
-    currentVideo?.id.startsWith("v-user-") ||
-    (user && (
-      uHandle === vHandle ||
-      user.id === currentVideo?.channel?.id ||
-      user.name === currentVideo?.channel?.displayName ||
-      user.name === "Guest User" ||
-      !currentVideo?.channel
-    )) ||
-    (currentVideo?.channel?.displayName === "Entropy Team")
-  );
+  const isChannelOwner = isOwnVideo;
 
   const [currentPlaybackTime, setCurrentPlaybackTime] = useState(0);
   const [isChaptersPanelOpen, setIsChaptersPanelOpen] = useState(false);
@@ -323,24 +315,24 @@ function WatchContent() {
     // 1. If it's the currently logged-in user, always use their latest avatar!
     if (
       user &&
-      ((userId && user.id === userId) ||
-        (cleanHandle && cleanHandle === currentCleanHandle) ||
-        (cleanName && (cleanName === currentCleanName || cleanName === currentCleanHandle)))
+      ((userId && user.id && user.id !== "u-user" && user.id === userId) ||
+        (cleanHandle && currentCleanHandle && cleanHandle === currentCleanHandle) ||
+        (!cleanHandle && cleanName && currentCleanName && (cleanName === currentCleanName || cleanName === currentCleanHandle)))
     ) {
       if (user.avatarUrl && user.avatarUrl !== "/default-avatar.png") return user.avatarUrl;
       if (user.avatar && user.avatar !== "/default-avatar.png") return user.avatar;
     }
 
-    // 2. Check registered users by handle or name
+    // 2. Fallback to stored avatar on comment if valid
+    if (rawAvatar && rawAvatar !== "/default-avatar.png") {
+      return rawAvatar;
+    }
+
+    // 3. Check registered users by handle or name
     if (cleanHandle || cleanName) {
       const found = findUserByHandle(cleanHandle || cleanName);
       if (found?.avatarUrl && found.avatarUrl !== "/default-avatar.png") return found.avatarUrl;
       if (found?.avatar && found.avatar !== "/default-avatar.png") return found.avatar;
-    }
-
-    // 3. Fallback to stored avatar on comment if valid
-    if (rawAvatar && rawAvatar !== "/default-avatar.png") {
-      return rawAvatar;
     }
 
     // 4. If matches current video channel
@@ -397,7 +389,7 @@ function WatchContent() {
       if (found?.avatar && found.avatar !== "/default-avatar.png") return found.avatar;
     }
 
-    return user?.avatarUrl || user?.avatar || currentVideo?.channel?.avatarUrl || "/default-avatar.png";
+    return currentVideo?.channel?.avatarUrl || "/default-avatar.png";
   };
 
   const getCommentDisplayTime = (timeAgo?: string, createdAt?: number | string, id?: string): string => {

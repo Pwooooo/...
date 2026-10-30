@@ -271,23 +271,37 @@ export function suggestHandleFromName(name: string): string {
   return cleaned.slice(0, 30);
 }
 
+function isGenericChannelOrUserId(id: string): boolean {
+  if (!id) return true;
+  const lower = id.trim().toLowerCase();
+  return (
+    !lower ||
+    lower === "u-user" ||
+    lower === "creator" ||
+    lower === "unknown" ||
+    lower === "u-guest" ||
+    lower === "user" ||
+    lower === "anonymous" ||
+    lower.startsWith("ch-")
+  );
+}
+
 /**
  * Resolves the latest avatar for a channel or video dynamically,
- * checking currently logged-in user, registered users, and channel fallback.
+ * checking currently logged-in user, channel's latest videos, registered users, and fallback.
  */
 export function resolveChannelAvatar(
   channel?: { id?: string | null; handle?: string | null; displayName?: string | null; avatarUrl?: string | null } | null,
-  videoOrId?: { id?: string | null } | string | null,
+  _videoOrId?: { id?: string | null } | string | null,
   currentUser?: { id?: string | null; handle?: string | null; name?: string | null; avatarUrl?: string | null; avatar?: string | null } | null
 ): string {
   const cleanHandle = (channel?.handle || "").replace(/^@/, "").trim().toLowerCase();
   const cleanName = (channel?.displayName || "").trim().toLowerCase();
   const channelId = (channel?.id || "").trim().toLowerCase();
-  const vidId = typeof videoOrId === "string" ? videoOrId : videoOrId?.id || "";
 
   // 1. Current logged in user (passed in or from localStorage)
   let user = currentUser;
-  if (!user && typeof window !== "undefined") {
+  if (currentUser === undefined && typeof window !== "undefined") {
     try {
       const rawUser = localStorage.getItem("entropy_user");
       if (rawUser) {
@@ -302,11 +316,9 @@ export function resolveChannelAvatar(
     const uId = (user.id || "").trim().toLowerCase();
 
     const isOwn =
-      (uId && channelId && uId === channelId) ||
+      (!isGenericChannelOrUserId(uId) && !isGenericChannelOrUserId(channelId) && uId === channelId) ||
       (cleanHandle && uHandle && cleanHandle === uHandle) ||
-      (cleanName && uName && (cleanName === uName || cleanName === uHandle)) ||
-      (cleanName && uHandle && cleanName === uHandle) ||
-      (vidId && (vidId.startsWith("v-user-") || vidId.startsWith("v-custom-")));
+      (!cleanHandle && cleanName && uName && (cleanName === uName || cleanName === uHandle));
 
     if (isOwn) {
       if (user.avatarUrl && user.avatarUrl !== "/default-avatar.png") return user.avatarUrl;
@@ -314,7 +326,31 @@ export function resolveChannelAvatar(
     }
   }
 
-  // 2. Check registered users
+  // 2. Check channel's own avatarUrl directly
+  if (channel?.avatarUrl && channel.avatarUrl !== "/default-avatar.png") {
+    return channel.avatarUrl;
+  }
+
+  // 3. Check newest video from the same channel in case an older video had /default-avatar.png
+  if (cleanHandle || !isGenericChannelOrUserId(channelId)) {
+    try {
+      const allVids = getAllCombinedVideos();
+      const matchVid = allVids.find((v) => {
+        if (!v?.channel?.avatarUrl || v.channel.avatarUrl === "/default-avatar.png") return false;
+        const vId = (v.channel.id || "").trim().toLowerCase();
+        const vHandle = (v.channel.handle || "").replace(/^@/, "").trim().toLowerCase();
+        return (
+          (!isGenericChannelOrUserId(channelId) && !isGenericChannelOrUserId(vId) && channelId === vId) ||
+          (cleanHandle && vHandle && cleanHandle === vHandle)
+        );
+      });
+      if (matchVid?.channel?.avatarUrl) {
+        return matchVid.channel.avatarUrl;
+      }
+    } catch {}
+  }
+
+  // 4. Check registered users
   if (cleanHandle || cleanName || channelId) {
     const registered = getRegisteredUsers();
     const match = registered.find((u) => {
@@ -322,10 +358,9 @@ export function resolveChannelAvatar(
       const rName = (u.name || "").trim().toLowerCase();
       const rId = (u.id || "").trim().toLowerCase();
       return (
-        (channelId && rId && channelId === rId) ||
+        (!isGenericChannelOrUserId(channelId) && !isGenericChannelOrUserId(rId) && channelId === rId) ||
         (cleanHandle && rHandle && cleanHandle === rHandle) ||
-        (cleanName && rName && cleanName === rName) ||
-        (cleanName && rHandle && cleanName === rHandle)
+        (!cleanHandle && cleanName && rName && cleanName === rName)
       );
     });
     if (match) {
@@ -334,10 +369,5 @@ export function resolveChannelAvatar(
     }
   }
 
-  // 3. Fallback to channel avatar
-  if (channel?.avatarUrl && channel.avatarUrl !== "/default-avatar.png") {
-    return channel.avatarUrl;
-  }
-
-  return channel?.avatarUrl || "/default-avatar.png";
+  return "/default-avatar.png";
 }
