@@ -1,26 +1,31 @@
 "use client";
 
-import React, { Suspense } from "react";
+import React, { Suspense, useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import {
+  Search,
   Home,
-  Compass,
+  Flame,
   PlaySquare,
+  Bell,
+  History,
+  ListVideo,
+  User,
+  Video,
   Clock,
   ThumbsUp,
-  Flame,
+  Compass,
   Newspaper,
-  History,
-  Video,
-  ListVideo,
-  Menu,
-  User,
-  Bell,
+  Pencil,
+  Settings,
   Shield,
+  PanelLeft,
+  ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
+import { useNotifications } from "@/context/NotificationContext";
 
 interface SidebarProps {
   collapsed?: boolean;
@@ -33,125 +38,6 @@ interface SidebarContentProps extends SidebarProps {
   searchParams: ReturnType<typeof useSearchParams> | null;
 }
 
-function SidebarIcon({
-  icon: Icon,
-  isActive,
-  label,
-  className = "h-5 w-5",
-}: {
-  icon: React.ElementType;
-  isActive: boolean;
-  label: string;
-  className?: string;
-}) {
-  if (!isActive) {
-    return <Icon className={className} fill="none" />;
-  }
-
-  // Active filled icons with high-contrast inner glyphs for dark mode
-  if (label === "Watch Later") {
-    return (
-      <svg
-        className={className}
-        viewBox="0 0 24 24"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <circle cx="12" cy="12" r="10" fill="currentColor" stroke="none" />
-        <path
-          d="M12 6v6l4 2"
-          stroke="black"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-        />
-      </svg>
-    );
-  }
-
-  if (label === "Liked videos") {
-    return (
-      <svg
-        className={className}
-        viewBox="0 0 24 24"
-        fill="currentColor"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path
-          d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"
-          fill="currentColor"
-          stroke="none"
-        />
-        <path d="M7 10v12" stroke="black" strokeWidth="2" fill="none" />
-      </svg>
-    );
-  }
-
-  if (label === "Subscriptions") {
-    return (
-      <svg
-        className={className}
-        viewBox="0 0 24 24"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <rect x="3" y="3" width="18" height="18" rx="2" fill="currentColor" stroke="none" />
-        <path
-          d="M9 9.003a1 1 0 0 1 1.517-.859l4.997 2.997a1 1 0 0 1 0 1.718l-4.997 2.997A1 1 0 0 1 9 14.996z"
-          fill="black"
-          stroke="none"
-        />
-      </svg>
-    );
-  }
-
-  if (label === "Home") {
-    return (
-      <svg
-        className={className}
-        viewBox="0 0 24 24"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path
-          d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
-          fill="currentColor"
-          stroke="none"
-        />
-        <polyline points="9 22 9 12 15 12 15 22" stroke="black" strokeWidth="2" fill="none" />
-      </svg>
-    );
-  }
-
-  if (label === "Trending") {
-    return (
-      <svg
-        className={className}
-        viewBox="0 0 24 24"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <circle cx="12" cy="12" r="10" fill="currentColor" stroke="none" />
-        <path
-          d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"
-          fill="black"
-          stroke="none"
-        />
-      </svg>
-    );
-  }
-
-  return <Icon className={className} fill="currentColor" />;
-}
-
 function SidebarContent({
   collapsed = false,
   drawer = false,
@@ -160,6 +46,24 @@ function SidebarContent({
   searchParams,
 }: SidebarContentProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user } = useAuth();
+  const { unreadCount } = useNotifications();
+
+  const [isCollapsed, setIsCollapsed] = useState(collapsed);
+
+  useEffect(() => {
+    setIsCollapsed(collapsed);
+  }, [collapsed]);
+
+  const handleToggleCollapse = () => {
+    if (drawer) {
+      onClose?.();
+      return;
+    }
+    setIsCollapsed((prev) => !prev);
+    window.dispatchEvent(new Event("entropy_toggle_sidebar"));
+  };
 
   const isItemActive = (href: string) => {
     if (href === "/") {
@@ -186,10 +90,9 @@ function SidebarContent({
     return pathname === href || pathname.startsWith(href + "/");
   };
 
-  const { user } = useAuth();
-  const [localIsZero, setLocalIsZero] = React.useState(false);
+  const [localIsZero, setLocalIsZero] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const checkUserZero = () => {
       try {
         const check = (u: any) => {
@@ -227,136 +130,106 @@ function SidebarContent({
     };
   }, [user]);
 
-  const isUserZero = localIsZero;
-
-  const mainLinks = [
+  const navItems = [
+    { label: "Search", href: "/results", icon: Search },
     { label: "Home", href: "/", icon: Home },
     { label: "Shorts", href: "/shorts", icon: Flame },
     { label: "Subscriptions", href: "/feed/subscriptions", icon: PlaySquare },
-  ];
-
-  const libraryLinks = [
-    { label: "Your profile", href: "/profile", icon: User },
-    { label: "Notifications", href: "/notifications", icon: Bell },
+    {
+      label: "Notifications",
+      href: "/notifications",
+      icon: Bell,
+      badge: unreadCount > 0 ? (unreadCount > 99 ? "99+" : unreadCount) : undefined,
+    },
     { label: "History", href: "/feed/history", icon: History },
     { label: "Playlists", href: "/feed/playlists", icon: ListVideo },
+    { label: "Profile", href: "/profile", icon: User },
     { label: "Your videos", href: "/studio/videos", icon: Video },
+    { label: "Create", href: "/studio/upload", icon: Pencil },
     { label: "Watch Later", href: "/playlist?list=WL", icon: Clock },
     { label: "Liked videos", href: "/playlist?list=LL", icon: ThumbsUp },
-  ];
-
-  const exploreLinks = [
     { label: "Trending", href: "/trending", icon: Compass },
-    { label: "News", href: "/news", icon: Newspaper },
-    ...(isUserZero
-      ? [{ label: "Users Panel", href: "/news?tab=users", icon: Shield }]
+    { label: "News", href: "/news", icon: Newspaper, hasExternal: true },
+    ...(localIsZero
+      ? [{ label: "Users Panel", href: "/news?tab=users", icon: Shield, badge: "Admin" }]
       : []),
+    { label: "Settings", href: "/settings", icon: Settings },
   ];
 
+  // Drawer (Mobile / Overlay)
   if (drawer) {
     if (!isOpen) return null;
     return (
       <div className="fixed inset-0 z-50 flex">
         {/* Backdrop */}
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity duration-200 cursor-pointer"
+          className="fixed inset-0 bg-black/70 backdrop-blur-xs transition-opacity duration-200 cursor-pointer"
           onClick={onClose}
         />
 
-        {/* Slide-over Drawer Panel */}
-        <aside className="relative flex h-full w-64 flex-col bg-black text-zinc-200 border-r border-white/[0.08] z-50 overflow-y-auto px-3 py-2 shadow-2xl animate-in slide-in-from-left duration-250 select-none">
-          {/* Drawer Top Header (Menu + Logo) */}
-          <div className="flex items-center gap-4 px-1 h-12 mb-2 border-b border-white/[0.08]">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-full p-2 hover:bg-zinc-900 focus:outline-none transition-colors cursor-pointer"
-              aria-label="Close menu"
-            >
-              <Menu className="h-5 w-5 text-zinc-300" />
-            </button>
-            <Link href="/" onClick={onClose} className="flex items-center gap-2.5 focus:outline-none group">
+        {/* Slide-over Drawer */}
+        <aside className="relative flex h-full w-60 flex-col bg-[#0c0c0e] text-zinc-200 border-r border-white/[0.08] z-50 overflow-y-auto px-3 py-3 shadow-2xl animate-in slide-in-from-left duration-250 select-none scrollbar-none">
+          {/* Header: Logo + Collapse Icon */}
+          <div className="flex items-center justify-between px-2 pt-1 pb-3 mb-1">
+            <Link href="/" onClick={onClose} className="flex items-center gap-2.5 group">
               <img
                 src="/entropy-icon.png"
                 alt="Entropy logo"
-                className="h-8 w-8 object-contain group-hover:scale-110 transition-transform"
+                className="h-6 w-6 object-contain group-hover:scale-105 transition-transform"
               />
-              <span className="font-bold text-lg tracking-tight text-white">
-                Entropy
+              <span className="font-extrabold text-[17px] tracking-wider text-white uppercase font-sans">
+                ENTROPY
               </span>
             </Link>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-zinc-400 hover:text-white p-1.5 rounded-lg hover:bg-white/[0.06] transition-colors cursor-pointer"
+              title="Close sidebar"
+              aria-label="Close sidebar"
+            >
+              <PanelLeft className="h-4 w-4" strokeWidth={1.8} />
+            </button>
           </div>
 
-          {/* Primary Section */}
-          <div className="space-y-1 pb-3 border-b border-white/[0.08]">
-            {mainLinks.map((item) => {
+          {/* Navigation List */}
+          <div className="space-y-0.5">
+            {navItems.map((item) => {
               const isActive = isItemActive(item.href);
+              const Icon = item.icon;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   onClick={onClose}
                   className={cn(
-                    "flex items-center gap-4 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ease-out",
+                    "group flex items-center justify-between px-3.5 py-2.5 rounded-xl text-[13.5px] font-medium transition-all duration-150 select-none",
                     isActive
-                      ? "bg-white/[0.08] text-white font-semibold shadow-sm"
-                      : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
+                      ? "bg-[#181818] text-white font-semibold shadow-sm"
+                      : "text-zinc-300 hover:text-white hover:bg-white/[0.05]"
                   )}
                 >
-                  <SidebarIcon icon={item.icon} isActive={isActive} label={item.label} />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-
-          {/* Library Section */}
-          <div className="space-y-1 py-3 border-b border-white/[0.08]">
-            <h3 className="px-3.5 text-[11px] font-bold uppercase tracking-wider text-zinc-500">
-              You
-            </h3>
-            {libraryLinks.map((item) => {
-              const isActive = isItemActive(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={onClose}
-                  className={cn(
-                    "flex items-center gap-4 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ease-out",
-                    isActive
-                      ? "bg-white/[0.08] text-white font-semibold shadow-sm"
-                      : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <Icon
+                      className={cn(
+                        "h-[18px] w-[18px] flex-shrink-0 transition-colors",
+                        isActive ? "text-white" : "text-zinc-400 group-hover:text-white"
+                      )}
+                      strokeWidth={1.8}
+                    />
+                    <span className="truncate">{item.label}</span>
+                  </div>
+                  {item.badge !== undefined && (
+                    <span className="ml-auto flex-shrink-0 bg-[#e51d42] text-white text-[11px] font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center leading-tight shadow-sm">
+                      {item.badge}
+                    </span>
                   )}
-                >
-                  <SidebarIcon icon={item.icon} isActive={isActive} label={item.label} />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-
-          {/* Explore Section */}
-          <div className="space-y-1 py-3">
-            <h3 className="px-3.5 text-[11px] font-bold uppercase tracking-wider text-zinc-500">
-              Explore
-            </h3>
-            {exploreLinks.map((item) => {
-              const isActive = isItemActive(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={onClose}
-                  className={cn(
-                    "flex items-center gap-4 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ease-out",
-                    isActive
-                      ? "bg-white/[0.08] text-white font-semibold shadow-sm"
-                      : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
+                  {item.hasExternal && (
+                    <ExternalLink
+                      className="ml-auto h-3.5 w-3.5 text-zinc-500 group-hover:text-zinc-300 transition-colors flex-shrink-0"
+                      strokeWidth={1.8}
+                    />
                   )}
-                >
-                  <SidebarIcon icon={item.icon} isActive={isActive} label={item.label} />
-                  <span>{item.label}</span>
                 </Link>
               );
             })}
@@ -366,115 +239,111 @@ function SidebarContent({
     );
   }
 
-  if (collapsed) {
+  // Collapsed Sidebar (Compact Strip)
+  if (isCollapsed) {
     return (
-      <aside className="sticky top-14 flex h-[calc(100vh-3.5rem)] w-18 flex-col items-center py-2 bg-black text-zinc-300 border-r border-white/[0.08]">
-        {mainLinks.map((item) => {
-          const isActive = isItemActive(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex flex-col items-center justify-center w-16 py-3 rounded-2xl text-[10px] gap-1.5 transition-all duration-200 ease-out",
-                isActive
-                  ? "bg-white/[0.08] text-white font-bold shadow-sm scale-95"
-                  : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
-              )}
-            >
-              <SidebarIcon icon={item.icon} isActive={isActive} label={item.label} />
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
-        {isUserZero && (
-          <Link
-            href="/news?tab=users"
-            className={cn(
-              "flex flex-col items-center justify-center w-16 py-3 rounded-2xl text-[10px] gap-1.5 transition-all duration-200 ease-out mt-auto mb-2",
-              isItemActive("/news?tab=users")
-                ? "bg-white/[0.08] text-white font-bold shadow-sm scale-95"
-                : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
-            )}
-            title="Users Panel"
-          >
-            <Shield className="h-5 w-5 text-zinc-300" />
-            <span>Users</span>
-          </Link>
-        )}
+      <aside className="sticky top-14 flex h-[calc(100vh-3.5rem)] w-16 flex-col items-center py-3 bg-[#0c0c0e] text-zinc-300 border-r border-white/[0.06] select-none scrollbar-none overflow-y-auto">
+        <button
+          type="button"
+          onClick={handleToggleCollapse}
+          className="text-zinc-400 hover:text-white p-2 rounded-xl hover:bg-white/[0.06] mb-3 transition-colors cursor-pointer"
+          title="Expand sidebar"
+          aria-label="Expand sidebar"
+        >
+          <PanelLeft className="h-4 w-4" strokeWidth={1.8} />
+        </button>
+
+        <div className="flex flex-col items-center gap-1 w-full px-2">
+          {navItems.map((item) => {
+            const isActive = isItemActive(item.href);
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "relative flex items-center justify-center w-11 h-11 rounded-xl transition-all duration-150",
+                  isActive
+                    ? "bg-[#181818] text-white shadow-sm"
+                    : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
+                )}
+                title={item.label}
+              >
+                <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
+                {item.badge !== undefined && (
+                  <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-[#e51d42] ring-2 ring-[#0c0c0e]" />
+                )}
+              </Link>
+            );
+          })}
+        </div>
       </aside>
     );
   }
 
+  // Full Expanded Sidebar
   return (
-    <aside className="sticky top-14 hidden md:flex h-[calc(100vh-3.5rem)] w-60 flex-col overflow-y-auto px-3 py-3 bg-black text-zinc-200 border-r border-white/[0.08] scrollbar-none">
-      {/* Primary Section */}
-      <div className="space-y-1 pb-3 border-b border-white/[0.08]">
-        {mainLinks.map((item) => {
-          const isActive = isItemActive(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-4 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ease-out",
-                isActive
-                  ? "bg-white/[0.08] text-white font-semibold shadow-sm"
-                  : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
-              )}
-            >
-              <SidebarIcon icon={item.icon} isActive={isActive} label={item.label} />
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
+    <aside className="sticky top-14 hidden md:flex h-[calc(100vh-3.5rem)] w-60 flex-col overflow-y-auto px-3 py-3 bg-[#0c0c0e] text-zinc-200 border-r border-white/[0.06] select-none scrollbar-none">
+      {/* Top Header: Logo + Collapse Button (matching LUDUVO style) */}
+      <div className="flex items-center justify-between px-2 pt-1 pb-3 mb-1">
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <img
+            src="/entropy-icon.png"
+            alt="Entropy logo"
+            className="h-6 w-6 object-contain group-hover:scale-105 transition-transform"
+          />
+          <span className="font-extrabold text-[17px] tracking-wider text-white uppercase font-sans">
+            ENTROPY
+          </span>
+        </Link>
+        <button
+          type="button"
+          onClick={handleToggleCollapse}
+          className="text-zinc-400 hover:text-white p-1.5 rounded-lg hover:bg-white/[0.06] transition-colors cursor-pointer"
+          title="Collapse sidebar"
+          aria-label="Collapse sidebar"
+        >
+          <PanelLeft className="h-4 w-4" strokeWidth={1.8} />
+        </button>
       </div>
 
-      {/* Library Section */}
-      <div className="space-y-1 py-3 border-b border-white/[0.08]">
-        <h3 className="px-3.5 text-[11px] font-bold uppercase tracking-wider text-zinc-500">
-          You
-        </h3>
-        {libraryLinks.map((item) => {
+      {/* Navigation List */}
+      <div className="space-y-0.5">
+        {navItems.map((item) => {
           const isActive = isItemActive(item.href);
+          const Icon = item.icon;
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-4 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ease-out",
+                "group flex items-center justify-between px-3.5 py-2.5 rounded-xl text-[13.5px] font-medium transition-all duration-150 select-none",
                 isActive
-                  ? "bg-white/[0.08] text-white font-semibold shadow-sm"
-                  : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
+                  ? "bg-[#181818] text-white font-semibold shadow-sm"
+                  : "text-zinc-300 hover:text-white hover:bg-white/[0.05]"
               )}
             >
-              <SidebarIcon icon={item.icon} isActive={isActive} label={item.label} />
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
-      </div>
-
-      {/* Explore Section */}
-      <div className="space-y-1 py-3">
-        <h3 className="px-3.5 text-[11px] font-bold uppercase tracking-wider text-zinc-500">
-          Explore
-        </h3>
-        {exploreLinks.map((item) => {
-          const isActive = isItemActive(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-4 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ease-out",
-                isActive
-                  ? "bg-white/[0.08] text-white font-semibold shadow-sm"
-                  : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
+              <div className="flex items-center gap-3.5 min-w-0">
+                <Icon
+                  className={cn(
+                    "h-[18px] w-[18px] flex-shrink-0 transition-colors",
+                    isActive ? "text-white" : "text-zinc-400 group-hover:text-white"
+                  )}
+                  strokeWidth={1.8}
+                />
+                <span className="truncate">{item.label}</span>
+              </div>
+              {item.badge !== undefined && (
+                <span className="ml-auto flex-shrink-0 bg-[#e51d42] text-white text-[11px] font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center leading-tight shadow-sm">
+                  {item.badge}
+                </span>
               )}
-            >
-              <SidebarIcon icon={item.icon} isActive={isActive} label={item.label} />
-              <span>{item.label}</span>
+              {item.hasExternal && (
+                <ExternalLink
+                  className="ml-auto h-3.5 w-3.5 text-zinc-500 group-hover:text-zinc-300 transition-colors flex-shrink-0"
+                  strokeWidth={1.8}
+                />
+              )}
             </Link>
           );
         })}

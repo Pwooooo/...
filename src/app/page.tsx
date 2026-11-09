@@ -47,10 +47,13 @@ export default function HomePage() {
       setAllVideos(getAllCombinedVideos());
     };
 
+    const toggleSidebar = () => setCollapsedSidebar((prev) => !prev);
+    window.addEventListener("entropy_toggle_sidebar", toggleSidebar);
     window.addEventListener("entropy_videos_updated", loadVideos);
     window.addEventListener("entropy_user_updated", loadVideos);
     window.addEventListener("storage", loadVideos);
     return () => {
+      window.removeEventListener("entropy_toggle_sidebar", toggleSidebar);
       window.removeEventListener("entropy_videos_updated", loadVideos);
       window.removeEventListener("entropy_user_updated", loadVideos);
       window.removeEventListener("storage", loadVideos);
