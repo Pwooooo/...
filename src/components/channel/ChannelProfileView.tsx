@@ -30,6 +30,7 @@ import Link from "next/link";
 import CommunityTab from "@/components/channel/CommunityTab";
 import { getAllCombinedVideos, fetchServerVideos, isUserVideoOwner } from "@/lib/video-storage";
 import VerifiedBadge from "@/components/common/VerifiedBadge";
+import { formatSubscribers } from "@/lib/utils";
 import {
   findUserByHandle,
   fetchRemoteUserByHandle,
@@ -147,6 +148,24 @@ export default function ChannelProfileView({
     }
   }, [isOwnProfile]);
 
+  // Sync subscription state with localStorage
+  useEffect(() => {
+    if (!cleanHandle || typeof window === "undefined") return;
+    const chKey = `entropy_subscribed_${cleanHandle.toLowerCase()}`;
+    const checkSub = () => {
+      try {
+        setIsSubscribed(localStorage.getItem(chKey) === "true");
+      } catch {}
+    };
+    checkSub();
+    window.addEventListener("entropy_subscriptions_updated", checkSub);
+    window.addEventListener("storage", checkSub);
+    return () => {
+      window.removeEventListener("entropy_subscriptions_updated", checkSub);
+      window.removeEventListener("storage", checkSub);
+    };
+  }, [cleanHandle]);
+
   // If handle is not found locally, query Key-Value store via API
   useEffect(() => {
     if (cleanHandle && !isOwnProfile && !findUserByHandle(cleanHandle)) {
@@ -251,6 +270,14 @@ export default function ChannelProfileView({
     );
   }
 
+  // Resolve channel subscriber count from videos, registered user, or auth user
+  const channelSubscribers =
+    (channelVideos.find((v) => typeof v.channel?.subscribersCount === "number" && v.channel.subscribersCount > 0)?.channel?.subscribersCount) ??
+    (registeredUser?.subscribersCount) ??
+    (isOwnProfile && typeof user?.subscribersCount === "number" ? user.subscribersCount : undefined) ??
+    (channelVideos[0]?.channel?.subscribersCount) ??
+    0;
+
   // Resolve channel metadata
   const channel = isOwnProfile && user
     ? {
@@ -261,7 +288,7 @@ export default function ChannelProfileView({
         description: user.bio || "Welcome to my Entropy channel!",
         country: user.country || "",
         joinedAt: user.joinedAt || "Joined recently",
-        subscribersCount: 0,
+        subscribersCount: channelSubscribers,
       }
     : registeredUser
     ? {
@@ -272,7 +299,7 @@ export default function ChannelProfileView({
         description: registeredUser.bio || `Official channel for @${registeredUser.handle}.`,
         country: registeredUser.country || "",
         joinedAt: registeredUser.joinedAt || "Joined recently",
-        subscribersCount: 0,
+        subscribersCount: channelSubscribers,
       }
     : {
         id: channelVideos[0]?.channel?.id || `ch-${cleanHandle}`,
@@ -282,10 +309,22 @@ export default function ChannelProfileView({
         description: `Official channel for @${cleanHandle}. Watch the latest releases and live streams.`,
         country: "",
         joinedAt: "Joined recently",
-        subscribersCount: channelVideos[0]?.channel?.subscribersCount || 0,
+        subscribersCount: channelSubscribers,
       };
 
   const totalViews = channelVideos.reduce((acc, v) => acc + (v.viewCount || 0), 0);
+
+  const handleToggleSubscribe = () => {
+    if (!cleanHandle) return;
+    const next = !isSubscribed;
+    setIsSubscribed(next);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(`entropy_subscribed_${cleanHandle.toLowerCase()}`, next ? "true" : "false");
+        window.dispatchEvent(new Event("entropy_subscriptions_updated"));
+      } catch {}
+    }
+  };
 
   const handleShare = () => {
     if (typeof window !== "undefined") {
@@ -463,7 +502,7 @@ export default function ChannelProfileView({
                       </Link>
                       <span className="text-zinc-600">•</span>
                       <span>
-                        {(channel.subscribersCount || 0) + (isSubscribed ? 1 : 0)} subscribers
+                        {formatSubscribers((channel.subscribersCount || 0) + (isSubscribed ? 1 : 0))}
                       </span>
                       <span className="text-zinc-600">•</span>
                       <span>{channelVideos.length} {channelVideos.length === 1 ? "video" : "videos"}</span>
@@ -539,7 +578,7 @@ export default function ChannelProfileView({
                     <>
                       <button
                         type="button"
-                        onClick={() => setIsSubscribed(!isSubscribed)}
+                        onClick={handleToggleSubscribe}
                         className={`flex items-center gap-2 rounded-full px-5 py-2 text-xs font-bold transition-all cursor-pointer shadow-md ${
                           isSubscribed
                             ? "bg-zinc-800 hover:bg-zinc-700 text-white"

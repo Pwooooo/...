@@ -476,6 +476,17 @@ function WatchContent() {
         syncVideoVote(currentVideo.id, localLikes, 0, localLikes, resolvedDislikes);
       }
 
+      const chHandle = (currentVideo.channel?.handle || "").replace(/^@/, "").trim().toLowerCase();
+      const checkSub = () => {
+        if (!chHandle) return;
+        try {
+          setIsSubscribed(localStorage.getItem(`entropy_subscribed_${chHandle}`) === "true");
+        } catch {}
+      };
+      checkSub();
+      window.addEventListener("entropy_subscriptions_updated", checkSub);
+      window.addEventListener("storage", checkSub);
+
       const cleanCommentList = (arr: CommentItem[]) =>
         arr.filter((c: CommentItem) => {
           if (!c || typeof c !== "object") return false;
@@ -1002,9 +1013,17 @@ function WatchContent() {
   };
 
   const handleToggleSubscribe = () => {
-    if (!currentVideo) return;
-    setIsSubscribed(!isSubscribed);
-    showToast(!isSubscribed ? `Subscribed to @${currentVideo.channel.handle}` : "Subscription removed");
+    if (!currentVideo?.channel) return;
+    const chHandle = (currentVideo.channel.handle || "").replace(/^@/, "").trim().toLowerCase();
+    const next = !isSubscribed;
+    setIsSubscribed(next);
+    if (typeof window !== "undefined" && chHandle) {
+      try {
+        localStorage.setItem(`entropy_subscribed_${chHandle}`, next ? "true" : "false");
+        window.dispatchEvent(new Event("entropy_subscriptions_updated"));
+      } catch {}
+    }
+    showToast(next ? `Subscribed to @${currentVideo.channel.handle}` : "Subscription removed");
   };
 
   const handleSeekToChapter = (seconds: number) => {
@@ -1189,10 +1208,10 @@ function WatchContent() {
                 className="font-semibold text-sm text-white hover:text-zinc-300 transition-colors flex items-center gap-1.5"
               >
                 <span>{currentVideo.channel.displayName}</span>
-                <VerifiedBadge subscribersCount={currentVideo.channel.subscribersCount} className="h-4 w-4" />
+                <VerifiedBadge subscribersCount={(currentVideo.channel.subscribersCount || 0) + (isSubscribed ? 1 : 0)} className="h-4 w-4" />
               </Link>
               <p className="text-xs text-zinc-400">
-                {formatSubscribers(currentVideo.channel.subscribersCount)}
+                {formatSubscribers((currentVideo.channel.subscribersCount || 0) + (isSubscribed ? 1 : 0))}
               </p>
             </div>
 

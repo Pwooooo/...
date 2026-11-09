@@ -10,6 +10,7 @@ export interface UserRecord {
   bio?: string;
   country?: string;
   joinedAt?: string;
+  subscribersCount?: number;
 }
 
 const REGISTERED_USERS_KEY = "entropy_registered_users";
@@ -114,7 +115,8 @@ export function findUserByHandle(rawHandle: string): UserRecord | null {
         handle: clean,
         avatarUrl: ch.avatarUrl || undefined,
         bio: `Official channel for @${clean}.`,
-        joinedAt: "Joined recently",
+        joinedAt: ch.joinedAt || "Joined recently",
+        subscribersCount: ch.subscribersCount,
       };
     }
   } catch {}

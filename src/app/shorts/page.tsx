@@ -209,6 +209,16 @@ export default function ShortsPage() {
           }
         });
 
+        const storedSub: Record<string, boolean> = {};
+        shortsOnly.forEach((v) => {
+          const h = (v.channel?.handle || "").replace(/^@/, "").trim().toLowerCase();
+          if (h && localStorage.getItem(`entropy_subscribed_${h}`) === "true") {
+            storedSub[v.channel.handle] = true;
+            storedSub[h] = true;
+          }
+        });
+        setSubscribedMap(storedSub);
+
         setLikedMap(storedLiked);
         setDislikedMap(storedDisliked);
         setLikes(storedLikes);
@@ -470,7 +480,17 @@ export default function ShortsPage() {
   };
 
   const toggleSubscribe = (handle: string) => {
-    setSubscribedMap((prev) => ({ ...prev, [handle]: !prev[handle] }));
+    const clean = handle.replace(/^@/, "").trim().toLowerCase();
+    setSubscribedMap((prev) => {
+      const nextVal = !prev[handle];
+      if (typeof window !== "undefined" && clean) {
+        try {
+          localStorage.setItem(`entropy_subscribed_${clean}`, nextVal ? "true" : "false");
+          window.dispatchEvent(new Event("entropy_subscriptions_updated"));
+        } catch {}
+      }
+      return { ...prev, [handle]: nextVal, [clean]: nextVal };
+    });
   };
 
   const handleAddComment = (e: React.FormEvent) => {
