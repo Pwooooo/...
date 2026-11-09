@@ -168,7 +168,7 @@ function SidebarContent({
         />
 
         {/* Slide-over Drawer */}
-        <aside className="relative flex h-full w-60 flex-col bg-[#0c0c0e] text-zinc-200 border-r border-white/[0.08] z-50 overflow-y-auto px-3 py-3 shadow-2xl animate-in slide-in-from-left duration-250 select-none scrollbar-none">
+        <aside className="relative flex h-full w-60 flex-col bg-[#0c0c0e] text-zinc-200 border-r border-white/[0.08] z-50 overflow-y-auto px-3 py-3 shadow-2xl animate-in slide-in-from-left duration-250 select-none scrollbar-none font-sidebar">
           {/* Header: Logo + Collapse Icon */}
           <div className="flex items-center justify-between px-2 pt-1 pb-3 mb-1">
             <Link href="/" onClick={onClose} className="flex items-center gap-2.5 group">
@@ -242,7 +242,7 @@ function SidebarContent({
   // Collapsed Sidebar (Compact Strip)
   if (isCollapsed) {
     return (
-      <aside className="sticky top-14 flex h-[calc(100vh-3.5rem)] w-16 flex-col items-center py-3 bg-[#0c0c0e] text-zinc-300 border-r border-white/[0.06] select-none scrollbar-none overflow-y-auto">
+      <aside className="sticky top-14 flex h-[calc(100vh-3.5rem)] w-16 flex-col items-center py-3 bg-[#0c0c0e] text-zinc-300 border-r border-white/[0.06] select-none scrollbar-none overflow-y-auto font-sidebar">
         <button
           type="button"
           onClick={handleToggleCollapse}
@@ -283,7 +283,7 @@ function SidebarContent({
 
   // Full Expanded Sidebar
   return (
-    <aside className="sticky top-14 hidden md:flex h-[calc(100vh-3.5rem)] w-60 flex-col overflow-y-auto px-3 py-3 bg-[#0c0c0e] text-zinc-200 border-r border-white/[0.06] select-none scrollbar-none">
+    <aside className="sticky top-14 hidden md:flex h-[calc(100vh-3.5rem)] w-60 flex-col overflow-y-auto px-3 py-3 bg-[#0c0c0e] text-zinc-200 border-r border-white/[0.06] select-none scrollbar-none font-sidebar">
       {/* Top Header: Logo + Collapse Button (matching LUDUVO style) */}
       <div className="flex items-center justify-between px-2 pt-1 pb-3 mb-1">
         <Link href="/" className="flex items-center gap-2.5 group">

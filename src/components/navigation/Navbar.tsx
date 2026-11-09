@@ -103,28 +103,17 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
   };
 
   return (
-    <header className="sticky top-0 z-50 flex h-14 w-full items-center justify-between bg-black/95 backdrop-blur-md px-4 text-white">
-      {/* Left: Hamburger + Brand Logo */}
-      <div className="flex items-center gap-4">
+    <header className="sticky top-0 z-50 flex h-14 w-full items-center justify-between bg-black/95 backdrop-blur-md px-4 text-white font-taskbar">
+      {/* Left: Sidebar Toggle */}
+      <div className="flex items-center">
         <button
           type="button"
           onClick={onToggleSidebar}
-          className="rounded-full p-2 hover:bg-white/[0.08] focus:outline-none transition-colors"
+          className="rounded-full p-2 hover:bg-white/[0.08] focus:outline-none transition-colors cursor-pointer"
           aria-label="Toggle menu"
         >
           <Menu className="h-5 w-5 text-zinc-300" />
         </button>
-
-        <Link href="/" className="flex items-center gap-2.5 focus:outline-none group">
-          <img
-            src="/entropy-icon.png"
-            alt="Entropy logo"
-            className="h-8 w-8 object-contain group-hover:scale-110 transition-transform"
-          />
-          <span className="font-bold text-lg tracking-tight text-white">
-            Entropy
-          </span>
-        </Link>
       </div>
 
       {/* Center: Search Bar (Subtle Outline) */}
