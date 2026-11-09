@@ -108,8 +108,61 @@ export function isNextJsFillerVideo(video?: { id?: string; title?: string; chann
   return isFillerVideo(video);
 }
 
-// ----------------- Base Static Videos (All Stock Videos Removed) -----------------
-export const DEFAULT_ENTROPY_VIDEOS: VideoItem[] = [];
+// ----------------- Base Static Videos -----------------
+export const DEFAULT_ENTROPY_VIDEOS: VideoItem[] = [
+  {
+    id: "temp-video-1",
+    title: "Entropy Showcase & Overview",
+    description: "Welcome to Entropy! A showcase of the platform features, responsive design, and media player.",
+    thumbnailUrl: "/thumbnails/temp-video-1.jpg",
+    rawVideoUrl: "/videos/temp-video-1.mp4",
+    masterPlaylistUrl: "/videos/temp-video-1.mp4",
+    durationSeconds: 62,
+    viewCount: 1240,
+    likesCount: 88,
+    dislikesCount: 2,
+    comments: [],
+    publishedAt: "2026-11-08T12:00:00.000Z",
+    channel: {
+      id: "u-entropy-official",
+      handle: "entropy",
+      displayName: "Entropy",
+      avatarUrl: "/entropy-icon.png",
+      subscribersCount: 105000,
+      joinedAt: "Joined Nov 2026",
+    },
+    featured: true,
+    category: "Technology",
+    tags: ["entropy", "showcase", "testing", "tech"],
+    isShort: false,
+  },
+  {
+    id: "temp-short-1",
+    title: "Entropy Gameplay Flow 🔥",
+    description: "Testing out the vertical shorts player on Entropy! #shorts #gaming",
+    thumbnailUrl: "/thumbnails/temp-short-1.jpg",
+    rawVideoUrl: "/videos/temp-short-1.mp4",
+    masterPlaylistUrl: "/videos/temp-short-1.mp4",
+    durationSeconds: 10,
+    viewCount: 4520,
+    likesCount: 342,
+    dislikesCount: 5,
+    comments: [],
+    publishedAt: "2026-11-09T08:00:00.000Z",
+    channel: {
+      id: "u-entropy-official",
+      handle: "entropy",
+      displayName: "Entropy",
+      avatarUrl: "/entropy-icon.png",
+      subscribersCount: 105000,
+      joinedAt: "Joined Nov 2026",
+    },
+    category: "Shorts",
+    tags: ["shorts", "entropy", "testing", "gaming"],
+    isShort: true,
+    songName: "Original Audio - Entropy",
+  },
+];
 
 export function getBaseVideos(): VideoItem[] {
   return DEFAULT_ENTROPY_VIDEOS;
@@ -119,7 +172,7 @@ export function getBaseVideos(): VideoItem[] {
 const SERVER_CACHE_KEY = "entropy_server_videos_cache";
 const USER_UPLOADS_KEY = "entropy_user_uploaded_videos";
 const CLIENT_DELETED_KEY = "entropy_deleted_videos";
-const CACHE_PURGE_VERSION = "entropy_purge_v10";
+const CACHE_PURGE_VERSION = "entropy_purge_v11";
 
 export function getClientDeletedVideos(): Set<string> {
   if (typeof window === "undefined") return new Set();
