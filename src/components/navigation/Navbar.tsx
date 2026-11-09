@@ -104,8 +104,8 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
 
   return (
     <header className="sticky top-0 z-50 flex h-14 w-full items-center justify-between bg-black/95 backdrop-blur-md px-4 text-white font-taskbar">
-      {/* Left: Sidebar Toggle */}
-      <div className="flex items-center">
+      {/* Left: Sidebar Toggle + Logo */}
+      <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={onToggleSidebar}
@@ -114,6 +114,16 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
         >
           <Menu className="h-5 w-5 text-zinc-300" />
         </button>
+        <Link href="/" className="flex items-center gap-2 group">
+          <img
+            src="/entropy-icon.png"
+            alt="Entropy"
+            className="h-6 w-6 object-contain group-hover:scale-105 transition-transform"
+          />
+          <span className="font-bold text-[17px] tracking-tight text-white hidden sm:inline">
+            Entropy
+          </span>
+        </Link>
       </div>
 
       {/* Center: Search Bar (Subtle Outline) */}

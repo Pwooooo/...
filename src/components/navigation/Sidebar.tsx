@@ -169,18 +169,8 @@ function SidebarContent({
 
         {/* Slide-over Drawer */}
         <aside className="relative flex h-full w-60 flex-col bg-[#0c0c0e] text-zinc-200 border-r border-white/[0.08] z-50 overflow-y-auto px-3 py-3 shadow-2xl animate-in slide-in-from-left duration-250 select-none scrollbar-none font-sidebar">
-          {/* Header: Logo + Collapse Icon */}
-          <div className="flex items-center justify-between px-2 pt-1 pb-3 mb-1">
-            <Link href="/" onClick={onClose} className="flex items-center gap-2.5 group">
-              <img
-                src="/entropy-icon.png"
-                alt="Entropy logo"
-                className="h-6 w-6 object-contain group-hover:scale-105 transition-transform"
-              />
-              <span className="font-extrabold text-[17px] tracking-wider text-white uppercase font-sans">
-                ENTROPY
-              </span>
-            </Link>
+          {/* Header: Collapse Icon */}
+          <div className="flex items-center justify-end px-2 pt-1 pb-3 mb-1">
             <button
               type="button"
               onClick={onClose}
@@ -284,18 +274,8 @@ function SidebarContent({
   // Full Expanded Sidebar
   return (
     <aside className="sticky top-14 hidden md:flex h-[calc(100vh-3.5rem)] w-60 flex-col overflow-y-auto px-3 py-3 bg-[#0c0c0e] text-zinc-200 border-r border-white/[0.06] select-none scrollbar-none font-sidebar">
-      {/* Top Header: Logo + Collapse Button (matching LUDUVO style) */}
-      <div className="flex items-center justify-between px-2 pt-1 pb-3 mb-1">
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <img
-            src="/entropy-icon.png"
-            alt="Entropy logo"
-            className="h-6 w-6 object-contain group-hover:scale-105 transition-transform"
-          />
-          <span className="font-extrabold text-[17px] tracking-wider text-white uppercase font-sans">
-            ENTROPY
-          </span>
-        </Link>
+      {/* Top Header: Collapse Button */}
+      <div className="flex items-center justify-end px-2 pt-1 pb-3 mb-1">
         <button
           type="button"
           onClick={handleToggleCollapse}
