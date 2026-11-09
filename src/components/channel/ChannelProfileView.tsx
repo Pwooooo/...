@@ -447,7 +447,13 @@ export default function ChannelProfileView({
                       <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white leading-tight">
                         {channel.displayName}
                       </h1>
-                      <CheckCircle2 className="h-4 w-4 text-zinc-400" />
+                      <img
+                        src="/checkmark.png?v=2"
+                        alt="Verified"
+                        title="Verified"
+                        className="h-5 w-5 object-contain inline-block flex-shrink-0 select-none"
+                        draggable={false}
+                      />
                     </div>
                     <p className="text-xs sm:text-sm text-zinc-400 font-normal mt-0.5 flex flex-wrap items-center gap-1.5">
                       <Link

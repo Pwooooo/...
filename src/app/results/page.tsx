@@ -101,7 +101,13 @@ function SearchResultsContent() {
               <h3 className="font-bold text-base text-white group-hover:text-blue-400 transition-colors">
                 {matchingChannel.name}
               </h3>
-              <CheckCircle2 className="h-4 w-4 text-zinc-400" />
+              <img
+                src="/checkmark.png?v=2"
+                alt="Verified"
+                title="Verified"
+                className="h-4 w-4 object-contain inline-block flex-shrink-0 select-none"
+                draggable={false}
+              />
             </div>
             <p className="text-xs text-zinc-400 mt-0.5">
               @{matchingChannel.handle} • Channel

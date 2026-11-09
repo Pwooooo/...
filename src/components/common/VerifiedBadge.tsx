@@ -18,9 +18,9 @@ export default function VerifiedBadge({
 
   return (
     <img
-      src="/checkmark.png"
-      alt="Verified (100k+ subscribers)"
-      title="Verified (100k+ subscribers)"
+      src="/checkmark.png?v=2"
+      alt="Verified"
+      title="Verified"
       className={`inline-block object-contain flex-shrink-0 select-none ${className}`}
       draggable={false}
     />
