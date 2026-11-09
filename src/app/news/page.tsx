@@ -1,283 +1,91 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Navbar from "@/components/navigation/Navbar";
 import Sidebar from "@/components/navigation/Sidebar";
-import VerifiedBadge from "@/components/common/VerifiedBadge";
 import {
-  ArrowBigUp,
-  ArrowBigDown,
-  MessageSquare,
-  Share2,
-  Bookmark,
-  Pin,
-  Trash2,
-  Flame,
-  Sparkles,
-  TrendingUp,
-  Rocket,
-  Plus,
-  Search,
+  Newspaper,
+  Send,
   Image as ImageIcon,
-  BarChart2,
+  ThumbsUp,
+  ThumbsDown,
+  Share2,
+  Trash2,
+  Pin,
+  Sparkles,
+  CheckCircle2,
   X,
-  ChevronDown,
-  ChevronUp,
-  ExternalLink,
+  MessageSquare,
+  BarChart2,
+  Plus,
+  ChevronLeft,
+  Tag,
+  Folder,
   Shield,
   Lock,
   Unlock,
-  RefreshCw,
   Users,
-  CheckCircle2,
-  Tag,
-  Filter,
-  SlidersHorizontal,
-  Layers,
-  Send,
-  CornerDownRight,
-  Globe,
-  Info,
+  RefreshCw,
+  ExternalLink,
+  Search,
 } from "lucide-react";
 import { NewsPost, CommunityComment, CommunityPollOption } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import { getRegisteredUsers, UserRecord } from "@/lib/user-validation";
-import { formatTimeAgo } from "@/lib/utils";
 import Link from "next/link";
 
-export interface SubredditInfo {
+export interface DiscourseCategory {
   id: string;
   name: string;
-  displayName: string;
+  color: string;
   description: string;
-  icon: string;
-  bannerColor: string;
-  membersCount: number;
-  onlineCount: number;
-  flairs: string[];
-  rules: string[];
+  subcategories: string[];
 }
 
-export const SUBREDDITS: SubredditInfo[] = [
+export const FORUM_CATEGORIES: DiscourseCategory[] = [
   {
-    id: "all",
-    name: "r/all",
-    displayName: "All Communities",
-    description: "The front page of Entropy. Explore the top trending discussions, guides, announcements, and polls from across the entire platform.",
-    icon: "🌐",
-    bannerColor: "from-orange-500/20 via-rose-500/10 to-transparent",
-    membersCount: 105000,
-    onlineCount: 2430,
-    flairs: ["Official", "Guide", "Discussion", "Showcase", "Feature Request", "Bug"],
-    rules: [
-      "Be respectful to all members and creators",
-      "No spam, harassment, or self-promotion without context",
-      "Keep posts relevant to the Entropy platform and video creation",
-      "Flair your posts appropriately",
-    ],
+    id: "updates",
+    name: "Updates",
+    color: "#F1592A",
+    description: "Official platform announcements, patch notes, video player releases, and news from the Entropy team.",
+    subcategories: ["Announcements", "Patch Notes", "Platform Releases", "Creator News"],
   },
   {
-    id: "announcements",
-    name: "r/announcements",
-    displayName: "Platform Announcements",
-    description: "Official releases, patch notes, video player upgrades, and ecosystem updates straight from the Entropy team.",
-    icon: "📢",
-    bannerColor: "from-orange-600/25 via-amber-600/10 to-transparent",
-    membersCount: 105000,
-    onlineCount: 1840,
-    flairs: ["Official", "Release", "Patch Notes", "Event"],
-    rules: [
-      "Official posts and discussions on updates only",
-      "Keep comments constructive and focused on releases",
-      "Report urgent issues directly to r/bugreports",
-    ],
+    id: "community",
+    name: "Community",
+    color: "#12A89D",
+    description: "Show off your channels, share videos, collaborate with fellow creators, and discuss video creation.",
+    subcategories: ["Creator Showcase", "General Discussion", "Collaborations", "Feedback & Advice", "Off-Topic"],
   },
   {
-    id: "creators",
-    name: "r/creators",
-    displayName: "Creator Hub",
-    description: "Connect with fellow creators, share video editing setups, trade production tips, and collaborate on new content.",
-    icon: "🎬",
-    bannerColor: "from-emerald-500/20 via-teal-500/10 to-transparent",
-    membersCount: 42300,
-    onlineCount: 890,
-    flairs: ["Guide", "Collaboration", "Showcase", "Question", "Tip"],
-    rules: [
-      "Constructive feedback only when reviewing channels",
-      "No sub4sub or spam links",
-      "Share genuine production and growth insights",
-    ],
+    id: "help-feedback",
+    name: "Help & Feedback",
+    color: "#0E76BD",
+    description: "Get help with streaming, video uploads, Creator Studio tools, channel setup, and playback support.",
+    subcategories: ["Studio & Uploads", "Streaming & Playback", "Channel & Customization", "Account Support", "Creator Tips"],
   },
   {
-    id: "videos",
-    name: "r/videos",
-    displayName: "Video Discussions",
-    description: "Discuss uploaded videos, gameplay highlights, shorts, animations, and community video banter.",
-    icon: "🍿",
-    bannerColor: "from-blue-500/20 via-indigo-500/10 to-transparent",
-    membersCount: 68100,
-    onlineCount: 1220,
-    flairs: ["Discussion", "Highlight", "Shorts", "Feedback"],
-    rules: [
-      "Keep discussions respectful and safe for work",
-      "No copyright-violating content",
-      "Provide context when sharing video highlights",
-    ],
+    id: "bug-reports",
+    name: "Bug Reports",
+    color: "#BF1A2F",
+    description: "Found an issue with video playback, upload processing, Creator Studio, or the UI? Report it here.",
+    subcategories: ["Video Player", "Studio & Uploads", "Website & UI", "Shorts & Feeds", "General Issues"],
   },
   {
-    id: "feedback",
-    name: "r/feedback",
-    displayName: "Feature Requests & Ideas",
-    description: "Suggest new player controls, Creator Studio features, and website improvements. Vote on upcoming roadmaps.",
-    icon: "💡",
-    bannerColor: "from-amber-500/20 via-yellow-500/10 to-transparent",
-    membersCount: 31400,
-    onlineCount: 450,
-    flairs: ["Feature Request", "UI/UX", "Idea", "In Review", "Implemented"],
-    rules: [
-      "Search before posting duplicate feature suggestions",
-      "Be specific about what problem your idea solves",
-      "Be civil in roadmap debates",
-    ],
-  },
-  {
-    id: "bugreports",
-    name: "r/bugreports",
-    displayName: "Bug Reports",
-    description: "Found an issue with video playback, upload processing, Creator Studio, or browser glitches? Report it here.",
-    icon: "🐛",
-    bannerColor: "from-rose-500/20 via-red-500/10 to-transparent",
-    membersCount: 18900,
-    onlineCount: 310,
-    flairs: ["Bug", "Investigating", "Fixed", "Playback", "Upload"],
-    rules: [
-      "Include browser, device, and reproduction steps",
-      "Avoid duplicate bug reports when possible",
-      "Respect moderators testing and verifying patches",
-    ],
+    id: "feature-requests",
+    name: "Feature Requests",
+    color: "#3AB54A",
+    description: "Share your ideas for new video player tools, Creator Studio enhancements, and platform improvements.",
+    subcategories: ["Player & Viewing", "Creator Studio", "Channels & Social", "Shorts & Discovery", "Platform Ideas"],
   },
 ];
 
-const INITIAL_SEED_POSTS: NewsPost[] = [
-  {
-    id: "post-seed-announcement-1",
-    title: "Entropy v2.4 Launch: Native Video Streaming Engine, Fluid Sidebar & Community Hub!",
-    subreddit: "r/announcements",
-    flair: "Official",
-    channelHandle: "entropy",
-    channelName: "Entropy",
-    channelAvatar: "/entropy-icon.png",
-    content: `We've officially rolled out our new desktop-grade responsive experience! Here is what's fresh in this release:
-
-🚀 Performance & Media:
-• Full H.264 smooth streaming with HTTP 206 byte-range partial content support for both horizontal videos and vertical shorts.
-• High-definition responsive thumbnails and zero-delay playback resumption.
-• Verified Creator Badges: Channels with 100k+ subscribers now sport the official checkmark badge.
-
-💬 Reddit-Style Community:
-• Upvote & downvote score system with live feedback.
-• Community flairs, threaded replies, and interactive polls.
-• Category subreddits for focused discussions, bug tracking, and creator collabs.
-
-Let us know what you think in the comments below!`,
-    publishedAt: new Date(Date.now() - 3600 * 1000 * 4).toISOString(),
-    likes: 428,
-    dislikes: 6,
-    tag: "Announcements",
-    isPinned: true,
-    comments: [
-      {
-        id: "c-seed-1",
-        authorHandle: "0",
-        authorName: "0",
-        authorAvatar: "/entropy-icon.png",
-        content: "Huge milestone for the platform. Drop your feature requests and bugs in r/feedback and r/bugreports!",
-        createdAt: new Date(Date.now() - 3600 * 1000 * 3).toISOString(),
-        likes: 84,
-        isOp: false,
-      },
-      {
-        id: "c-seed-2",
-        authorHandle: "entropy",
-        authorName: "Entropy",
-        authorAvatar: "/entropy-icon.png",
-        content: "Video uploads are actively monitored. Feel free to test both landscape and vertical shorts!",
-        createdAt: new Date(Date.now() - 3600 * 1000 * 2).toISOString(),
-        likes: 42,
-        isOp: true,
-      },
-    ],
-  },
-  {
-    id: "post-seed-creator-1",
-    title: "Creator Guide: Recommended Export Settings for Shorts and Longform Videos",
-    subreddit: "r/creators",
-    flair: "Guide",
-    channelHandle: "0",
-    channelName: "0",
-    channelAvatar: "/entropy-icon.png",
-    content: `Hey creators! For the smoothest possible playback across all browsers (Chrome, Edge, Safari, Firefox):
-
-📹 Shorts (Vertical):
-• Resolution: 1080x1920 (9:16 aspect ratio)
-• Length: Up to 60 seconds
-• Codec: H.264 High Profile / AAC Audio
-
-🎥 Longform (Horizontal):
-• Resolution: 1920x1080 or 4K (16:9 aspect ratio)
-• Codec: H.264 / AAC 48kHz
-
-Drop any encoding or DaVinci / Premiere export questions below!`,
-    publishedAt: new Date(Date.now() - 3600 * 1000 * 14).toISOString(),
-    likes: 215,
-    dislikes: 3,
-    tag: "Creator Showcase",
-    comments: [],
-  },
-  {
-    id: "post-seed-poll-1",
-    title: "Community Poll: What feature should we prioritize next on Entropy?",
-    subreddit: "r/feedback",
-    flair: "Feature Request",
-    channelHandle: "entropy",
-    channelName: "Entropy",
-    channelAvatar: "/entropy-icon.png",
-    content: "We're planning out the next roadmap sprint. Cast your vote below to help shape what we build next!",
-    pollOptions: [
-      { id: "opt-1", text: "Custom Playlists & Video Queuing", votes: 142 },
-      { id: "opt-2", text: "Live Streaming & Real-Time Chat", votes: 218 },
-      { id: "opt-3", text: "Creator Studio Analytics Dashboard V2", votes: 97 },
-      { id: "opt-4", text: "Dark/OLED Custom Theme Packs", votes: 64 },
-    ],
-    publishedAt: new Date(Date.now() - 3600 * 1000 * 22).toISOString(),
-    likes: 356,
-    dislikes: 4,
-    tag: "Feature Requests",
-    comments: [],
-  },
-];
-
-export default function RedditNewsPage() {
+export default function GlobalNewsPage() {
   const { user, openAuthModal } = useAuth();
   const [collapsedSidebar, setCollapsedSidebar] = useState(false);
   const [posts, setPosts] = useState<NewsPost[]>([]);
 
-  // Subreddit & Filter state
-  const [activeSubredditId, setActiveSubredditId] = useState<string>("all");
-  const [activeFlair, setActiveFlair] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState<"hot" | "new" | "top" | "rising">("hot");
-  const [viewMode, setViewMode] = useState<"card" | "compact">("card");
-
-  // Admin / @0 check
   const [localIsZero, setLocalIsZero] = useState(false);
-  const [isUsersUnlocked, setIsUsersUnlocked] = useState(false);
-  const [usersPasswordInput, setUsersPasswordInput] = useState("");
-  const [usersPasswordError, setUsersPasswordError] = useState("");
-  const [allPlatformUsers, setAllPlatformUsers] = useState<UserRecord[]>([]);
-  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
-  const [usersSearchQuery, setUsersSearchQuery] = useState("");
-  const [showAdminTab, setShowAdminTab] = useState(false);
 
   useEffect(() => {
     const checkUserZero = () => {
@@ -317,101 +125,131 @@ export default function RedditNewsPage() {
     };
   }, [user]);
 
-  // Load URL query params
+  const isUserZero = localIsZero;
+  const [activeTab, setActiveTab] = useState<"categories" | "latest" | "top" | "users">("categories");
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [activeSubcategory, setActiveSubcategory] = useState<string | null>(null);
+
+  // Locked Users Panel state (only for @0)
+  const [isUsersUnlocked, setIsUsersUnlocked] = useState(false);
+  const [usersPasswordInput, setUsersPasswordInput] = useState("");
+  const [usersPasswordError, setUsersPasswordError] = useState("");
+  const [allPlatformUsers, setAllPlatformUsers] = useState<UserRecord[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [usersSearchQuery, setUsersSearchQuery] = useState("");
+
+  const loadAllPlatformUsers = async () => {
+    setIsLoadingUsers(true);
+    try {
+      const res = await fetch("/api/users");
+      const data = await res.json();
+      const fromServer = data.success && Array.isArray(data.users) ? data.users : [];
+      const fromLocal = getRegisteredUsers();
+      const map = new Map<string, UserRecord>();
+      fromServer.forEach((u: UserRecord) => map.set(u.handle.toLowerCase(), u));
+      fromLocal.forEach((u: UserRecord) => map.set(u.handle.toLowerCase(), u));
+      setAllPlatformUsers(Array.from(map.values()));
+    } catch {
+      setAllPlatformUsers(getRegisteredUsers());
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  };
+
+  const handleUnlockUsers = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (usersPasswordInput === "entropy67") {
+      setIsUsersUnlocked(true);
+      setUsersPasswordError("");
+      loadAllPlatformUsers();
+    } else {
+      setUsersPasswordError("Incorrect password. Access denied.");
+    }
+  };
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const sp = new URLSearchParams(window.location.search);
-      const subParam = sp.get("sub") || sp.get("r");
-      if (subParam) {
-        const match = SUBREDDITS.find((s) => s.id === subParam.toLowerCase() || s.name.toLowerCase() === subParam.toLowerCase());
-        if (match) setActiveSubredditId(match.id);
-      }
       const tabParam = sp.get("tab");
-      if (tabParam === "users" && localIsZero) {
-        setShowAdminTab(true);
+      if (tabParam === "users" && isUserZero) {
+        setActiveTab("users");
+        setActiveCategory(null);
+        setActiveSubcategory(null);
       }
     }
-  }, [localIsZero]);
+  }, [isUserZero]);
 
-  // Composer modal state
-  const [isComposerOpen, setIsComposerOpen] = useState(false);
-  const [composerSubreddit, setComposerSubreddit] = useState("r/announcements");
-  const [composerTitle, setComposerTitle] = useState("");
-  const [composerBody, setComposerBody] = useState("");
-  const [composerFlair, setComposerFlair] = useState("");
-  const [composerTab, setComposerTab] = useState<"text" | "image" | "poll">("text");
+  const [showComposer, setShowComposer] = useState(false);
+  const [postText, setPostText] = useState("");
+  const [composerCategory, setComposerCategory] = useState(FORUM_CATEGORIES[0].name);
+  const [composerSubcategory, setComposerSubcategory] = useState(FORUM_CATEGORIES[0].subcategories[0]);
+  const [isPinned, setIsPinned] = useState(false);
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
+  const [showPollCreator, setShowPollCreator] = useState(false);
   const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
-  const [composerPin, setComposerPin] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Comments & Saved Map
   const [openCommentsPostId, setOpenCommentsPostId] = useState<string | null>(null);
-  const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
-  const [replyingToCommentId, setReplyingToCommentId] = useState<string | null>(null);
-  const [nestedReplyInput, setNestedReplyInput] = useState("");
-  const [savedPosts, setSavedPosts] = useState<Record<string, boolean>>({});
+  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  // Load and sync posts
   const loadPosts = () => {
     try {
       const stored = localStorage.getItem("entropy_news_posts");
-      let loaded: NewsPost[] = [];
+      let allPosts: NewsPost[] = [];
       if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          loaded = parsed;
+        allPosts = JSON.parse(stored);
+        if (Array.isArray(allPosts)) {
+          allPosts = allPosts.filter((p) => !p.id.startsWith("news-"));
+          localStorage.setItem("entropy_news_posts", JSON.stringify(allPosts));
+        } else {
+          allPosts = [];
+          localStorage.setItem("entropy_news_posts", JSON.stringify([]));
         }
       }
 
-      if (loaded.length === 0) {
-        loaded = INITIAL_SEED_POSTS;
-        localStorage.setItem("entropy_news_posts", JSON.stringify(loaded));
-      } else {
-        // Ensure initial seed posts exist if user hasn't seen them
-        const idSet = new Set(loaded.map((p) => p.id));
-        const missingSeeds = INITIAL_SEED_POSTS.filter((s) => !idSet.has(s.id));
-        if (missingSeeds.length > 0) {
-          loaded = [...missingSeeds, ...loaded];
-          localStorage.setItem("entropy_news_posts", JSON.stringify(loaded));
-        }
-      }
+      allPosts.sort((a, b) => {
+        if (a.isPinned && !b.isPinned) return -1;
+        if (!a.isPinned && b.isPinned) return 1;
+        const timeA = new Date(a.publishedAt).getTime();
+        const timeB = new Date(b.publishedAt).getTime();
+        if (isNaN(timeA) || isNaN(timeB)) return 0;
+        return timeB - timeA;
+      });
 
-      // Check saved posts
-      const savedRaw = localStorage.getItem("entropy_saved_news_posts");
-      if (savedRaw) {
-        try {
-          setSavedPosts(JSON.parse(savedRaw));
-        } catch {}
-      }
-
-      setPosts(loaded);
+      setPosts(allPosts);
     } catch {
-      setPosts(INITIAL_SEED_POSTS);
+      setPosts([]);
     }
   };
 
   useEffect(() => {
     loadPosts();
-    window.addEventListener("entropy_news_updated", loadPosts);
-    window.addEventListener("storage", loadPosts);
-    return () => {
-      window.removeEventListener("entropy_news_updated", loadPosts);
-      window.removeEventListener("storage", loadPosts);
-    };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("entropy_news_updated", loadPosts);
+      window.addEventListener("storage", loadPosts);
+      return () => {
+        window.removeEventListener("entropy_news_updated", loadPosts);
+        window.removeEventListener("storage", loadPosts);
+      };
+    }
   }, []);
 
-  const currentSubreddit = useMemo(() => {
-    return SUBREDDITS.find((s) => s.id === activeSubredditId) || SUBREDDITS[0];
-  }, [activeSubredditId]);
+  const getCategoryPostCount = (category: DiscourseCategory) => {
+    return posts.filter((p) => {
+      if (!p.tag) return false;
+      const tagLower = p.tag.toLowerCase();
+      if (tagLower === category.name.toLowerCase()) return true;
+      return category.subcategories.some((sub) => sub.toLowerCase() === tagLower);
+    }).length;
+  };
 
-  // Image upload compression
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -448,466 +286,404 @@ export default function RedditNewsPage() {
     reader.readAsDataURL(file);
   };
 
-  // Poll option controls
   const handleAddPollOption = () => {
-    if (pollOptions.length < 5) setPollOptions([...pollOptions, ""]);
+    if (pollOptions.length < 5) {
+      setPollOptions([...pollOptions, ""]);
+    }
   };
+
   const handleRemovePollOption = (idx: number) => {
-    if (pollOptions.length > 2) setPollOptions(pollOptions.filter((_, i) => i !== idx));
+    if (pollOptions.length > 2) {
+      setPollOptions(pollOptions.filter((_, i) => i !== idx));
+    }
   };
+
   const handlePollOptionChange = (idx: number, val: string) => {
     const updated = [...pollOptions];
     updated[idx] = val;
     setPollOptions(updated);
   };
 
-  // Create post
+  const handleCategoryChange = (catName: string) => {
+    setComposerCategory(catName);
+    const cat = FORUM_CATEGORIES.find((c) => c.name === catName);
+    if (cat && cat.subcategories.length > 0) {
+      setComposerSubcategory(cat.subcategories[0]);
+    } else {
+      setComposerSubcategory("");
+    }
+  };
+
   const handleCreatePost = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!composerTitle.trim()) {
-      showToast("Please provide a title for your post");
-      return;
-    }
-    if (!user) {
-      openAuthModal();
-      return;
-    }
+    if (!postText.trim() || !user) return;
 
     let pollData: CommunityPollOption[] | undefined = undefined;
-    if (composerTab === "poll") {
-      const valid = pollOptions.map((o) => o.trim()).filter(Boolean);
-      if (valid.length >= 2) {
-        pollData = valid.map((opt, idx) => ({
-          id: `opt-${idx}-${Date.now()}`,
+    if (showPollCreator) {
+      const validOptions = pollOptions.map((opt) => opt.trim()).filter(Boolean);
+      if (validOptions.length >= 2) {
+        pollData = validOptions.map((opt, i) => ({
+          id: `opt-${i}-${Date.now()}`,
           text: opt,
           votes: 0,
         }));
       }
     }
 
+    const tagToUse = composerSubcategory || composerCategory;
+
     const newPost: NewsPost = {
       id: `post-${Date.now()}`,
-      title: composerTitle.trim(),
-      subreddit: composerSubreddit,
-      flair: composerFlair || undefined,
       channelHandle: user.handle,
       channelName: user.name || user.handle,
-      channelAvatar: user.avatarUrl || user.avatar || "/default-avatar.png",
-      content: composerBody.trim() || composerTitle.trim(),
-      imageUrl: composerTab === "image" && attachedImage ? attachedImage : undefined,
+      channelAvatar: user.avatarUrl || user.avatar || "",
+      content: postText.trim(),
+      imageUrl: attachedImage || undefined,
       pollOptions: pollData,
       publishedAt: new Date().toISOString(),
-      likes: 1, // Author automatic upvote
+      likes: 0,
       dislikes: 0,
-      hasLiked: true,
+      hasLiked: false,
       hasDisliked: false,
-      tag: composerSubreddit.replace(/^r\//, ""),
-      isPinned: composerPin,
+      tag: tagToUse,
+      isPinned,
       comments: [],
     };
 
     try {
-      const updated = [newPost, ...posts];
-      setPosts(updated);
+      const stored = localStorage.getItem("entropy_news_posts");
+      const allPosts: NewsPost[] = stored ? JSON.parse(stored) : [];
+      const cleaned = Array.isArray(allPosts) ? allPosts.filter((p) => !p.id.startsWith("news-")) : [];
+      const updated = [newPost, ...cleaned];
       localStorage.setItem("entropy_news_posts", JSON.stringify(updated));
-      window.dispatchEvent(new Event("entropy_news_updated"));
 
-      setComposerTitle("");
-      setComposerBody("");
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("entropy_news_updated"));
+      }
+
+      setPostText("");
       setAttachedImage(null);
-      setComposerFlair("");
+      setShowPollCreator(false);
       setPollOptions(["", ""]);
-      setComposerPin(false);
-      setIsComposerOpen(false);
-      showToast(`Posted to ${composerSubreddit}!`);
+      setIsPinned(false);
+      setShowComposer(false);
+      showToast("Topic published successfully!");
     } catch {
-      showToast("Failed to create post. Please try again.");
+      showToast("Failed to save topic");
     }
   };
 
-  // Upvote & Downvote handler
-  const handleVote = (postId: string, direction: "up" | "down") => {
-    if (!user) {
-      openAuthModal();
-      return;
-    }
-
-    const updated = posts.map((p) => {
-      if (p.id !== postId) return p;
-
-      let likes = p.likes || 0;
-      let dislikes = p.dislikes || 0;
-      let hasLiked = Boolean(p.hasLiked);
-      let hasDisliked = Boolean(p.hasDisliked);
-
-      if (direction === "up") {
-        if (hasLiked) {
-          likes = Math.max(0, likes - 1);
-          hasLiked = false;
-        } else {
-          likes += 1;
-          hasLiked = true;
-          if (hasDisliked) {
-            dislikes = Math.max(0, dislikes - 1);
-            hasDisliked = false;
-          }
-        }
-      } else {
-        if (hasDisliked) {
-          dislikes = Math.max(0, dislikes - 1);
-          hasDisliked = false;
-        } else {
-          dislikes += 1;
-          hasDisliked = true;
-          if (hasLiked) {
-            likes = Math.max(0, likes - 1);
-            hasLiked = false;
-          }
-        }
-      }
-
-      return { ...p, likes, dislikes, hasLiked, hasDisliked };
-    });
-
-    setPosts(updated);
-    try {
-      localStorage.setItem("entropy_news_posts", JSON.stringify(updated));
-      window.dispatchEvent(new Event("entropy_news_updated"));
-    } catch {}
-  };
-
-  // Save / Bookmark post
-  const handleToggleSave = (postId: string) => {
-    const nextVal = !savedPosts[postId];
-    const updated = { ...savedPosts, [postId]: nextVal };
-    setSavedPosts(updated);
-    try {
-      localStorage.setItem("entropy_saved_news_posts", JSON.stringify(updated));
-    } catch {}
-    showToast(nextVal ? "Post saved to your bookmarks" : "Post removed from saved");
-  };
-
-  // Share post
-  const handleShare = (post: NewsPost) => {
-    if (typeof window !== "undefined") {
-      const url = `${window.location.origin}/news?post=${post.id}`;
-      navigator.clipboard?.writeText(url);
-      showToast("Reddit post link copied to clipboard!");
-    }
-  };
-
-  // Delete post
-  const handleDeletePost = (postId: string) => {
-    const updated = posts.filter((p) => p.id !== postId);
-    setPosts(updated);
-    try {
-      localStorage.setItem("entropy_news_posts", JSON.stringify(updated));
-      window.dispatchEvent(new Event("entropy_news_updated"));
-    } catch {}
-    showToast("Post deleted");
-  };
-
-  // Pin post (admin / author)
-  const handleTogglePin = (postId: string) => {
-    const updated = posts.map((p) => (p.id === postId ? { ...p, isPinned: !p.isPinned } : p));
-    setPosts(updated);
-    try {
-      localStorage.setItem("entropy_news_posts", JSON.stringify(updated));
-      window.dispatchEvent(new Event("entropy_news_updated"));
-    } catch {}
-    showToast("Post pin status updated");
-  };
-
-  // Vote on poll
   const handleVotePoll = (postId: string, optionId: string) => {
-    const updated = posts.map((p) => {
-      if (p.id !== postId || !p.pollOptions || p.pollVotedId) return p;
-      const options = p.pollOptions.map((opt) => (opt.id === optionId ? { ...opt, votes: opt.votes + 1 } : opt));
-      return { ...p, pollOptions: options, pollVotedId: optionId };
-    });
-
-    setPosts(updated);
     try {
-      localStorage.setItem("entropy_news_posts", JSON.stringify(updated));
-      window.dispatchEvent(new Event("entropy_news_updated"));
-    } catch {}
-  };
+      const stored = localStorage.getItem("entropy_news_posts");
+      const allPosts: NewsPost[] = stored ? JSON.parse(stored) : [];
 
-  // Add Comment
-  const handleAddComment = (postId: string, parentCommentId?: string) => {
-    if (!user) {
-      openAuthModal();
-      return;
-    }
-
-    const text = parentCommentId ? nestedReplyInput.trim() : (replyInputs[postId] || "").trim();
-    if (!text) return;
-
-    const newComment: CommunityComment = {
-      id: `c-${Date.now()}`,
-      authorHandle: user.handle,
-      authorName: user.name || user.handle,
-      authorAvatar: user.avatarUrl || user.avatar || "/default-avatar.png",
-      content: text,
-      createdAt: new Date().toISOString(),
-      likes: 1,
-      hasLiked: true,
-      parentId: parentCommentId,
-    };
-
-    const updated = posts.map((p) => {
-      if (p.id !== postId) return p;
-      const currentComments = p.comments || [];
-      return { ...p, comments: [...currentComments, newComment] };
-    });
-
-    setPosts(updated);
-    try {
-      localStorage.setItem("entropy_news_posts", JSON.stringify(updated));
-      window.dispatchEvent(new Event("entropy_news_updated"));
-    } catch {}
-
-    if (parentCommentId) {
-      setNestedReplyInput("");
-      setReplyingToCommentId(null);
-    } else {
-      setReplyInputs({ ...replyInputs, [postId]: "" });
-    }
-    showToast("Comment posted!");
-  };
-
-  // Vote on Comment
-  const handleCommentVote = (postId: string, commentId: string, direction: "up" | "down") => {
-    if (!user) {
-      openAuthModal();
-      return;
-    }
-
-    const updated = posts.map((p) => {
-      if (p.id !== postId || !p.comments) return p;
-      const updatedComments = p.comments.map((c) => {
-        if (c.id !== commentId) return c;
-        let likes = c.likes || 0;
-        let dislikes = c.dislikes || 0;
-        let hasLiked = Boolean(c.hasLiked);
-        let hasDisliked = Boolean(c.hasDisliked);
-
-        if (direction === "up") {
-          if (hasLiked) {
-            likes = Math.max(0, likes - 1);
-            hasLiked = false;
-          } else {
-            likes += 1;
-            hasLiked = true;
-            if (hasDisliked) {
-              dislikes = Math.max(0, dislikes - 1);
-              hasDisliked = false;
+      const updated = allPosts.map((post) => {
+        if (post.id === postId && post.pollOptions) {
+          if (post.pollVotedId) return post;
+          const options = post.pollOptions.map((opt) => {
+            if (opt.id === optionId) {
+              return { ...opt, votes: opt.votes + 1 };
             }
-          }
-        } else {
-          if (hasDisliked) {
-            dislikes = Math.max(0, dislikes - 1);
-            hasDisliked = false;
-          } else {
-            dislikes += 1;
-            hasDisliked = true;
-            if (hasLiked) {
-              likes = Math.max(0, likes - 1);
-              hasLiked = false;
-            }
-          }
+            return opt;
+          });
+          return { ...post, pollOptions: options, pollVotedId: optionId };
         }
-
-        return { ...c, likes, dislikes, hasLiked, hasDisliked };
+        return post;
       });
-      return { ...p, comments: updatedComments };
-    });
 
-    setPosts(updated);
-    try {
       localStorage.setItem("entropy_news_posts", JSON.stringify(updated));
-    } catch {}
-  };
-
-  // Admin users panel loader
-  const loadAllPlatformUsers = async () => {
-    setIsLoadingUsers(true);
-    try {
-      const res = await fetch("/api/users");
-      const data = await res.json();
-      const fromServer = data.success && Array.isArray(data.users) ? data.users : [];
-      const fromLocal = getRegisteredUsers();
-      const map = new Map<string, UserRecord>();
-      fromServer.forEach((u: UserRecord) => map.set(u.handle.toLowerCase(), u));
-      fromLocal.forEach((u: UserRecord) => map.set(u.handle.toLowerCase(), u));
-      setAllPlatformUsers(Array.from(map.values()));
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("entropy_news_updated"));
+      }
     } catch {
-      setAllPlatformUsers(getRegisteredUsers());
-    } finally {
-      setIsLoadingUsers(false);
     }
   };
 
-  const handleUnlockUsers = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (usersPasswordInput === "entropy67") {
-      setIsUsersUnlocked(true);
-      setUsersPasswordError("");
-      loadAllPlatformUsers();
-    } else {
-      setUsersPasswordError("Incorrect password. Access denied.");
-    }
-  };
+  const handleLikePost = (postId: string) => {
+    try {
+      const stored = localStorage.getItem("entropy_news_posts");
+      const allPosts: NewsPost[] = stored ? JSON.parse(stored) : [];
 
-  // Filter and sort posts
-  const filteredPosts = useMemo(() => {
-    let result = [...posts];
-
-    // Filter by Subreddit
-    if (activeSubredditId !== "all") {
-      const targetSub = SUBREDDITS.find((s) => s.id === activeSubredditId);
-      if (targetSub) {
-        result = result.filter((p) => {
-          const sub = (p.subreddit || `r/${p.tag || ""}`).toLowerCase();
-          return sub === targetSub.name.toLowerCase() || sub.includes(targetSub.id);
-        });
-      }
-    }
-
-    // Filter by Flair
-    if (activeFlair) {
-      result = result.filter((p) => p.flair === activeFlair);
-    }
-
-    // Filter by Search Query
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter((p) => {
-        return (
-          (p.title && p.title.toLowerCase().includes(q)) ||
-          p.content.toLowerCase().includes(q) ||
-          (p.channelName && p.channelName.toLowerCase().includes(q)) ||
-          p.channelHandle.toLowerCase().includes(q) ||
-          (p.flair && p.flair.toLowerCase().includes(q))
-        );
+      const updated = allPosts.map((post) => {
+        if (post.id === postId) {
+          const currentlyLiked = Boolean(post.hasLiked);
+          const currentlyDisliked = Boolean(post.hasDisliked);
+          return {
+            ...post,
+            hasLiked: !currentlyLiked,
+            likes: currentlyLiked ? Math.max(0, post.likes - 1) : post.likes + 1,
+            hasDisliked: false,
+            dislikes: currentlyDisliked ? Math.max(0, (post.dislikes || 1) - 1) : post.dislikes,
+          };
+        }
+        return post;
       });
-    }
 
-    // Sort
-    result.sort((a, b) => {
-      // Pinned posts stay at the top
-      if (a.isPinned && !b.isPinned) return -1;
-      if (!a.isPinned && b.isPinned) return 1;
-
-      const scoreA = (a.likes || 0) - (a.dislikes || 0);
-      const scoreB = (b.likes || 0) - (b.dislikes || 0);
-      const timeA = new Date(a.publishedAt).getTime() || 0;
-      const timeB = new Date(b.publishedAt).getTime() || 0;
-      const hoursA = Math.max(0.1, (Date.now() - timeA) / (1000 * 3600));
-      const hoursB = Math.max(0.1, (Date.now() - timeB) / (1000 * 3600));
-
-      if (sortBy === "new") {
-        return timeB - timeA;
+      localStorage.setItem("entropy_news_posts", JSON.stringify(updated));
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("entropy_news_updated"));
       }
-      if (sortBy === "top") {
-        return scoreB - scoreA;
-      }
-      if (sortBy === "rising") {
-        const risingA = scoreA / Math.sqrt(hoursA);
-        const risingB = scoreB / Math.sqrt(hoursB);
-        return risingB - risingA;
-      }
-      // Hot: Reddit style time-decay score
-      const hotA = scoreA / Math.pow(hoursA + 2, 1.4);
-      const hotB = scoreB / Math.pow(hoursB + 2, 1.4);
-      return hotB - hotA;
-    });
-
-    return result;
-  }, [posts, activeSubredditId, activeFlair, searchQuery, sortBy]);
-
-  // Flair badge helper
-  const getFlairColor = (flair?: string) => {
-    switch (flair) {
-      case "Official":
-        return "bg-orange-500/15 text-[#FF4500] border-orange-500/30";
-      case "Release":
-      case "Patch Notes":
-        return "bg-blue-500/15 text-blue-400 border-blue-500/30";
-      case "Guide":
-      case "Tip":
-        return "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
-      case "Showcase":
-        return "bg-purple-500/15 text-purple-400 border-purple-500/30";
-      case "Feature Request":
-      case "Idea":
-        return "bg-amber-500/15 text-amber-400 border-amber-500/30";
-      case "Bug":
-        return "bg-rose-500/15 text-rose-400 border-rose-500/30";
-      default:
-        return "bg-white/[0.08] text-zinc-300 border-white/10";
+    } catch {
     }
   };
+
+  const handleDislikePost = (postId: string) => {
+    try {
+      const stored = localStorage.getItem("entropy_news_posts");
+      const allPosts: NewsPost[] = stored ? JSON.parse(stored) : [];
+
+      const updated = allPosts.map((post) => {
+        if (post.id === postId) {
+          const currentlyDisliked = Boolean(post.hasDisliked);
+          const currentlyLiked = Boolean(post.hasLiked);
+          return {
+            ...post,
+            hasDisliked: !currentlyDisliked,
+            dislikes: currentlyDisliked ? Math.max(0, (post.dislikes || 1) - 1) : (post.dislikes || 0) + 1,
+            hasLiked: false,
+            likes: currentlyLiked ? Math.max(0, post.likes - 1) : post.likes,
+          };
+        }
+        return post;
+      });
+
+      localStorage.setItem("entropy_news_posts", JSON.stringify(updated));
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("entropy_news_updated"));
+      }
+    } catch {
+    }
+  };
+
+  const handleDeletePost = (postId: string) => {
+    try {
+      const stored = localStorage.getItem("entropy_news_posts");
+      if (stored) {
+        const allPosts: NewsPost[] = JSON.parse(stored);
+        const updated = allPosts.filter((p) => p.id !== postId);
+        localStorage.setItem("entropy_news_posts", JSON.stringify(updated));
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("entropy_news_updated"));
+        }
+        showToast("Topic deleted");
+      }
+    } catch {
+      showToast("Failed to delete topic");
+    }
+  };
+
+  const handleSharePost = (post: NewsPost) => {
+    if (typeof window !== "undefined") {
+      const url = `${window.location.origin}/news#${post.id}`;
+      navigator.clipboard.writeText(url);
+      showToast("Link copied to clipboard!");
+    }
+  };
+
+  const handleAddComment = (postId: string) => {
+    const text = commentInputs[postId]?.trim();
+    if (!text || !user) return;
+
+    try {
+      const stored = localStorage.getItem("entropy_news_posts");
+      const allPosts: NewsPost[] = stored ? JSON.parse(stored) : [];
+
+      const newComment: CommunityComment = {
+        id: `comm-${Date.now()}`,
+        authorHandle: user.handle,
+        authorName: user.name || user.handle,
+        authorAvatar: user.avatarUrl || user.avatar || "",
+        content: text,
+        createdAt: new Date().toISOString(),
+        likes: 0,
+        hasLiked: false,
+      };
+
+      const updated = allPosts.map((post) => {
+        if (post.id === postId) {
+          return {
+            ...post,
+            comments: [newComment, ...(post.comments || [])],
+          };
+        }
+        return post;
+      });
+
+      localStorage.setItem("entropy_news_posts", JSON.stringify(updated));
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("entropy_news_updated"));
+      }
+
+      setCommentInputs({ ...commentInputs, [postId]: "" });
+      showToast("Reply posted");
+    } catch {
+      showToast("Failed to post reply");
+    }
+  };
+
+  const formatPostTime = (dateStr?: string) => {
+    if (!dateStr) return "Recently";
+    if (dateStr.includes("ago") || dateStr.includes("Yesterday")) {
+      return dateStr;
+    }
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+
+    const diffSec = Math.floor((Date.now() - d.getTime()) / 1000);
+    if (diffSec < 60) return "Just now";
+    if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
+    if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
+    if (diffSec < 604800) return `${Math.floor(diffSec / 86400)}d ago`;
+
+    return d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: d.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined,
+    });
+  };
+
+  const selectedCategoryObj = activeCategory
+    ? FORUM_CATEGORIES.find((c) => c.name.toLowerCase() === activeCategory.toLowerCase())
+    : null;
+
+  const displayedPosts = posts.filter((p) => {
+    if (activeCategory) {
+      if (!p.tag) return false;
+      const tagLower = p.tag.toLowerCase();
+      if (activeSubcategory) {
+        return tagLower === activeSubcategory.toLowerCase();
+      }
+      if (tagLower === activeCategory.toLowerCase()) return true;
+      if (selectedCategoryObj) {
+        return selectedCategoryObj.subcategories.some((sub) => sub.toLowerCase() === tagLower);
+      }
+      return false;
+    }
+
+    if (activeTab === "top") {
+      return true;
+    }
+
+    return true;
+  }).sort((a, b) => {
+    if (activeTab === "top") {
+      return (b.likes || 0) - (a.likes || 0);
+    }
+    if (a.isPinned && !b.isPinned) return -1;
+    if (!a.isPinned && b.isPinned) return 1;
+    return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+  });
 
   return (
-    <div className="min-h-screen bg-[#0e0e10] text-zinc-100 flex flex-col font-sans select-none">
+    <div className="min-h-screen bg-black text-zinc-100 flex flex-col">
       <Navbar onToggleSidebar={() => setCollapsedSidebar(!collapsedSidebar)} />
-
-      {/* Toast */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#1c1c1f] text-white border border-white/10 px-4 py-2.5 rounded-xl shadow-2xl text-xs font-semibold animate-in fade-in slide-in-from-bottom-2 duration-200 flex items-center gap-2">
-          <CheckCircle2 className="h-4 w-4 text-[#FF4500]" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
 
       <div className="flex flex-1">
         <Sidebar collapsed={collapsedSidebar} />
 
-        <main className="flex-1 overflow-x-hidden min-w-0 bg-[#0c0c0e]">
-          {/* Subreddit Banner Header */}
-          <div className="relative border-b border-white/[0.08] bg-[#121214]">
-            <div className={`h-24 sm:h-32 w-full bg-gradient-to-r ${currentSubreddit.bannerColor} bg-[#18181b] relative overflow-hidden`}>
-              <div className="absolute inset-0 bg-radial-gradient from-transparent via-transparent to-black/60 pointer-events-none" />
-            </div>
+        <main className="flex-1 min-w-0 px-4 md:px-8 lg:px-12 py-8">
+          <div className="max-w-6xl mx-auto w-full">
+            {toastMessage && (
+              <div className="fixed bottom-6 right-6 z-50 bg-white text-black px-4 py-2.5 rounded-xl font-semibold text-xs shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                <CheckCircle2 className="h-4 w-4" />
+                <span>{toastMessage}</span>
+              </div>
+            )}
 
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-3">
-              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-10 sm:-mt-12 relative z-10">
-                <div className="flex items-end gap-3.5 sm:gap-4">
-                  <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-[#18181b] border-4 border-[#0c0c0e] flex items-center justify-center text-3xl sm:text-4xl shadow-xl flex-shrink-0">
-                    {currentSubreddit.icon}
-                  </div>
-                  <div className="pb-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
-                        {currentSubreddit.displayName}
-                      </h1>
-                      <span className="font-mono text-xs font-semibold text-zinc-400 bg-white/[0.06] px-2 py-0.5 rounded-md border border-white/10">
-                        {currentSubreddit.name}
-                      </span>
-                    </div>
-                    <p className="text-xs text-zinc-400 mt-1 line-clamp-1 max-w-xl">
-                      {currentSubreddit.description}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 pb-1">
-                  {localIsZero && (
+            {/* Discourse Header Navigation */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-white/[0.08]">
+              <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto scrollbar-none">
+                {activeCategory ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveCategory(null);
+                      setActiveSubcategory(null);
+                      setActiveTab("categories");
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-zinc-300 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] transition-colors cursor-pointer"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    <span>All Categories</span>
+                  </button>
+                ) : (
+                  <>
                     <button
                       type="button"
-                      onClick={() => setShowAdminTab(!showAdminTab)}
-                      className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold transition-all cursor-pointer border ${
-                        showAdminTab
-                          ? "bg-amber-400/20 text-amber-300 border-amber-400/30"
-                          : "bg-white/[0.04] text-zinc-300 hover:text-white border-white/[0.08]"
+                      onClick={() => {
+                        setActiveTab("categories");
+                        setActiveCategory(null);
+                        setActiveSubcategory(null);
+                      }}
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer outline-none ${
+                        activeTab === "categories"
+                          ? "bg-white/[0.08] text-white shadow-sm"
+                          : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
                       }`}
                     >
-                      <Shield className="h-3.5 w-3.5" />
-                      <span>Mod Panel</span>
+                      Categories
                     </button>
-                  )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab("latest");
+                        setActiveCategory(null);
+                        setActiveSubcategory(null);
+                      }}
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer outline-none ${
+                        activeTab === "latest"
+                          ? "bg-white/[0.08] text-white shadow-sm"
+                          : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
+                      }`}
+                    >
+                      Latest
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab("top");
+                        setActiveCategory(null);
+                        setActiveSubcategory(null);
+                      }}
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer outline-none ${
+                        activeTab === "top"
+                          ? "bg-white/[0.08] text-white shadow-sm"
+                          : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
+                      }`}
+                    >
+                      Top
+                    </button>
+                    {isUserZero && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab("users");
+                          setActiveCategory(null);
+                          setActiveSubcategory(null);
+                          if (!isUsersUnlocked) {
+                            loadAllPlatformUsers();
+                          }
+                        }}
+                        className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer outline-none flex items-center gap-1.5 ${
+                          activeTab === "users"
+                            ? "bg-white/[0.08] text-white shadow-sm ring-1 ring-white/10"
+                            : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
+                        }`}
+                      >
+                        <Shield className="h-3.5 w-3.5 text-zinc-300" />
+                        <span>Users Panel</span>
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
 
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-zinc-500 font-medium hidden sm:inline">
+                  {posts.length} {posts.length === 1 ? "topic" : "topics"}
+                </span>
+                {activeTab !== "users" && (
                   <button
                     type="button"
                     onClick={() => {
@@ -915,1028 +691,115 @@ export default function RedditNewsPage() {
                         openAuthModal();
                         return;
                       }
-                      setComposerSubreddit(currentSubreddit.name);
-                      setIsComposerOpen(true);
+                      if (activeCategory) {
+                        handleCategoryChange(activeCategory);
+                      }
+                      setShowComposer(!showComposer);
                     }}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-[#FF4500] hover:bg-[#e03d00] text-white px-5 py-2 text-xs font-bold transition-all cursor-pointer shadow-lg shadow-[#FF4500]/20"
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-white hover:bg-zinc-200 text-black px-4 py-2 text-xs font-bold transition-all cursor-pointer shadow-sm ml-auto"
                   >
-                    <Plus className="h-4 w-4" />
-                    <span>Create Post</span>
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>New Topic</span>
                   </button>
-                </div>
-              </div>
-
-              {/* Subreddit Navigation Tabs */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pt-4 scrollbar-none">
-                {SUBREDDITS.map((sub) => {
-                  const isActive = activeSubredditId === sub.id && !showAdminTab;
-                  return (
-                    <button
-                      key={sub.id}
-                      type="button"
-                      onClick={() => {
-                        setShowAdminTab(false);
-                        setActiveSubredditId(sub.id);
-                        setActiveFlair(null);
-                      }}
-                      className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
-                        isActive
-                          ? "bg-white text-black font-bold shadow-md"
-                          : "text-zinc-400 hover:text-white hover:bg-white/[0.05]"
-                      }`}
-                    >
-                      <span>{sub.icon}</span>
-                      <span>{sub.name}</span>
-                    </button>
-                  );
-                })}
+                )}
               </div>
             </div>
-          </div>
 
-          {/* Main Feed Container */}
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
-            {showAdminTab && localIsZero ? (
-              /* Admin Moderation Panel */
-              <div className="rounded-2xl bg-[#141416] border border-white/[0.08] p-6 shadow-2xl mb-8">
-                {!isUsersUnlocked ? (
-                  <div className="max-w-md mx-auto text-center py-10">
-                    <div className="h-14 w-14 rounded-full bg-amber-400/10 border border-amber-400/20 text-amber-400 flex items-center justify-center mx-auto mb-4">
-                      <Lock className="h-6 w-6" />
-                    </div>
-                    <h2 className="text-lg font-bold text-white mb-2">Restricted Mod Panel</h2>
-                    <p className="text-xs text-zinc-400 mb-6 leading-relaxed">
-                      This administration console is restricted to creator @0. Enter the moderation key to view the user registry.
-                    </p>
-                    <form onSubmit={handleUnlockUsers} className="space-y-4 text-left">
-                      <div>
-                        <input
-                          type="password"
-                          value={usersPasswordInput}
-                          onChange={(e) => {
-                            setUsersPasswordInput(e.target.value);
-                            setUsersPasswordError("");
-                          }}
-                          placeholder="Enter moderation key..."
-                          className="w-full rounded-xl bg-black border border-white/10 px-4 py-2.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/30 font-mono"
-                        />
-                        {usersPasswordError && (
-                          <p className="text-xs text-red-400 mt-2 font-medium">{usersPasswordError}</p>
-                        )}
-                      </div>
-                      <button
-                        type="submit"
-                        className="w-full rounded-xl bg-white text-black py-2.5 text-xs font-bold hover:bg-zinc-200 transition-colors cursor-pointer"
-                      >
-                        Unlock Registry
-                      </button>
-                    </form>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/[0.08]">
-                      <div>
-                        <h2 className="text-base font-bold text-white">Platform Users Registry</h2>
-                        <p className="text-xs text-zinc-400">All registered creator channels on Entropy</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={loadAllPlatformUsers}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.05] hover:bg-white/[0.1] text-zinc-300 hover:text-white border border-white/10"
-                        >
-                          <RefreshCw className={`h-3 w-3 ${isLoadingUsers ? "animate-spin" : ""}`} />
-                          <span>Refresh</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setIsUsersUnlocked(false)}
-                          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.05] hover:bg-white/[0.1] text-zinc-400 hover:text-white"
-                        >
-                          Lock
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="relative">
-                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-                      <input
-                        type="text"
-                        value={usersSearchQuery}
-                        onChange={(e) => setUsersSearchQuery(e.target.value)}
-                        placeholder="Filter by name, handle, id, or email..."
-                        className="w-full pl-10 pr-4 py-2 rounded-xl bg-black border border-white/10 text-xs text-white placeholder-zinc-500 outline-none"
-                      />
-                    </div>
-
-                    <div className="divide-y divide-white/[0.06] max-h-96 overflow-y-auto">
-                      {allPlatformUsers
-                        .filter((u) => {
-                          if (!usersSearchQuery.trim()) return true;
-                          const q = usersSearchQuery.toLowerCase();
-                          return (
-                            (u.name && u.name.toLowerCase().includes(q)) ||
-                            (u.handle && u.handle.toLowerCase().includes(q)) ||
-                            (u.id && u.id.toLowerCase().includes(q)) ||
-                            (u.email && u.email.toLowerCase().includes(q))
-                          );
-                        })
-                        .map((u) => (
-                          <div key={u.id || u.handle} className="py-3 flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-3">
-                              <img
-                                src={u.avatarUrl || u.avatar || "/default-avatar.png"}
-                                alt={u.name}
-                                className="h-9 w-9 rounded-full object-cover bg-zinc-800"
-                              />
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <span className="font-bold text-xs text-white">{u.name}</span>
-                                  <span className="text-[11px] font-mono text-zinc-400">@{u.handle}</span>
-                                </div>
-                                <span className="text-[10px] text-zinc-500 font-mono">{u.id} • {u.joinedAt || "Joined recently"}</span>
-                              </div>
-                            </div>
-                            <Link
-                              href={`/@${u.handle}`}
-                              className="px-3 py-1 rounded-md text-xs font-semibold bg-white/[0.06] hover:bg-white/10 text-zinc-200"
-                            >
-                              Profile
-                            </Link>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : null}
-
-            {/* Reddit Grid: Main Feed + Right Sidebar */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              {/* Left/Center Column (Feed) */}
-              <div className="lg:col-span-8 space-y-4">
-                {/* Reddit Quick Post Bar */}
-                <div
-                  onClick={() => {
-                    if (!user) {
-                      openAuthModal();
-                      return;
-                    }
-                    setComposerSubreddit(currentSubreddit.name);
-                    setIsComposerOpen(true);
-                  }}
-                  className="rounded-xl bg-[#141416] border border-white/[0.08] p-2.5 sm:p-3 flex items-center gap-3 cursor-pointer hover:border-white/20 transition-all shadow-md group"
-                >
-                  <div className="h-9 w-9 rounded-full overflow-hidden bg-zinc-800 flex items-center justify-center flex-shrink-0 border border-white/10">
-                    <img
-                      src={user?.avatarUrl || user?.avatar || "/default-avatar.png"}
-                      alt="User avatar"
-                      className="h-full w-full object-cover"
-                      onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
-                      }}
-                    />
-                  </div>
-                  <input
-                    type="text"
-                    readOnly
-                    placeholder={user ? `Create Post in ${currentSubreddit.name}...` : "Sign in to post or participate..."}
-                    className="flex-1 bg-[#1a1a1e] group-hover:bg-[#202024] border border-white/[0.06] rounded-xl px-4 py-2 text-xs text-zinc-300 placeholder-zinc-500 outline-none transition-colors cursor-pointer"
-                  />
-                  <div className="flex items-center gap-1 text-zinc-400">
-                    <button
-                      type="button"
-                      className="p-2 rounded-lg hover:bg-white/[0.08] hover:text-white transition-colors"
-                      title="Post image"
-                    >
-                      <ImageIcon className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      className="p-2 rounded-lg hover:bg-white/[0.08] hover:text-white transition-colors"
-                      title="Create poll"
-                    >
-                      <BarChart2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Reddit Sort Bar */}
-                <div className="rounded-xl bg-[#141416] border border-white/[0.08] p-1.5 sm:p-2 flex items-center justify-between gap-2 shadow-sm">
-                  <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
-                    <button
-                      type="button"
-                      onClick={() => setSortBy("hot")}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                        sortBy === "hot"
-                          ? "bg-white/[0.12] text-white"
-                          : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
-                      }`}
-                    >
-                      <Flame className={`h-3.5 w-3.5 ${sortBy === "hot" ? "text-[#FF4500]" : ""}`} />
-                      <span>Hot</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSortBy("new")}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                        sortBy === "new"
-                          ? "bg-white/[0.12] text-white"
-                          : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
-                      }`}
-                    >
-                      <Sparkles className={`h-3.5 w-3.5 ${sortBy === "new" ? "text-cyan-400" : ""}`} />
-                      <span>New</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSortBy("top")}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                        sortBy === "top"
-                          ? "bg-white/[0.12] text-white"
-                          : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
-                      }`}
-                    >
-                      <TrendingUp className={`h-3.5 w-3.5 ${sortBy === "top" ? "text-emerald-400" : ""}`} />
-                      <span>Top</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSortBy("rising")}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                        sortBy === "rising"
-                          ? "bg-white/[0.12] text-white"
-                          : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
-                      }`}
-                    >
-                      <Rocket className={`h-3.5 w-3.5 ${sortBy === "rising" ? "text-amber-400" : ""}`} />
-                      <span>Rising</span>
-                    </button>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {/* View mode toggle */}
-                    <button
-                      type="button"
-                      onClick={() => setViewMode(viewMode === "card" ? "compact" : "card")}
-                      className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
-                      title={viewMode === "card" ? "Switch to Compact View" : "Switch to Card View"}
-                    >
-                      <Layers className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Active Filter Pills (if search or flair active) */}
-                {(activeFlair || searchQuery) && (
-                  <div className="flex items-center gap-2 flex-wrap text-xs">
-                    <span className="text-zinc-500 font-medium">Filtering by:</span>
-                    {activeFlair && (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 text-white font-semibold">
-                        <span>Flair: {activeFlair}</span>
-                        <button
-                          type="button"
-                          onClick={() => setActiveFlair(null)}
-                          className="hover:text-zinc-300"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </span>
-                    )}
-                    {searchQuery && (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 text-white font-semibold">
-                        <span>Search: {searchQuery}</span>
-                        <button
-                          type="button"
-                          onClick={() => setSearchQuery("")}
-                          className="hover:text-zinc-300"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {/* Post Feed */}
-                {filteredPosts.length === 0 ? (
-                  <div className="rounded-2xl bg-[#141416] border border-white/[0.08] p-12 text-center shadow-lg">
-                    <div className="h-14 w-14 rounded-full bg-white/[0.04] border border-white/10 flex items-center justify-center mx-auto mb-4 text-zinc-400">
-                      <Sparkles className="h-7 w-7" />
-                    </div>
-                    <h3 className="text-base font-bold text-white mb-1">No posts found</h3>
-                    <p className="text-xs text-zinc-400 max-w-sm mx-auto mb-5 leading-relaxed">
-                      {searchQuery || activeFlair
-                        ? "No community posts match your current search or flair filters."
-                        : `Be the first to post something in ${currentSubreddit.name}!`}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setComposerSubreddit(currentSubreddit.name);
-                        setIsComposerOpen(true);
-                      }}
-                      className="inline-flex items-center gap-2 rounded-full bg-[#FF4500] hover:bg-[#e03d00] text-white px-5 py-2 text-xs font-bold transition-all shadow-md"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      <span>Create the first post</span>
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {filteredPosts.map((post) => {
-                      const netScore = (post.likes || 0) - (post.dislikes || 0);
-                      const isCommentsOpen = openCommentsPostId === post.id;
-                      const isSaved = Boolean(savedPosts[post.id]);
-                      const totalPollVotes = post.pollOptions?.reduce((acc, o) => acc + o.votes, 0) || 0;
-                      const displayTitle = post.title || post.content.split("\n")[0].slice(0, 90);
-                      const isAuthor = user && (user.handle || "").toLowerCase() === (post.channelHandle || "").toLowerCase();
-
-                      return (
-                        <article
-                          key={post.id}
-                          className="rounded-xl bg-[#141416] border border-white/[0.08] hover:border-white/20 transition-all shadow-md overflow-hidden flex"
-                        >
-                          {/* Reddit Vertical Vote Pillar */}
-                          <div className="w-11 sm:w-12 bg-[#101012] flex flex-col items-center py-3 flex-shrink-0 select-none border-r border-white/[0.04]">
-                            <button
-                              type="button"
-                              onClick={() => handleVote(post.id, "up")}
-                              className={`p-1 rounded-md transition-colors cursor-pointer ${
-                                post.hasLiked
-                                  ? "text-[#FF4500] bg-[#FF4500]/15"
-                                  : "text-zinc-500 hover:text-[#FF4500] hover:bg-white/[0.04]"
-                              }`}
-                              title="Upvote"
-                              aria-label="Upvote"
-                            >
-                              <ArrowBigUp className={`h-6 w-6 ${post.hasLiked ? "fill-[#FF4500]" : ""}`} strokeWidth={1.5} />
-                            </button>
-
-                            <span
-                              className={`text-xs font-bold my-1 ${
-                                post.hasLiked
-                                  ? "text-[#FF4500]"
-                                  : post.hasDisliked
-                                  ? "text-[#7193FF]"
-                                  : "text-zinc-300"
-                              }`}
-                            >
-                              {netScore}
-                            </span>
-
-                            <button
-                              type="button"
-                              onClick={() => handleVote(post.id, "down")}
-                              className={`p-1 rounded-md transition-colors cursor-pointer ${
-                                post.hasDisliked
-                                  ? "text-[#7193FF] bg-[#7193FF]/15"
-                                  : "text-zinc-500 hover:text-[#7193FF] hover:bg-white/[0.04]"
-                              }`}
-                              title="Downvote"
-                              aria-label="Downvote"
-                            >
-                              <ArrowBigDown className={`h-6 w-6 ${post.hasDisliked ? "fill-[#7193FF]" : ""}`} strokeWidth={1.5} />
-                            </button>
-                          </div>
-
-                          {/* Post Body Content */}
-                          <div className="flex-1 p-3.5 sm:p-4 min-w-0">
-                            {/* Metadata Header */}
-                            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap text-xs text-zinc-400 mb-2">
-                              {/* Subreddit Link */}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const rawSub = (post.subreddit || "r/announcements").replace(/^r\//, "");
-                                  setActiveSubredditId(rawSub);
-                                }}
-                                className="font-extrabold text-white hover:underline cursor-pointer"
-                              >
-                                {post.subreddit || `r/${post.tag || "announcements"}`}
-                              </button>
-                              <span className="text-zinc-600">•</span>
-
-                              {/* Author */}
-                              <span className="text-zinc-500">Posted by</span>
-                              <Link
-                                href={`/@${post.channelHandle.replace(/^@/, "")}`}
-                                className="font-semibold text-zinc-300 hover:text-white hover:underline flex items-center gap-1"
-                              >
-                                <span>u/{post.channelHandle.replace(/^@/, "")}</span>
-                                <VerifiedBadge subscribersCount={105000} className="h-3 w-3" />
-                              </Link>
-                              <span className="text-zinc-600">•</span>
-
-                              {/* Time */}
-                              <span className="text-zinc-500">{formatTimeAgo(post.publishedAt)}</span>
-
-                              {/* Flair Tag */}
-                              {post.flair && (
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getFlairColor(post.flair)}`}>
-                                  {post.flair}
-                                </span>
-                              )}
-
-                              {/* Pinned Pill */}
-                              {post.isPinned && (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full border border-emerald-400/20">
-                                  <Pin className="h-2.5 w-2.5 fill-emerald-400" />
-                                  <span>Pinned</span>
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Title */}
-                            <h2 className="text-base sm:text-lg font-bold text-white mb-2 leading-snug tracking-tight">
-                              {displayTitle}
-                            </h2>
-
-                            {/* Content Snippet / Full Text */}
-                            {post.content && post.content !== post.title && (
-                              <div className="text-xs sm:text-sm text-zinc-300 leading-relaxed whitespace-pre-line mb-3 font-normal">
-                                {post.content}
-                              </div>
-                            )}
-
-                            {/* Attached Image */}
-                            {post.imageUrl && (
-                              <div className="rounded-xl overflow-hidden border border-white/[0.08] mb-3 max-h-[500px] bg-black">
-                                <img
-                                  src={post.imageUrl}
-                                  alt="Post media"
-                                  className="w-full h-full object-contain max-h-[500px]"
-                                />
-                              </div>
-                            )}
-
-                            {/* Interactive Poll */}
-                            {post.pollOptions && post.pollOptions.length > 0 && (
-                              <div className="space-y-2 mb-3 bg-[#0d0d0f] border border-white/[0.06] rounded-xl p-3.5">
-                                <div className="text-xs font-semibold text-zinc-400 mb-2 flex items-center justify-between">
-                                  <span>Community Poll</span>
-                                  <span>{totalPollVotes} {totalPollVotes === 1 ? "vote" : "votes"}</span>
-                                </div>
-                                {post.pollOptions.map((opt) => {
-                                  const pct = totalPollVotes > 0 ? Math.round((opt.votes / totalPollVotes) * 100) : 0;
-                                  const isSelected = post.pollVotedId === opt.id;
-                                  return (
-                                    <button
-                                      key={opt.id}
-                                      type="button"
-                                      disabled={Boolean(post.pollVotedId)}
-                                      onClick={() => handleVotePoll(post.id, opt.id)}
-                                      className={`relative w-full overflow-hidden rounded-xl border p-3 text-left transition-all ${
-                                        isSelected
-                                          ? "border-white/40 bg-white/[0.08]"
-                                          : "border-white/[0.08] bg-[#141416] hover:border-white/20"
-                                      } ${!post.pollVotedId ? "cursor-pointer" : "cursor-default"}`}
-                                    >
-                                      {post.pollVotedId && (
-                                        <div
-                                          className={`absolute inset-0 transition-all duration-500 ${
-                                            isSelected ? "bg-white/[0.18]" : "bg-white/[0.05]"
-                                          }`}
-                                          style={{ width: `${pct}%` }}
-                                        />
-                                      )}
-                                      <div className="relative flex items-center justify-between text-xs font-medium">
-                                        <span className="text-zinc-200">{opt.text}</span>
-                                        {post.pollVotedId && (
-                                          <span className="font-bold text-zinc-300 ml-2">{pct}%</span>
-                                        )}
-                                      </div>
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            )}
-
-                            {/* Reddit Action Bar */}
-                            <div className="flex items-center gap-1 sm:gap-2 pt-2 border-t border-white/[0.06] text-xs font-semibold text-zinc-400">
-                              <button
-                                type="button"
-                                onClick={() => setOpenCommentsPostId(isCommentsOpen ? null : post.id)}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
-                                  isCommentsOpen
-                                    ? "bg-white/[0.12] text-white"
-                                    : "hover:bg-white/[0.06] hover:text-white"
-                                }`}
-                              >
-                                <MessageSquare className="h-4 w-4" />
-                                <span>{(post.comments || []).length} Comments</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => handleShare(post)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-white/[0.06] hover:text-white transition-colors cursor-pointer"
-                              >
-                                <Share2 className="h-4 w-4" />
-                                <span>Share</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => handleToggleSave(post.id)}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
-                                  isSaved
-                                    ? "text-[#FF4500] hover:text-[#e03d00]"
-                                    : "hover:bg-white/[0.06] hover:text-white"
-                                }`}
-                              >
-                                <Bookmark className={`h-4 w-4 ${isSaved ? "fill-[#FF4500]" : ""}`} />
-                                <span>{isSaved ? "Saved" : "Save"}</span>
-                              </button>
-
-                              {localIsZero && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleTogglePin(post.id)}
-                                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
-                                    post.isPinned
-                                      ? "text-emerald-400 bg-emerald-400/10"
-                                      : "hover:bg-white/[0.06] hover:text-white"
-                                  }`}
-                                  title="Pin to top of feed"
-                                >
-                                  <Pin className="h-4 w-4" />
-                                  <span>{post.isPinned ? "Unpin" : "Pin"}</span>
-                                </button>
-                              )}
-
-                              {(isAuthor || localIsZero) && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeletePost(post.id)}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-red-500/15 hover:text-red-400 transition-colors cursor-pointer ml-auto"
-                                  title="Delete post"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                  <span className="hidden sm:inline">Delete</span>
-                                </button>
-                              )}
-                            </div>
-
-                            {/* Reddit Threaded Comments Section */}
-                            {isCommentsOpen && (
-                              <div className="mt-4 pt-4 border-t border-white/[0.08] space-y-4 animate-in fade-in duration-200">
-                                {/* Comment Composer Box */}
-                                <div className="space-y-2">
-                                  <p className="text-[11px] text-zinc-400">
-                                    Comment as{" "}
-                                    <span className="text-white font-semibold">
-                                      {user ? `u/${user.handle}` : "Guest"}
-                                    </span>
-                                  </p>
-                                  <div className="rounded-xl border border-white/[0.08] bg-[#0c0c0e] focus-within:border-white/20 transition-all overflow-hidden">
-                                    <textarea
-                                      rows={3}
-                                      value={replyInputs[post.id] || ""}
-                                      onChange={(e) => setReplyInputs({ ...replyInputs, [post.id]: e.target.value })}
-                                      placeholder="What are your thoughts?"
-                                      className="w-full bg-transparent px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none resize-none"
-                                    />
-                                    <div className="flex items-center justify-between px-3 py-2 bg-white/[0.02] border-t border-white/[0.04]">
-                                      <span className="text-[10px] text-zinc-500">Markdown supported</span>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleAddComment(post.id)}
-                                        disabled={!replyInputs[post.id]?.trim()}
-                                        className="rounded-full bg-[#FF4500] hover:bg-[#e03d00] disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 py-1 text-xs font-bold transition-all cursor-pointer shadow-sm"
-                                      >
-                                        Comment
-                                      </button>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Comments List */}
-                                <div className="space-y-3 pt-2">
-                                  {(post.comments || []).length === 0 ? (
-                                    <p className="text-xs text-zinc-500 text-center py-4">
-                                      No comments yet. Be the first to share your thoughts!
-                                    </p>
-                                  ) : (
-                                    (post.comments || []).map((comment) => {
-                                      const isOp = (comment.authorHandle || "").toLowerCase() === (post.channelHandle || "").toLowerCase();
-                                      const commentScore = (comment.likes || 0) - (comment.dislikes || 0);
-
-                                      return (
-                                        <div key={comment.id} className="relative pl-3 border-l-2 border-white/[0.08] hover:border-white/20 transition-colors">
-                                          <div className="flex items-center gap-2 mb-1">
-                                            <img
-                                              src={comment.authorAvatar || "/default-avatar.png"}
-                                              alt={comment.authorName}
-                                              className="h-5 w-5 rounded-full object-cover bg-zinc-800"
-                                            />
-                                            <Link
-                                              href={`/@${(comment.authorHandle || "").replace(/^@/, "")}`}
-                                              className="text-xs font-bold text-zinc-200 hover:text-white hover:underline"
-                                            >
-                                              u/{(comment.authorHandle || comment.authorName || "").replace(/^@/, "")}
-                                            </Link>
-                                            {isOp && (
-                                              <span className="text-[10px] font-bold text-[#FF4500] bg-[#FF4500]/10 px-1.5 py-0.2 rounded border border-[#FF4500]/20">
-                                                OP
-                                              </span>
-                                            )}
-                                            <span className="text-[10px] text-zinc-500">• {formatTimeAgo(comment.createdAt)}</span>
-                                          </div>
-
-                                          <p className="text-xs text-zinc-200 leading-relaxed pl-7 whitespace-pre-line">
-                                            {comment.content}
-                                          </p>
-
-                                          {/* Comment Votes & Reply Action */}
-                                          <div className="flex items-center gap-3 pl-7 pt-1 text-xs text-zinc-400">
-                                            <div className="flex items-center gap-1">
-                                              <button
-                                                type="button"
-                                                onClick={() => handleCommentVote(post.id, comment.id, "up")}
-                                                className={`p-1 rounded hover:bg-white/[0.06] ${
-                                                  comment.hasLiked ? "text-[#FF4500]" : "text-zinc-500 hover:text-[#FF4500]"
-                                                }`}
-                                              >
-                                                <ArrowBigUp className={`h-4 w-4 ${comment.hasLiked ? "fill-[#FF4500]" : ""}`} />
-                                              </button>
-                                              <span className="text-[11px] font-bold text-zinc-300">{commentScore}</span>
-                                              <button
-                                                type="button"
-                                                onClick={() => handleCommentVote(post.id, comment.id, "down")}
-                                                className={`p-1 rounded hover:bg-white/[0.06] ${
-                                                  comment.hasDisliked ? "text-[#7193FF]" : "text-zinc-500 hover:text-[#7193FF]"
-                                                }`}
-                                              >
-                                                <ArrowBigDown className={`h-4 w-4 ${comment.hasDisliked ? "fill-[#7193FF]" : ""}`} />
-                                              </button>
-                                            </div>
-
-                                            <button
-                                              type="button"
-                                              onClick={() => {
-                                                if (!user) {
-                                                  openAuthModal();
-                                                  return;
-                                                }
-                                                setReplyingToCommentId(replyingToCommentId === comment.id ? null : comment.id);
-                                              }}
-                                              className="flex items-center gap-1 hover:text-white cursor-pointer font-semibold text-[11px]"
-                                            >
-                                              <MessageSquare className="h-3 w-3" />
-                                              <span>Reply</span>
-                                            </button>
-                                          </div>
-
-                                          {/* Nested Reply Composer */}
-                                          {replyingToCommentId === comment.id && (
-                                            <div className="mt-2 pl-7 flex gap-2">
-                                              <input
-                                                type="text"
-                                                value={nestedReplyInput}
-                                                onChange={(e) => setNestedReplyInput(e.target.value)}
-                                                placeholder={`Reply to u/${comment.authorHandle}...`}
-                                                className="flex-1 rounded-xl bg-[#0c0c0e] border border-white/10 px-3 py-1.5 text-xs text-white placeholder-zinc-500 outline-none"
-                                              />
-                                              <button
-                                                type="button"
-                                                onClick={() => handleAddComment(post.id, comment.id)}
-                                                className="px-3 py-1 rounded-xl bg-[#FF4500] text-white text-xs font-bold"
-                                              >
-                                                Reply
-                                              </button>
-                                            </div>
-                                          )}
-                                        </div>
-                                      );
-                                    })
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </article>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Right Sidebar Column (Reddit Widgets) */}
-              <div className="lg:col-span-4 space-y-4">
-                {/* Search Bar Widget */}
-                <div className="rounded-xl bg-[#141416] border border-white/[0.08] p-3 shadow-md">
-                  <div className="relative">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder={`Search ${currentSubreddit.name}...`}
-                      className="w-full pl-10 pr-4 py-2 rounded-xl bg-[#0c0c0e] border border-white/[0.06] text-xs text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-all"
-                    />
-                  </div>
-                </div>
-
-                {/* About Community Widget */}
-                <div className="rounded-xl bg-[#141416] border border-white/[0.08] overflow-hidden shadow-md">
-                  <div className={`h-12 bg-gradient-to-r ${currentSubreddit.bannerColor} bg-zinc-900 px-4 flex items-center`}>
-                    <span className="text-xs font-bold uppercase tracking-wider text-white">About Community</span>
-                  </div>
-
-                  <div className="p-4 space-y-4">
-                    <div className="flex items-center gap-3">
-                      <span className="text-3xl">{currentSubreddit.icon}</span>
-                      <div>
-                        <h3 className="font-extrabold text-sm text-white">{currentSubreddit.displayName}</h3>
-                        <p className="font-mono text-[11px] text-zinc-400">{currentSubreddit.name}</p>
-                      </div>
-                    </div>
-
-                    <p className="text-xs text-zinc-300 leading-relaxed">
-                      {currentSubreddit.description}
-                    </p>
-
-                    <div className="grid grid-cols-2 gap-2 py-3 border-y border-white/[0.06] text-center">
-                      <div>
-                        <span className="block font-extrabold text-sm text-white">
-                          {(currentSubreddit.membersCount / 1000).toFixed(1)}k
-                        </span>
-                        <span className="text-[10px] uppercase font-bold text-zinc-500">Members</span>
-                      </div>
-                      <div>
-                        <span className="block font-extrabold text-sm text-emerald-400">
-                          {(currentSubreddit.onlineCount / 1000).toFixed(1)}k
-                        </span>
-                        <span className="text-[10px] uppercase font-bold text-zinc-500">Online</span>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!user) {
-                          openAuthModal();
-                          return;
-                        }
-                        setComposerSubreddit(currentSubreddit.name);
-                        setIsComposerOpen(true);
-                      }}
-                      className="w-full rounded-full bg-white hover:bg-zinc-200 text-black py-2.5 text-xs font-bold transition-all cursor-pointer shadow-md"
-                    >
-                      Create Post
-                    </button>
-                  </div>
-                </div>
-
-                {/* Community Rules Widget */}
-                <div className="rounded-xl bg-[#141416] border border-white/[0.08] p-4 shadow-md">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-3 flex items-center gap-2">
-                    <Info className="h-4 w-4 text-[#FF4500]" />
-                    <span>{currentSubreddit.name} Rules</span>
-                  </h4>
-                  <ol className="space-y-2 text-xs text-zinc-300 list-decimal list-inside leading-relaxed">
-                    {currentSubreddit.rules.map((rule, idx) => (
-                      <li key={idx} className="pb-1 border-b border-white/[0.04] last:border-none">
-                        <span className="text-zinc-200 font-medium">{rule}</span>
-                      </li>
-                    ))}
-                  </ol>
-                </div>
-
-                {/* Filter by Flair Widget */}
-                <div className="rounded-xl bg-[#141416] border border-white/[0.08] p-4 shadow-md">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-3 flex items-center gap-2">
-                    <Tag className="h-4 w-4 text-zinc-400" />
-                    <span>Filter by Flair</span>
-                  </h4>
-                  <div className="flex flex-wrap gap-1.5">
-                    {currentSubreddit.flairs.map((flair) => {
-                      const isActive = activeFlair === flair;
-                      return (
-                        <button
-                          key={flair}
-                          type="button"
-                          onClick={() => setActiveFlair(isActive ? null : flair)}
-                          className={`text-xs font-semibold px-2.5 py-1 rounded-full border transition-all cursor-pointer ${
-                            isActive
-                              ? "bg-white text-black font-bold border-white"
-                              : `${getFlairColor(flair)} hover:opacity-80`
-                          }`}
-                        >
-                          {flair}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Moderators Widget */}
-                <div className="rounded-xl bg-[#141416] border border-white/[0.08] p-4 shadow-md">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-3 flex items-center gap-2">
-                    <Shield className="h-4 w-4 text-emerald-400" />
-                    <span>Moderators</span>
-                  </h4>
-                  <div className="space-y-2 text-xs">
-                    <div className="flex items-center justify-between">
-                      <Link href="/@0" className="text-zinc-300 hover:text-white font-semibold">
-                        u/0
-                      </Link>
-                      <span className="text-[10px] text-zinc-500 font-mono">Lead Dev</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Link href="/@entropy" className="text-zinc-300 hover:text-white font-semibold">
-                        u/entropy
-                      </Link>
-                      <span className="text-[10px] text-zinc-500 font-mono">Platform Admin</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Reddit Create Post Modal */}
-          {isComposerOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-              <div
-                className="relative w-full max-w-2xl rounded-2xl bg-[#141416] border border-white/[0.08] p-6 shadow-2xl text-white max-h-[90vh] overflow-y-auto scrollbar-thin"
-                onClick={(e) => e.stopPropagation()}
+            {/* Topic Composer */}
+            {showComposer && (
+              <form
+                onSubmit={handleCreatePost}
+                className="rounded-2xl bg-[#141414] border border-white/[0.08] p-5 mb-8 shadow-2xl transition-all animate-in fade-in slide-in-from-top-2 duration-200"
               >
-                <div className="flex items-center justify-between pb-4 border-b border-white/[0.08] mb-4">
-                  <h3 className="text-base font-bold text-white flex items-center gap-2">
-                    <Plus className="h-5 w-5 text-[#FF4500]" />
-                    <span>Create a Post</span>
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/[0.06]">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Plus className="h-4 w-4 text-zinc-400" />
+                    <span>Create a New Topic</span>
                   </h3>
                   <button
                     type="button"
-                    onClick={() => setIsComposerOpen(false)}
-                    className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
+                    onClick={() => setShowComposer(false)}
+                    className="p-1 rounded-lg text-zinc-500 hover:text-white hover:bg-white/[0.06] transition-colors"
                   >
-                    <X className="h-5 w-5" />
+                    <X className="h-4 w-4" />
                   </button>
                 </div>
 
-                <form onSubmit={handleCreatePost} className="space-y-4">
-                  {/* Community Selector */}
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5">
-                      Choose a Community
-                    </label>
-                    <select
-                      value={composerSubreddit}
-                      onChange={(e) => {
-                        setComposerSubreddit(e.target.value);
-                        const match = SUBREDDITS.find((s) => s.name === e.target.value);
-                        if (match && match.flairs.length > 0) {
-                          setComposerFlair(match.flairs[0]);
-                        }
-                      }}
-                      className="w-full rounded-xl bg-[#0c0c0e] border border-white/10 px-3.5 py-2 text-xs text-white outline-none focus:border-white/20"
-                    >
-                      {SUBREDDITS.filter((s) => s.id !== "all").map((sub) => (
-                        <option key={sub.id} value={sub.name} className="bg-[#141416] text-white">
-                          {sub.icon} {sub.name} — {sub.displayName}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Post Type Tabs: Text vs Image vs Poll */}
-                  <div className="flex items-center border-b border-white/[0.08] pb-1 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setComposerTab("text")}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                        composerTab === "text"
-                          ? "bg-white/10 text-white border-b-2 border-[#FF4500]"
-                          : "text-zinc-400 hover:text-white"
-                      }`}
-                    >
-                      <Layers className="h-4 w-4" />
-                      <span>Post</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setComposerTab("image")}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                        composerTab === "image"
-                          ? "bg-white/10 text-white border-b-2 border-[#FF4500]"
-                          : "text-zinc-400 hover:text-white"
-                      }`}
-                    >
-                      <ImageIcon className="h-4 w-4" />
-                      <span>Images & Media</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setComposerTab("poll")}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                        composerTab === "poll"
-                          ? "bg-white/10 text-white border-b-2 border-[#FF4500]"
-                          : "text-zinc-400 hover:text-white"
-                      }`}
-                    >
-                      <BarChart2 className="h-4 w-4" />
-                      <span>Poll</span>
-                    </button>
-                  </div>
-
-                  {/* Title Input */}
-                  <div>
-                    <input
-                      type="text"
-                      value={composerTitle}
-                      onChange={(e) => setComposerTitle(e.target.value)}
-                      placeholder="Title"
-                      className="w-full rounded-xl bg-[#0c0c0e] border border-white/10 px-4 py-2.5 text-sm font-semibold text-white placeholder-zinc-500 outline-none focus:border-white/20"
-                    />
-                  </div>
-
-                  {/* Flair Selector */}
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5">
-                      Select Flair (Optional)
-                    </label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {(SUBREDDITS.find((s) => s.name === composerSubreddit)?.flairs || []).map((flair) => {
-                        const isSelected = composerFlair === flair;
-                        return (
-                          <button
-                            key={flair}
-                            type="button"
-                            onClick={() => setComposerFlair(isSelected ? "" : flair)}
-                            className={`text-xs font-semibold px-2.5 py-1 rounded-full border transition-all cursor-pointer ${
-                              isSelected
-                                ? "bg-white text-black font-bold border-white"
-                                : `${getFlairColor(flair)} opacity-70 hover:opacity-100`
-                            }`}
-                          >
-                            {flair}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Text Tab Body */}
-                  {composerTab === "text" && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <textarea
-                        rows={5}
-                        value={composerBody}
-                        onChange={(e) => setComposerBody(e.target.value)}
-                        placeholder="Text (optional)"
-                        className="w-full rounded-xl bg-[#0c0c0e] border border-white/10 p-3.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/20 resize-none leading-relaxed"
-                      />
+                      <label className="block text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">
+                        Category
+                      </label>
+                      <select
+                        value={composerCategory}
+                        onChange={(e) => handleCategoryChange(e.target.value)}
+                        className="w-full rounded-xl bg-[#0a0a0a] border border-white/[0.08] px-3 py-2 text-xs text-white outline-none focus:border-white/20 transition-colors"
+                      >
+                        {FORUM_CATEGORIES.map((cat) => (
+                          <option key={cat.id} value={cat.name} className="bg-[#141414] text-white">
+                            {cat.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">
+                        Subcategory
+                      </label>
+                      <select
+                        value={composerSubcategory}
+                        onChange={(e) => setComposerSubcategory(e.target.value)}
+                        className="w-full rounded-xl bg-[#0a0a0a] border border-white/[0.08] px-3 py-2 text-xs text-white outline-none focus:border-white/20 transition-colors"
+                      >
+                        {FORUM_CATEGORIES.find((c) => c.name === composerCategory)?.subcategories.map((sub) => (
+                          <option key={sub} value={sub} className="bg-[#141414] text-white">
+                            {sub}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <textarea
+                    rows={4}
+                    required
+                    value={postText}
+                    onChange={(e) => setPostText(e.target.value)}
+                    placeholder="Write an announcement, start a discussion, or share an update with the Entropy community..."
+                    className="w-full rounded-xl bg-[#0a0a0a] border border-white/[0.08] p-3 text-xs sm:text-sm text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors resize-none leading-relaxed"
+                  />
+
+                  {attachedImage && (
+                    <div className="relative rounded-xl overflow-hidden border border-white/[0.08] max-h-72">
+                      <img src={attachedImage} alt="Attachment" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setAttachedImage(null)}
+                        className="absolute top-2 right-2 p-1.5 rounded-full bg-black/80 hover:bg-black text-white transition-colors cursor-pointer"
+                        title="Remove image"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
                     </div>
                   )}
 
-                  {/* Image Tab Body */}
-                  {composerTab === "image" && (
-                    <div className="space-y-3">
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleImageSelect}
-                        accept="image/*"
-                        className="hidden"
-                      />
-                      {attachedImage ? (
-                        <div className="relative rounded-xl overflow-hidden border border-white/10 bg-black max-h-64">
-                          <img src={attachedImage} alt="Upload preview" className="w-full h-full object-contain" />
-                          <button
-                            type="button"
-                            onClick={() => setAttachedImage(null)}
-                            className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 hover:bg-black text-white"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </div>
-                      ) : (
-                        <div
-                          onClick={() => fileInputRef.current?.click()}
-                          className="rounded-xl border-2 border-dashed border-white/10 hover:border-white/20 p-8 text-center cursor-pointer transition-colors bg-[#0c0c0e]"
+                  {showPollCreator && (
+                    <div className="rounded-xl bg-[#0a0a0a] border border-white/[0.08] p-3 space-y-2">
+                      <div className="flex items-center justify-between text-xs font-semibold text-zinc-300 mb-1">
+                        <span className="flex items-center gap-1.5">
+                          <BarChart2 className="h-3.5 w-3.5 text-zinc-400" />
+                          Poll Options
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowPollCreator(false)}
+                          className="text-zinc-500 hover:text-white"
                         >
-                          <ImageIcon className="h-8 w-8 text-zinc-500 mx-auto mb-2" />
-                          <p className="text-xs font-semibold text-zinc-300">Click to upload an image</p>
-                          <p className="text-[11px] text-zinc-500 mt-1">PNG, JPG, or WebP</p>
-                        </div>
-                      )}
-                      <textarea
-                        rows={2}
-                        value={composerBody}
-                        onChange={(e) => setComposerBody(e.target.value)}
-                        placeholder="Caption or description (optional)"
-                        className="w-full rounded-xl bg-[#0c0c0e] border border-white/10 p-3 text-xs text-white placeholder-zinc-500 outline-none"
-                      />
-                    </div>
-                  )}
-
-                  {/* Poll Tab Body */}
-                  {composerTab === "poll" && (
-                    <div className="space-y-3 bg-[#0c0c0e] p-4 rounded-xl border border-white/10">
-                      <p className="text-xs font-semibold text-zinc-400">Add Poll Options</p>
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                       {pollOptions.map((opt, idx) => (
                         <div key={idx} className="flex items-center gap-2">
                           <input
@@ -1944,15 +807,15 @@ export default function RedditNewsPage() {
                             value={opt}
                             onChange={(e) => handlePollOptionChange(idx, e.target.value)}
                             placeholder={`Option ${idx + 1}`}
-                            className="flex-1 rounded-xl bg-[#141416] border border-white/10 px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none"
+                            className="flex-1 rounded-lg bg-[#141414] border border-white/[0.08] px-3 py-1.5 text-xs text-white placeholder-zinc-600 outline-none focus:border-white/20"
                           />
                           {pollOptions.length > 2 && (
                             <button
                               type="button"
                               onClick={() => handleRemovePollOption(idx)}
-                              className="p-1.5 text-zinc-500 hover:text-white"
+                              className="p-1 text-zinc-500 hover:text-white"
                             >
-                              <X className="h-4 w-4" />
+                              <X className="h-3.5 w-3.5" />
                             </button>
                           )}
                         </div>
@@ -1961,50 +824,685 @@ export default function RedditNewsPage() {
                         <button
                           type="button"
                           onClick={handleAddPollOption}
-                          className="text-xs font-bold text-[#FF4500] hover:underline"
+                          className="text-[11px] text-zinc-400 hover:text-white flex items-center gap-1 font-medium pt-1"
                         >
-                          + Add Option
+                          <Plus className="h-3 w-3" />
+                          Add Option
                         </button>
                       )}
                     </div>
                   )}
 
-                  {/* Moderator Pin Option */}
-                  {localIsZero && (
-                    <label className="flex items-center gap-2 cursor-pointer pt-1">
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                    <div className="flex items-center gap-2">
                       <input
-                        type="checkbox"
-                        checked={composerPin}
-                        onChange={(e) => setComposerPin(e.target.checked)}
-                        className="rounded border-white/20 text-[#FF4500] focus:ring-0"
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleImageSelect}
+                        accept="image/*"
+                        className="hidden"
                       />
-                      <span className="text-xs font-semibold text-zinc-300">
-                        Pin post as moderator announcement
-                      </span>
-                    </label>
-                  )}
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex items-center gap-1.5 rounded-xl bg-[#0a0a0a] hover:bg-[#181818] text-zinc-300 hover:text-white border border-white/[0.08] px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer"
+                        title="Add image"
+                      >
+                        <ImageIcon className="h-3.5 w-3.5 text-zinc-400" />
+                        <span>Image</span>
+                      </button>
 
-                  {/* Footer Actions */}
-                  <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/[0.08]">
-                    <button
-                      type="button"
-                      onClick={() => setIsComposerOpen(false)}
-                      className="px-4 py-2 rounded-full text-xs font-bold text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-colors"
-                    >
-                      Cancel
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowPollCreator(!showPollCreator)}
+                        className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer border ${
+                          showPollCreator
+                            ? "bg-white text-black font-semibold border-white"
+                            : "bg-[#0a0a0a] text-zinc-300 hover:text-white hover:bg-[#181818] border-white/[0.08]"
+                        }`}
+                        title="Add poll"
+                      >
+                        <BarChart2 className="h-3.5 w-3.5" />
+                        <span>Poll</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setIsPinned(!isPinned)}
+                        className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer border ${
+                          isPinned
+                            ? "bg-amber-400/20 text-amber-300 border-amber-400/30"
+                            : "bg-[#0a0a0a] text-zinc-400 hover:text-white hover:bg-[#181818] border-white/[0.08]"
+                        }`}
+                        title="Pin topic"
+                      >
+                        <Pin className="h-3.5 w-3.5" />
+                        <span>Pin</span>
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2 ml-auto">
+                      <button
+                        type="button"
+                        onClick={() => setShowComposer(false)}
+                        className="rounded-xl px-3.5 py-1.5 text-xs text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={!postText.trim()}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-white hover:bg-zinc-200 disabled:opacity-40 disabled:cursor-not-allowed text-black px-4 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-sm"
+                      >
+                        <Send className="h-3 w-3" />
+                        <span>Create Topic</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            )}
+
+            {/* Discourse Categories Table View */}
+            {activeTab === "categories" && !activeCategory ? (
+              <div className="rounded-2xl bg-[#141414] border border-white/[0.08] overflow-hidden shadow-xl">
+                {/* Table Header */}
+                <div className="grid grid-cols-12 px-6 py-3.5 border-b border-white/[0.08] text-xs font-bold text-zinc-400 uppercase tracking-wider bg-white/[0.02]">
+                  <div className="col-span-9 sm:col-span-10">Category</div>
+                  <div className="col-span-3 sm:col-span-2 text-right">Topics</div>
+                </div>
+
+                {/* Table Rows */}
+                <div className="divide-y divide-white/[0.06]">
+                  {FORUM_CATEGORIES.map((cat) => {
+                    const topicCount = getCategoryPostCount(cat);
+                    return (
+                      <div
+                        key={cat.id}
+                        onClick={() => {
+                          setActiveCategory(cat.name);
+                          setActiveSubcategory(null);
+                        }}
+                        className="grid grid-cols-12 px-6 py-5 hover:bg-white/[0.03] transition-colors cursor-pointer group items-start"
+                      >
+                        <div className="col-span-9 sm:col-span-10 pr-4">
+                          <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-zinc-200 transition-colors">
+                            {cat.name}
+                          </h3>
+                          <div className="text-xs sm:text-sm text-zinc-400 mt-1 leading-relaxed">
+                            {cat.description}
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3">
+                            {cat.subcategories.map((sub) => (
+                              <button
+                                key={sub}
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveCategory(cat.name);
+                                  setActiveSubcategory(sub);
+                                }}
+                                className="text-xs text-zinc-400 hover:text-white hover:underline transition-colors cursor-pointer"
+                              >
+                                {sub}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="col-span-3 sm:col-span-2 text-right pt-0.5">
+                          <span className="text-sm font-semibold text-zinc-400 tabular-nums">
+                            {topicCount}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : activeTab === "users" && isUserZero ? (
+              /* Users Panel (Password Locked for @0) */
+              !isUsersUnlocked ? (
+                <div className="max-w-md mx-auto py-12 px-6 sm:px-8 rounded-3xl bg-[#141414] border border-white/[0.08] shadow-2xl text-center flex flex-col items-center animate-in fade-in zoom-in-95 duration-200">
+                  <div className="h-16 w-16 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center text-white mb-5 shadow-inner">
+                    <Lock className="h-8 w-8 text-zinc-300" />
+                  </div>
+                  <h2 className="text-xl font-bold text-white mb-2">Users Panel Locked</h2>
+                  <p className="text-xs text-zinc-400 mb-6 leading-relaxed">
+                    This panel is strictly restricted to @0. Enter the password to access the platform user database.
+                  </p>
+                  <form onSubmit={handleUnlockUsers} className="w-full space-y-4">
+                    <div>
+                      <input
+                        type="password"
+                        autoFocus
+                        value={usersPasswordInput}
+                        onChange={(e) => {
+                          setUsersPasswordInput(e.target.value);
+                          setUsersPasswordError("");
+                        }}
+                        placeholder="Enter password..."
+                        className="w-full rounded-xl bg-black border border-white/[0.1] px-4 py-2.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/30 transition-colors font-mono"
+                      />
+                      {usersPasswordError && (
+                        <p className="text-xs text-red-400 mt-2 font-medium">
+                          {usersPasswordError}
+                        </p>
+                      )}
+                    </div>
                     <button
                       type="submit"
-                      disabled={!composerTitle.trim()}
-                      className="px-6 py-2 rounded-full bg-[#FF4500] hover:bg-[#e03d00] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold transition-all shadow-md shadow-[#FF4500]/20"
+                      className="w-full rounded-xl bg-white text-black py-2.5 text-xs font-bold hover:bg-zinc-200 transition-colors cursor-pointer shadow-lg"
                     >
-                      Post
+                      Unlock Panel
                     </button>
+                  </form>
+                </div>
+              ) : (
+                <div className="space-y-6 animate-in fade-in duration-200">
+                  {/* Controls Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-[#141414] border border-white/[0.08] shadow-xl">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-lg font-bold text-white tracking-tight">Platform Users Registry</h2>
+                        <span className="px-2 py-0.5 rounded-full bg-white/[0.08] border border-white/10 text-[11px] font-mono text-zinc-300">
+                          {allPlatformUsers.filter((u) => {
+                            if (!usersSearchQuery.trim()) return true;
+                            const q = usersSearchQuery.toLowerCase();
+                            return (
+                              (u.name && u.name.toLowerCase().includes(q)) ||
+                              (u.handle && u.handle.toLowerCase().includes(q)) ||
+                              (u.id && u.id.toLowerCase().includes(q)) ||
+                              (u.email && u.email.toLowerCase().includes(q))
+                            );
+                          }).length} users
+                        </span>
+                      </div>
+                      <p className="text-xs text-zinc-400 mt-1">
+                        Centralized overview of all registered creator accounts across Entropy.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={loadAllPlatformUsers}
+                        disabled={isLoadingUsers}
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-zinc-300 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] transition-colors cursor-pointer"
+                        title="Refresh users"
+                      >
+                        <RefreshCw className={`h-3.5 w-3.5 ${isLoadingUsers ? "animate-spin" : ""}`} />
+                        <span>Refresh</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsUsersUnlocked(false);
+                          setUsersPasswordInput("");
+                        }}
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-zinc-300 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] transition-colors cursor-pointer"
+                        title="Lock panel"
+                      >
+                        <Lock className="h-3.5 w-3.5" />
+                        <span>Lock</span>
+                      </button>
+                    </div>
                   </div>
-                </form>
+
+                  {/* Search Filter */}
+                  <div className="relative">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                    <input
+                      type="text"
+                      value={usersSearchQuery}
+                      onChange={(e) => setUsersSearchQuery(e.target.value)}
+                      placeholder="Search users by name, handle, email, or user ID..."
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#141414] border border-white/[0.08] text-xs text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors"
+                    />
+                  </div>
+
+                  {/* Users List */}
+                  {isLoadingUsers ? (
+                    <div className="py-20 flex justify-center items-center">
+                      <div className="h-8 w-8 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+                    </div>
+                  ) : (
+                    (() => {
+                      const filtered = allPlatformUsers.filter((u) => {
+                        if (!usersSearchQuery.trim()) return true;
+                        const q = usersSearchQuery.toLowerCase();
+                        return (
+                          (u.name && u.name.toLowerCase().includes(q)) ||
+                          (u.handle && u.handle.toLowerCase().includes(q)) ||
+                          (u.id && u.id.toLowerCase().includes(q)) ||
+                          (u.email && u.email.toLowerCase().includes(q))
+                        );
+                      });
+
+                      if (filtered.length === 0) {
+                        return (
+                          <div className="py-16 text-center rounded-2xl bg-[#141414] border border-white/[0.08] p-8">
+                            <Users className="h-10 w-10 text-zinc-600 mx-auto mb-3" />
+                            <h3 className="text-sm font-bold text-white mb-1">No users found</h3>
+                            <p className="text-xs text-zinc-500">No registered accounts match your filter.</p>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="rounded-2xl bg-[#141414] border border-white/[0.08] overflow-hidden shadow-xl divide-y divide-white/[0.06]">
+                          {filtered.map((u) => {
+                            const isSelf = u.handle?.toLowerCase() === "0";
+                            return (
+                              <div
+                                key={u.id || u.handle}
+                                className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-white/[0.02] transition-colors"
+                              >
+                                <div className="flex items-center gap-3.5">
+                                  <div className="relative h-12 w-12 rounded-full border border-white/10 bg-zinc-900 overflow-hidden flex items-center justify-center font-bold text-lg text-white flex-shrink-0">
+                                    <img
+                                      src={u.avatarUrl || u.avatar || "/default-avatar.png"}
+                                      alt={u.name}
+                                      className="h-full w-full object-cover"
+                                      onError={(e) => {
+                                        (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
+                                      }}
+                                    />
+                                  </div>
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-bold text-sm text-white">{u.name}</span>
+                                      {isSelf && (
+                                        <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[10px] font-semibold">
+                                          Admin / You
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-400 mt-0.5">
+                                      <span className="font-mono text-zinc-300">@{u.handle}</span>
+                                      <span className="text-zinc-600">•</span>
+                                      <span className="font-mono text-[11px] text-zinc-500">{u.id}</span>
+                                      {u.email && (
+                                        <>
+                                          <span className="text-zinc-600">•</span>
+                                          <span className="text-zinc-400">{u.email}</span>
+                                        </>
+                                      )}
+                                      {u.joinedAt && (
+                                        <>
+                                          <span className="text-zinc-600">•</span>
+                                          <span>{u.joinedAt}</span>
+                                        </>
+                                      )}
+                                    </div>
+                                    {u.bio && (
+                                      <p className="text-xs text-zinc-400 mt-1 line-clamp-1 max-w-xl">
+                                        {u.bio}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 self-end sm:self-auto">
+                                  <Link
+                                    href={`/profile/@${u.handle}`}
+                                    target="_blank"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-xs font-semibold text-zinc-200 hover:text-white transition-colors"
+                                  >
+                                    <span>View Profile</span>
+                                    <ExternalLink className="h-3.5 w-3.5 text-zinc-400" />
+                                  </Link>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()
+                  )}
+                </div>
+              )
+            ) : (
+              /* Topic Feed View (Category focused, Latest, or Top) */
+              <div className="space-y-6">
+                {activeCategory && selectedCategoryObj && (
+                  <div className="rounded-2xl bg-[#141414] border border-white/[0.08] p-6 shadow-xl">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+                          <span>{selectedCategoryObj.name}</span>
+                        </h2>
+                        <p className="text-xs sm:text-sm text-zinc-400 mt-1 max-w-2xl">
+                          {selectedCategoryObj.description}
+                        </p>
+                      </div>
+
+                      <span className="text-xs text-zinc-500 font-semibold tabular-nums self-start sm:self-auto">
+                        {getCategoryPostCount(selectedCategoryObj)} topics
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-white/[0.06]">
+                      <button
+                        type="button"
+                        onClick={() => setActiveSubcategory(null)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                          !activeSubcategory
+                            ? "bg-white/[0.08] text-white border border-white/20 shadow-sm"
+                            : "bg-transparent text-zinc-400 hover:text-white hover:bg-white/[0.04] border border-white/[0.08]"
+                        }`}
+                      >
+                        All
+                      </button>
+                      {selectedCategoryObj.subcategories.map((sub) => (
+                        <button
+                          key={sub}
+                          type="button"
+                          onClick={() => setActiveSubcategory(sub)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                            activeSubcategory === sub
+                              ? "bg-white/[0.08] text-white border border-white/20 shadow-sm"
+                              : "bg-transparent text-zinc-400 hover:text-white hover:bg-white/[0.04] border border-white/[0.08]"
+                          }`}
+                        >
+                          {sub}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {displayedPosts.length === 0 ? (
+                  <div className="py-20 text-center rounded-2xl bg-[#141414] border border-white/[0.08] p-8 flex flex-col items-center shadow-xl">
+                    <Sparkles className="h-10 w-10 text-zinc-600 mb-3" />
+                    <h3 className="text-base font-bold text-white mb-1">No topics posted yet</h3>
+                    <p className="text-xs text-zinc-400 max-w-sm mb-4">
+                      {user
+                        ? "Be the first to post an announcement, report an issue, or start a discussion on Entropy!"
+                        : "Check back soon for community posts, announcements, and patch notes."}
+                    </p>
+                    {user && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (activeCategory) {
+                            handleCategoryChange(activeCategory);
+                          }
+                          setShowComposer(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-white hover:bg-zinc-200 text-black px-4 py-2 text-xs font-bold transition-all cursor-pointer shadow-sm"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        <span>Create Topic</span>
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  displayedPosts.map((post) => {
+                    const isCommentsOpen = openCommentsPostId === post.id;
+                    const totalPollVotes = post.pollOptions?.reduce((acc, o) => acc + o.votes, 0) || 0;
+
+                    return (
+                      <article
+                        key={post.id}
+                        id={post.id}
+                        className="rounded-2xl bg-[#141414] border border-white/[0.08] p-5 sm:p-6 shadow-xl transition-all"
+                      >
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          <Link
+                            href={`/@${post.channelHandle}`}
+                            className="flex items-center gap-3 group"
+                          >
+                            <div className="h-11 w-11 rounded-full bg-[#181818] border border-white/[0.08] flex-shrink-0 overflow-hidden flex items-center justify-center font-bold text-sm text-white group-hover:ring-2 group-hover:ring-white/20 transition-all">
+                              {post.channelAvatar ? (
+                                <img src={post.channelAvatar} alt={post.channelName || "Channel"} className="h-full w-full object-cover" />
+                              ) : (
+                                <span>{(post.channelName || post.channelHandle || "C").slice(0, 1).toUpperCase()}</span>
+                              )}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-bold text-sm text-white group-hover:underline">
+                                  {post.channelName || post.channelHandle}
+                                </span>
+                                {post.isPinned && (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/20">
+                                    <Pin className="h-2.5 w-2.5 fill-amber-400" />
+                                    <span>Pinned</span>
+                                  </span>
+                                )}
+                                {post.tag && (
+                                  <span className="text-[10px] font-semibold text-zinc-300 bg-white/[0.06] px-2.5 py-0.5 rounded-full">
+                                    {post.tag}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1.5 text-xs text-zinc-500 mt-0.5">
+                                <span>@{post.channelHandle}</span>
+                                <span>•</span>
+                                <span>{formatPostTime(post.publishedAt)}</span>
+                              </div>
+                            </div>
+                          </Link>
+
+                          {user && (user.handle || "").toLowerCase() === (post.channelHandle || "").toLowerCase() && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePost(post.id)}
+                              className="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
+                              title="Delete topic"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="text-xs sm:text-sm text-zinc-100 leading-relaxed whitespace-pre-line mb-4 font-normal">
+                          {post.content}
+                        </div>
+
+                        {post.imageUrl && (
+                          <div className="rounded-xl overflow-hidden border border-white/[0.08] mb-4 max-h-[520px] bg-[#0a0a0a]">
+                            <img
+                              src={post.imageUrl}
+                              alt="Topic media"
+                              className="w-full h-full object-cover cursor-pointer hover:opacity-95 transition-opacity"
+                            />
+                          </div>
+                        )}
+
+                        {post.pollOptions && post.pollOptions.length > 0 && (
+                          <div className="space-y-2 mb-4 bg-[#0a0a0a] border border-white/[0.06] rounded-xl p-3">
+                            <div className="text-xs font-semibold text-zinc-400 mb-2 flex items-center justify-between">
+                              <span>Poll</span>
+                              <span>{totalPollVotes} {totalPollVotes === 1 ? "vote" : "votes"}</span>
+                            </div>
+                            {post.pollOptions.map((opt) => {
+                              const pct = totalPollVotes > 0 ? Math.round((opt.votes / totalPollVotes) * 100) : 0;
+                              const isSelected = post.pollVotedId === opt.id;
+                              return (
+                                <button
+                                  key={opt.id}
+                                  type="button"
+                                  disabled={Boolean(post.pollVotedId)}
+                                  onClick={() => handleVotePoll(post.id, opt.id)}
+                                  className={`relative w-full overflow-hidden rounded-xl border p-3 text-left transition-all ${
+                                    isSelected
+                                      ? "border-white/40 bg-white/[0.08]"
+                                      : "border-white/[0.08] bg-[#141414] hover:border-white/20"
+                                  } ${!post.pollVotedId ? "cursor-pointer" : "cursor-default"}`}
+                                >
+                                  {post.pollVotedId && (
+                                    <div
+                                      className={`absolute inset-0 transition-all duration-500 ${
+                                        isSelected ? "bg-white/[0.16]" : "bg-white/[0.05]"
+                                      }`}
+                                      style={{ width: `${pct}%` }}
+                                    />
+                                  )}
+                                  <div className="relative flex items-center justify-between text-xs font-medium">
+                                    <span className="text-zinc-200">{opt.text}</span>
+                                    {post.pollVotedId && (
+                                      <span className="font-semibold text-zinc-300 ml-2">{pct}%</span>
+                                    )}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-2 pt-2 border-t border-white/[0.06]">
+                          <button
+                            type="button"
+                            onClick={() => handleLikePost(post.id)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
+                              post.hasLiked
+                                ? "text-white bg-white/[0.12]"
+                                : "text-zinc-400 hover:text-white hover:bg-white/[0.06]"
+                            }`}
+                            title="Like"
+                          >
+                            <ThumbsUp className={`h-3.5 w-3.5 ${post.hasLiked ? "fill-white" : ""}`} />
+                            <span>{post.likes > 0 ? post.likes : ""}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDislikePost(post.id)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
+                              post.hasDisliked
+                                ? "text-white bg-white/[0.12]"
+                                : "text-zinc-400 hover:text-white hover:bg-white/[0.06]"
+                            }`}
+                            title="Dislike"
+                          >
+                            <ThumbsDown className={`h-3.5 w-3.5 ${post.hasDisliked ? "fill-white" : ""}`} />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleSharePost(post)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
+                            title="Share"
+                          >
+                            <Share2 className="h-3.5 w-3.5" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setOpenCommentsPostId(isCommentsOpen ? null : post.id)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ml-auto transition-colors cursor-pointer ${
+                              isCommentsOpen
+                                ? "text-white bg-white/[0.12]"
+                                : "text-zinc-400 hover:text-white hover:bg-white/[0.06]"
+                            }`}
+                            title="Replies"
+                          >
+                            <MessageSquare className="h-3.5 w-3.5" />
+                            <span>{(post.comments || []).length}</span>
+                          </button>
+                        </div>
+
+                        {/* Expandable replies */}
+                        {isCommentsOpen && (
+                          <div className="mt-4 pt-4 border-t border-white/[0.08] space-y-4 animate-in fade-in duration-200">
+                            {user ? (
+                              <div className="flex gap-2">
+                                <div className="h-8 w-8 rounded-full bg-[#181818] border border-white/[0.08] flex items-center justify-center font-bold text-xs text-white flex-shrink-0 overflow-hidden">
+                                  <img
+                                    src={user.avatarUrl || "/default-avatar.png"}
+                                    alt={user.name}
+                                    className="h-full w-full object-cover"
+                                    onError={(e) => {
+                                      (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
+                                    }}
+                                  />
+                                </div>
+                                <div className="flex-1 flex gap-2">
+                                  <input
+                                    type="text"
+                                    value={commentInputs[post.id] || ""}
+                                    onChange={(e) => setCommentInputs({ ...commentInputs, [post.id]: e.target.value })}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleAddComment(post.id);
+                                      }
+                                    }}
+                                    placeholder="Write a reply..."
+                                    className="flex-1 rounded-xl bg-[#0a0a0a] border border-white/[0.08] px-3 py-1.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/20"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAddComment(post.id)}
+                                    disabled={!commentInputs[post.id]?.trim()}
+                                    className="rounded-xl bg-white hover:bg-zinc-200 disabled:opacity-40 text-black px-3 py-1.5 text-xs font-bold transition-all cursor-pointer"
+                                  >
+                                    Reply
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-center py-2 text-xs text-zinc-500">
+                                <button
+                                  type="button"
+                                  onClick={openAuthModal}
+                                  className="text-white hover:underline font-semibold"
+                                >
+                                  Sign in
+                                </button>{" "}
+                                to reply to this topic.
+                              </div>
+                            )}
+
+                            <div className="space-y-3">
+                              {(post.comments || []).length === 0 ? (
+                                <p className="text-xs text-zinc-500 text-center py-2">No replies yet. Be the first to reply!</p>
+                              ) : (
+                                post.comments?.map((comment) => (
+                                  <div key={comment.id} className="flex gap-2.5 text-xs">
+                                    <Link
+                                      href={`/@${(comment.authorHandle || comment.authorName || "").replace(/^@/, "")}`}
+                                      className="h-7 w-7 rounded-full bg-[#181818] border border-white/[0.08] flex items-center justify-center font-bold text-[10px] text-white flex-shrink-0 overflow-hidden hover:opacity-80 transition-opacity cursor-pointer"
+                                      title={`View ${comment.authorName}'s profile`}
+                                    >
+                                      {comment.authorAvatar ? (
+                                        <img src={comment.authorAvatar} alt={comment.authorName} className="h-full w-full object-cover" />
+                                      ) : (
+                                        <span>{(comment.authorName || "U").slice(0, 1).toUpperCase()}</span>
+                                      )}
+                                    </Link>
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <Link
+                                          href={`/@${(comment.authorHandle || comment.authorName || "").replace(/^@/, "")}`}
+                                          className="font-semibold text-zinc-200 hover:text-white hover:underline transition-colors cursor-pointer"
+                                        >
+                                          {comment.authorName}
+                                        </Link>
+                                        <span className="text-[10px] text-zinc-500">
+                                          {formatPostTime(comment.createdAt)}
+                                        </span>
+                                      </div>
+                                      <p className="text-zinc-300 mt-0.5 leading-relaxed">{comment.content}</p>
+                                    </div>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </article>
+                    );
+                  })
+                )}
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </main>
       </div>
     </div>

@@ -48,7 +48,6 @@ export interface VideoItem {
 
 export interface NewsPost {
   id: string;
-  title?: string;
   channelHandle: string;
   channelName: string;
   channelAvatar?: string;
@@ -62,10 +61,7 @@ export interface NewsPost {
   hasLiked?: boolean;
   hasDisliked?: boolean;
   tag?: string;
-  subreddit?: string;
-  flair?: string;
   isPinned?: boolean;
-  isSaved?: boolean;
   comments?: CommunityComment[];
 }
 
@@ -77,12 +73,7 @@ export interface CommunityComment {
   content: string;
   createdAt: string;
   likes: number;
-  dislikes?: number;
   hasLiked?: boolean;
-  hasDisliked?: boolean;
-  isOp?: boolean;
-  parentId?: string;
-  replies?: CommunityComment[];
 }
 
 export interface CommunityPollOption {
