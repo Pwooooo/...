@@ -4,7 +4,6 @@ import React, { Suspense, useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import {
-  Search,
   Home,
   Flame,
   PlaySquare,
@@ -131,7 +130,6 @@ function SidebarContent({
   }, [user]);
 
   const navItems = [
-    { label: "Search", href: "/results", icon: Search },
     { label: "Home", href: "/", icon: Home },
     { label: "Shorts", href: "/shorts", icon: Flame },
     { label: "Subscriptions", href: "/feed/subscriptions", icon: PlaySquare },
