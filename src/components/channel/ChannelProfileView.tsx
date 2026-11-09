@@ -40,7 +40,7 @@ import {
   UserRecord,
 } from "@/lib/user-validation";
 
-const PROFILE_TABS = ["Videos", "Playlists", "News", "About"];
+const PROFILE_TABS = ["Videos", "Playlists", "Community", "About"];
 
 interface ChannelProfileViewProps {
   params?: Promise<{ handle: string }>;
@@ -113,12 +113,8 @@ export default function ChannelProfileView({
     if (typeof window !== "undefined") {
       const sp = new URLSearchParams(window.location.search);
       const tabParam = sp.get("tab");
-      if (tabParam) {
-        if (tabParam.toLowerCase() === "community" || tabParam === "News") {
-          setActiveTab("News");
-        } else if (PROFILE_TABS.includes(tabParam)) {
-          setActiveTab(tabParam);
-        }
+      if (tabParam && PROFILE_TABS.includes(tabParam)) {
+        setActiveTab(tabParam);
       }
     }
   }, []);
@@ -696,14 +692,13 @@ export default function ChannelProfileView({
                   </div>
                 )}
 
-                {(activeTab === "News" || activeTab === "Community") && (
+                {activeTab === "Community" && (
                   <CommunityTab
                     channel={{
                       id: channel.id,
                       handle: channel.handle,
                       displayName: channel.displayName,
                       avatarUrl: channelAvatar,
-                      subscribersCount: channel.subscribersCount,
                     }}
                     isOwnProfile={isOwnProfile}
                   />
