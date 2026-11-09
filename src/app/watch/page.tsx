@@ -39,6 +39,7 @@ import { ALL_VIDEOS, SAMPLE_CHAPTERS, SAMPLE_HIGHLIGHTS } from "@/lib/mock-data"
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { findUserByHandle, resolveChannelAvatar } from "@/lib/user-validation";
+import VerifiedBadge from "@/components/common/VerifiedBadge";
 import {
   getUserVideos,
   getVideoBlob,
@@ -1183,8 +1184,12 @@ function WatchContent() {
               </div>
             </Link>
             <div>
-              <Link href={`/@${(currentVideo.channel.handle || currentVideo.channel.displayName).replace(/^@/, "")}`} className="font-semibold text-sm text-white hover:text-zinc-300 transition-colors">
+              <Link
+                href={`/@${(currentVideo.channel.handle || currentVideo.channel.displayName).replace(/^@/, "")}`}
+                className="font-semibold text-sm text-white hover:text-zinc-300 transition-colors flex items-center gap-1.5"
+              >
                 <span>{currentVideo.channel.displayName}</span>
+                <VerifiedBadge subscribersCount={currentVideo.channel.subscribersCount} className="h-4 w-4" />
               </Link>
               <p className="text-xs text-zinc-400">
                 {formatSubscribers(currentVideo.channel.subscribersCount)}

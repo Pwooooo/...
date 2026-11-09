@@ -9,7 +9,8 @@ import { VideoItem } from "@/types";
 import Link from "next/link";
 import { formatDuration, formatViews } from "@/lib/utils";
 import { resolveChannelAvatar, getRegisteredUsers, findUserByHandle, UserRecord } from "@/lib/user-validation";
-import { SlidersHorizontal, CheckCircle2 } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
+import VerifiedBadge from "@/components/common/VerifiedBadge";
 
 function SearchResultsContent() {
   const searchParams = useSearchParams();
@@ -53,6 +54,15 @@ function SearchResultsContent() {
       ) || null
     );
   }, [cleanQuery]);
+
+  const matchingChannelSubscribers = useMemo(() => {
+    if (!matchingChannel) return 0;
+    const chanHandle = matchingChannel.handle.toLowerCase();
+    const chanVideo = allVideos.find(
+      (v) => (v.channel?.handle || "").replace(/^@/, "").toLowerCase() === chanHandle
+    );
+    return chanVideo?.channel?.subscribersCount || 0;
+  }, [matchingChannel, allVideos]);
 
   const results = useMemo(() => {
     if (!Array.isArray(allVideos)) return [];
@@ -101,13 +111,7 @@ function SearchResultsContent() {
               <h3 className="font-bold text-base text-white group-hover:text-blue-400 transition-colors">
                 {matchingChannel.name}
               </h3>
-              <img
-                src="/checkmark.png?v=2"
-                alt="Verified"
-                title="Verified"
-                className="h-4 w-4 object-contain inline-block flex-shrink-0 select-none"
-                draggable={false}
-              />
+              <VerifiedBadge subscribersCount={matchingChannelSubscribers} className="h-4 w-4" />
             </div>
             <p className="text-xs text-zinc-400 mt-0.5">
               @{matchingChannel.handle} • Channel

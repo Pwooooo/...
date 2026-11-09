@@ -29,6 +29,7 @@ import { VideoItem } from "@/types";
 import Link from "next/link";
 import CommunityTab from "@/components/channel/CommunityTab";
 import { getAllCombinedVideos, fetchServerVideos, isUserVideoOwner } from "@/lib/video-storage";
+import VerifiedBadge from "@/components/common/VerifiedBadge";
 import {
   findUserByHandle,
   fetchRemoteUserByHandle,
@@ -447,12 +448,9 @@ export default function ChannelProfileView({
                       <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white leading-tight">
                         {channel.displayName}
                       </h1>
-                      <img
-                        src="/checkmark.png?v=2"
-                        alt="Verified"
-                        title="Verified"
-                        className="h-5 w-5 object-contain inline-block flex-shrink-0 select-none"
-                        draggable={false}
+                      <VerifiedBadge
+                        subscribersCount={(channel.subscribersCount || 0) + (isSubscribed ? 1 : 0)}
+                        className="h-5 w-5"
                       />
                     </div>
                     <p className="text-xs sm:text-sm text-zinc-400 font-normal mt-0.5 flex flex-wrap items-center gap-1.5">
