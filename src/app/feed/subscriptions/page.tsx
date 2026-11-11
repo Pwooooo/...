@@ -213,22 +213,22 @@ export default function SubscriptionsPage() {
                   type="button"
                   onClick={() => setSelectedHandle(null)}
                   className={`flex flex-col items-center gap-2 flex-shrink-0 group cursor-pointer transition-all select-none p-1 ${
-                    selectedHandle === null ? "opacity-100" : "opacity-70 hover:opacity-100"
+                    selectedHandle === null ? "opacity-100" : "opacity-75 hover:opacity-100"
                   }`}
                   title="View all subscriptions"
                 >
                   <div
-                    className={`h-14 w-14 rounded-full flex items-center justify-center font-bold text-xs transition-all ${
+                    className={`h-14 w-14 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
                       selectedHandle === null
-                        ? "bg-white text-black ring-2 ring-white ring-offset-2 ring-offset-black shadow-lg"
-                        : "bg-[#181818] text-zinc-300 border border-white/10 hover:border-white/30"
+                        ? "bg-[#272727] text-white ring-2 ring-white/70 shadow-sm"
+                        : "bg-[#141416] text-zinc-400 border border-white/[0.08] hover:text-zinc-200 hover:border-white/20"
                     }`}
                   >
                     <span>All</span>
                   </div>
                   <span
                     className={`text-xs transition-colors ${
-                      selectedHandle === null ? "text-white font-bold" : "text-zinc-400 group-hover:text-zinc-200"
+                      selectedHandle === null ? "text-white font-medium" : "text-zinc-400 group-hover:text-zinc-200"
                     }`}
                   >
                     All
@@ -246,7 +246,7 @@ export default function SubscriptionsPage() {
                         setSelectedHandle(isSelected ? null : channel.handle)
                       }
                       className={`flex flex-col items-center gap-2 flex-shrink-0 group cursor-pointer transition-all select-none p-1 ${
-                        isSelected ? "opacity-100" : "opacity-80 hover:opacity-100"
+                        isSelected ? "opacity-100" : "opacity-75 hover:opacity-100"
                       }`}
                       title={`Filter by @${channel.handle}`}
                     >
@@ -254,8 +254,8 @@ export default function SubscriptionsPage() {
                         <div
                           className={`h-14 w-14 rounded-full overflow-hidden bg-zinc-900 transition-all ${
                             isSelected
-                              ? "ring-2 ring-white ring-offset-2 ring-offset-black shadow-lg"
-                              : "border-2 border-transparent group-hover:border-white/40"
+                              ? "ring-2 ring-white/70 shadow-sm"
+                              : "ring-1 ring-white/[0.08] hover:ring-white/30"
                           }`}
                         >
                           <img
@@ -281,8 +281,8 @@ export default function SubscriptionsPage() {
                         <span
                           className={`text-xs truncate transition-colors ${
                             isSelected
-                              ? "text-white font-bold"
-                              : "text-zinc-300 group-hover:text-white"
+                              ? "text-white font-medium"
+                              : "text-zinc-400 group-hover:text-zinc-200"
                           }`}
                         >
                           {channel.displayName}
