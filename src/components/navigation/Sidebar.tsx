@@ -21,6 +21,7 @@ import {
   Shield,
   PanelLeft,
   ExternalLink,
+  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -43,6 +44,12 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   badge?: string | number;
   hasExternal?: boolean;
+}
+
+interface NavSection {
+  title?: string;
+  href?: string;
+  items: NavItem[];
 }
 
 function SidebarContent({
@@ -137,43 +144,92 @@ function SidebarContent({
     };
   }, [user]);
 
-  // Grouped navigation items with separators between groups (NO text section headers)
-  const navGroups: NavItem[][] = [
-    // Group 1: Core navigation
-    [
-      { label: "Home", href: "/", icon: Home },
-      { label: "Shorts", href: "/shorts", icon: Flame },
-      { label: "Subscriptions", href: "/feed/subscriptions", icon: PlaySquare },
-      {
-        label: "Notifications",
-        href: "/notifications",
-        icon: Bell,
-        badge: unreadCount > 0 ? (unreadCount > 99 ? "99+" : unreadCount) : undefined,
-      },
-    ],
-    // Group 2: Library & creator tools
-    [
-      { label: "History", href: "/feed/history", icon: History },
-      { label: "Playlists", href: "/feed/playlists", icon: ListVideo },
-      { label: "Profile", href: "/profile", icon: User },
-      { label: "Your videos", href: "/studio/videos", icon: Video },
-      { label: "Create", href: "/studio/upload", icon: Pencil },
-      { label: "Watch Later", href: "/playlist?list=WL", icon: Clock },
-      { label: "Liked videos", href: "/playlist?list=LL", icon: ThumbsUp },
-    ],
-    // Group 3: Platform discovery
-    [
-      { label: "Trending", href: "/trending", icon: Compass },
-      { label: "News", href: "/news", icon: Newspaper, hasExternal: true },
-    ],
-    // Group 4: Settings & Admin
-    [
-      ...(localIsZero
-        ? [{ label: "Users Panel", href: "/news?tab=users", icon: Shield, badge: "Admin" }]
-        : []),
-      { label: "Settings", href: "/settings", icon: Settings },
-    ],
-  ].filter((group) => group.length > 0);
+  // YouTube-style section groupings (with headers, NO horizontal line dividers)
+  const navSections: NavSection[] = [
+    {
+      items: [
+        { label: "Home", href: "/", icon: Home },
+        { label: "Shorts", href: "/shorts", icon: Flame },
+        { label: "Subscriptions", href: "/feed/subscriptions", icon: PlaySquare },
+        {
+          label: "Notifications",
+          href: "/notifications",
+          icon: Bell,
+          badge: unreadCount > 0 ? (unreadCount > 99 ? "99+" : unreadCount) : undefined,
+        },
+      ],
+    },
+    {
+      title: "You",
+      href: "/profile",
+      items: [
+        { label: "Profile", href: "/profile", icon: User },
+        { label: "History", href: "/feed/history", icon: History },
+        { label: "Playlists", href: "/feed/playlists", icon: ListVideo },
+        { label: "Your videos", href: "/studio/videos", icon: Video },
+        { label: "Create", href: "/studio/upload", icon: Pencil },
+        { label: "Watch Later", href: "/playlist?list=WL", icon: Clock },
+        { label: "Liked videos", href: "/playlist?list=LL", icon: ThumbsUp },
+      ],
+    },
+    {
+      title: "Explore",
+      items: [
+        { label: "Trending", href: "/trending", icon: Compass },
+        { label: "News", href: "/news", icon: Newspaper, hasExternal: true },
+      ],
+    },
+    {
+      title: localIsZero ? "Manage" : undefined,
+      items: [
+        ...(localIsZero
+          ? [{ label: "Users Panel", href: "/news?tab=users", icon: Shield, badge: "Admin" }]
+          : []),
+        { label: "Settings", href: "/settings", icon: Settings },
+      ],
+    },
+  ];
+
+  // Render individual navigation item
+  const renderItem = (item: NavItem, isDrawerMode = false) => {
+    const isActive = isItemActive(item.href);
+    const Icon = item.icon;
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        onClick={isDrawerMode ? onClose : undefined}
+        className={cn(
+          "group flex items-center justify-between px-3.5 py-2.5 rounded-xl text-[13.5px] font-medium transition-all duration-150 select-none",
+          isActive
+            ? "bg-[#181818] text-white font-semibold shadow-sm"
+            : "text-zinc-300 hover:text-white hover:bg-white/[0.05]"
+        )}
+      >
+        <div className="flex items-center gap-3.5 min-w-0">
+          <Icon
+            className={cn(
+              "h-[18px] w-[18px] flex-shrink-0 transition-colors",
+              isActive ? "text-white" : "text-zinc-400 group-hover:text-white"
+            )}
+            strokeWidth={1.8}
+          />
+          <span className="truncate">{item.label}</span>
+        </div>
+        {item.badge !== undefined && (
+          <span className="ml-auto flex-shrink-0 bg-[#e51d42] text-white text-[11px] font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center leading-tight shadow-sm">
+            {item.badge}
+          </span>
+        )}
+        {item.hasExternal && (
+          <ExternalLink
+            className="ml-auto h-3.5 w-3.5 text-zinc-500 group-hover:text-zinc-300 transition-colors flex-shrink-0"
+            strokeWidth={1.8}
+          />
+        )}
+      </Link>
+    );
+  };
 
   // Drawer (Mobile / Overlay)
   if (drawer) {
@@ -201,54 +257,37 @@ function SidebarContent({
             </button>
           </div>
 
-          {/* Navigation Groups with Separators (No text section headers) */}
-          <div className="space-y-0.5">
-            {navGroups.map((group, gIndex) => (
-              <React.Fragment key={gIndex}>
-                {gIndex > 0 && (
-                  <div className="my-2.5 mx-2 h-[1px] bg-white/[0.08]" role="separator" />
-                )}
-                {group.map((item) => {
-                  const isActive = isItemActive(item.href);
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={onClose}
-                      className={cn(
-                        "group flex items-center justify-between px-3.5 py-2.5 rounded-xl text-[13.5px] font-medium transition-all duration-150 select-none",
-                        isActive
-                          ? "bg-[#181818] text-white font-semibold shadow-sm"
-                          : "text-zinc-300 hover:text-white hover:bg-white/[0.05]"
-                      )}
-                    >
-                      <div className="flex items-center gap-3.5 min-w-0">
-                        <Icon
-                          className={cn(
-                            "h-[18px] w-[18px] flex-shrink-0 transition-colors",
-                            isActive ? "text-white" : "text-zinc-400 group-hover:text-white"
-                          )}
-                          strokeWidth={1.8}
-                        />
-                        <span className="truncate">{item.label}</span>
-                      </div>
-                      {item.badge !== undefined && (
-                        <span className="ml-auto flex-shrink-0 bg-[#e51d42] text-white text-[11px] font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center leading-tight shadow-sm">
-                          {item.badge}
+          {/* Navigation Sections (YouTube headers, NO line dividers) */}
+          <div className="space-y-4">
+            {navSections.map((section, sIndex) => {
+              if (section.items.length === 0) return null;
+              return (
+                <div key={sIndex} className="space-y-0.5">
+                  {section.title && (
+                    <div className="px-3.5 pt-1 pb-1">
+                      {section.href ? (
+                        <Link
+                          href={section.href}
+                          onClick={onClose}
+                          className="group inline-flex items-center gap-1.5 text-[14px] font-bold text-white hover:text-zinc-200 transition-colors select-none"
+                        >
+                          <span>{section.title}</span>
+                          <ChevronRight
+                            className="h-3.5 w-3.5 text-zinc-400 group-hover:text-white group-hover:translate-x-0.5 transition-all"
+                            strokeWidth={2}
+                          />
+                        </Link>
+                      ) : (
+                        <span className="text-[13px] font-bold text-zinc-300 tracking-wide select-none">
+                          {section.title}
                         </span>
                       )}
-                      {item.hasExternal && (
-                        <ExternalLink
-                          className="ml-auto h-3.5 w-3.5 text-zinc-500 group-hover:text-zinc-300 transition-colors flex-shrink-0"
-                          strokeWidth={1.8}
-                        />
-                      )}
-                    </Link>
-                  );
-                })}
-              </React.Fragment>
-            ))}
+                    </div>
+                  )}
+                  {section.items.map((item) => renderItem(item, true))}
+                </div>
+              );
+            })}
           </div>
         </aside>
       </div>
@@ -269,14 +308,12 @@ function SidebarContent({
           <PanelLeft className="h-4 w-4" strokeWidth={1.8} />
         </button>
 
-        <div className="flex flex-col items-center w-full px-2">
-          {navGroups.map((group, gIndex) => (
-            <React.Fragment key={gIndex}>
-              {gIndex > 0 && (
-                <div className="w-8 h-[1px] bg-white/[0.08] my-2" role="separator" />
-              )}
-              <div className="flex flex-col items-center gap-1 w-full">
-                {group.map((item) => {
+        <div className="flex flex-col items-center gap-3 w-full px-2">
+          {navSections.map((section, sIndex) => {
+            if (section.items.length === 0) return null;
+            return (
+              <div key={sIndex} className="flex flex-col items-center gap-1 w-full">
+                {section.items.map((item) => {
                   const isActive = isItemActive(item.href);
                   const Icon = item.icon;
                   return (
@@ -299,8 +336,8 @@ function SidebarContent({
                   );
                 })}
               </div>
-            </React.Fragment>
-          ))}
+            );
+          })}
         </div>
       </aside>
     );
@@ -322,53 +359,36 @@ function SidebarContent({
         </button>
       </div>
 
-      {/* Navigation Groups with Separators (No text section headers) */}
-      <div className="space-y-0.5">
-        {navGroups.map((group, gIndex) => (
-          <React.Fragment key={gIndex}>
-            {gIndex > 0 && (
-              <div className="my-2.5 mx-2 h-[1px] bg-white/[0.08]" role="separator" />
-            )}
-            {group.map((item) => {
-              const isActive = isItemActive(item.href);
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "group flex items-center justify-between px-3.5 py-2.5 rounded-xl text-[13.5px] font-medium transition-all duration-150 select-none",
-                    isActive
-                      ? "bg-[#181818] text-white font-semibold shadow-sm"
-                      : "text-zinc-300 hover:text-white hover:bg-white/[0.05]"
-                  )}
-                >
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    <Icon
-                      className={cn(
-                        "h-[18px] w-[18px] flex-shrink-0 transition-colors",
-                        isActive ? "text-white" : "text-zinc-400 group-hover:text-white"
-                      )}
-                      strokeWidth={1.8}
-                    />
-                    <span className="truncate">{item.label}</span>
-                  </div>
-                  {item.badge !== undefined && (
-                    <span className="ml-auto flex-shrink-0 bg-[#e51d42] text-white text-[11px] font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center leading-tight shadow-sm">
-                      {item.badge}
+      {/* Navigation Sections (YouTube headers, NO line dividers) */}
+      <div className="space-y-4">
+        {navSections.map((section, sIndex) => {
+          if (section.items.length === 0) return null;
+          return (
+            <div key={sIndex} className="space-y-0.5">
+              {section.title && (
+                <div className="px-3.5 pt-1 pb-1">
+                  {section.href ? (
+                    <Link
+                      href={section.href}
+                      className="group inline-flex items-center gap-1.5 text-[14px] font-bold text-white hover:text-zinc-200 transition-colors select-none"
+                    >
+                      <span>{section.title}</span>
+                      <ChevronRight
+                        className="h-3.5 w-3.5 text-zinc-400 group-hover:text-white group-hover:translate-x-0.5 transition-all"
+                        strokeWidth={2}
+                      />
+                    </Link>
+                  ) : (
+                    <span className="text-[13px] font-bold text-zinc-300 tracking-wide select-none">
+                      {section.title}
                     </span>
                   )}
-                  {item.hasExternal && (
-                    <ExternalLink
-                      className="ml-auto h-3.5 w-3.5 text-zinc-500 group-hover:text-zinc-300 transition-colors flex-shrink-0"
-                      strokeWidth={1.8}
-                    />
-                  )}
-                </Link>
-              );
-            })}
-          </React.Fragment>
-        ))}
+                </div>
+              )}
+              {section.items.map((item) => renderItem(item, false))}
+            </div>
+          );
+        })}
       </div>
     </aside>
   );
