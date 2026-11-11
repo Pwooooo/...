@@ -212,16 +212,16 @@ export default function SubscriptionsPage() {
                 <button
                   type="button"
                   onClick={() => setSelectedHandle(null)}
-                  className={`flex flex-col items-center gap-2 flex-shrink-0 group cursor-pointer transition-all select-none p-1 ${
-                    selectedHandle === null ? "opacity-100" : "opacity-75 hover:opacity-100"
+                  className={`flex flex-col items-center gap-2 flex-shrink-0 group cursor-pointer transition-opacity select-none p-1 ${
+                    selectedHandle === null ? "opacity-100" : "opacity-65 hover:opacity-100"
                   }`}
                   title="View all subscriptions"
                 >
                   <div
-                    className={`h-14 w-14 rounded-full flex items-center justify-center text-xs font-semibold transition-transform duration-200 ease-out ${
+                    className={`h-14 w-14 rounded-full flex items-center justify-center text-xs font-semibold transition-colors ${
                       selectedHandle === null
-                        ? "bg-zinc-800 text-white scale-110 shadow-md"
-                        : "bg-[#141416] text-zinc-400 border border-white/[0.08] hover:text-zinc-200 group-hover:scale-105"
+                        ? "bg-zinc-800 text-white border border-white/20 shadow-sm"
+                        : "bg-[#141416] text-zinc-400 border border-white/[0.08] hover:text-zinc-200 hover:border-white/20 hover:bg-[#1a1a1e]"
                     }`}
                   >
                     <span>All</span>
@@ -245,19 +245,13 @@ export default function SubscriptionsPage() {
                       onClick={() =>
                         setSelectedHandle(isSelected ? null : channel.handle)
                       }
-                      className={`flex flex-col items-center gap-2 flex-shrink-0 group cursor-pointer transition-all select-none p-1 ${
-                        isSelected ? "opacity-100" : "opacity-75 hover:opacity-100"
+                      className={`flex flex-col items-center gap-2 flex-shrink-0 group cursor-pointer transition-opacity select-none p-1 ${
+                        isSelected ? "opacity-100" : "opacity-65 hover:opacity-100"
                       }`}
                       title={`Filter by @${channel.handle}`}
                     >
                       <div className="relative">
-                        <div
-                          className={`h-14 w-14 rounded-full overflow-hidden bg-zinc-900 transition-transform duration-200 ease-out ${
-                            isSelected
-                              ? "scale-110 shadow-md"
-                              : "group-hover:scale-105"
-                          }`}
-                        >
+                        <div className="h-14 w-14 rounded-full overflow-hidden bg-zinc-900 border border-white/[0.08]">
                           <img
                             src={channel.avatarUrl || "/default-avatar.png"}
                             alt={channel.displayName}
