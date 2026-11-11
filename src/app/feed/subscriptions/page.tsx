@@ -207,12 +207,12 @@ export default function SubscriptionsPage() {
           {/* Subscribed Channels Avatar Story Bar */}
           {subscribedChannelsList.length > 0 && (
             <div className="mb-6">
-              <div className="flex items-center gap-5 overflow-x-auto pt-2 pb-4 border-b border-white/[0.08] scrollbar-none">
+              <div className="flex items-center gap-4 overflow-x-auto pt-3 pb-4 px-3 -mx-3 border-b border-white/[0.08] scrollbar-none">
                 {/* "All" circular button */}
                 <button
                   type="button"
                   onClick={() => setSelectedHandle(null)}
-                  className={`flex flex-col items-center gap-2 flex-shrink-0 group cursor-pointer transition-all select-none ${
+                  className={`flex flex-col items-center gap-2 flex-shrink-0 group cursor-pointer transition-all select-none p-1 ${
                     selectedHandle === null ? "opacity-100" : "opacity-70 hover:opacity-100"
                   }`}
                   title="View all subscriptions"
@@ -220,7 +220,7 @@ export default function SubscriptionsPage() {
                   <div
                     className={`h-14 w-14 rounded-full flex items-center justify-center font-bold text-xs transition-all ${
                       selectedHandle === null
-                        ? "bg-white text-black ring-2 ring-white ring-offset-2 ring-offset-black shadow-lg scale-105"
+                        ? "bg-white text-black ring-2 ring-white ring-offset-2 ring-offset-black shadow-lg"
                         : "bg-[#181818] text-zinc-300 border border-white/10 hover:border-white/30"
                     }`}
                   >
@@ -245,7 +245,7 @@ export default function SubscriptionsPage() {
                       onClick={() =>
                         setSelectedHandle(isSelected ? null : channel.handle)
                       }
-                      className={`flex flex-col items-center gap-2 flex-shrink-0 group cursor-pointer transition-all select-none ${
+                      className={`flex flex-col items-center gap-2 flex-shrink-0 group cursor-pointer transition-all select-none p-1 ${
                         isSelected ? "opacity-100" : "opacity-80 hover:opacity-100"
                       }`}
                       title={`Filter by @${channel.handle}`}
@@ -254,7 +254,7 @@ export default function SubscriptionsPage() {
                         <div
                           className={`h-14 w-14 rounded-full overflow-hidden bg-zinc-900 transition-all ${
                             isSelected
-                              ? "ring-2 ring-white ring-offset-2 ring-offset-black scale-105 shadow-lg"
+                              ? "ring-2 ring-white ring-offset-2 ring-offset-black shadow-lg"
                               : "border-2 border-transparent group-hover:border-white/40"
                           }`}
                         >
