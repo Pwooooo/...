@@ -218,10 +218,10 @@ export default function SubscriptionsPage() {
                   title="View all subscriptions"
                 >
                   <div
-                    className={`h-14 w-14 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
+                    className={`h-14 w-14 rounded-full flex items-center justify-center text-xs font-semibold transition-transform duration-200 ease-out ${
                       selectedHandle === null
-                        ? "bg-[#272727] text-white ring-2 ring-white/70 shadow-sm"
-                        : "bg-[#141416] text-zinc-400 border border-white/[0.08] hover:text-zinc-200 hover:border-white/20"
+                        ? "bg-zinc-800 text-white scale-110 shadow-md"
+                        : "bg-[#141416] text-zinc-400 border border-white/[0.08] hover:text-zinc-200 group-hover:scale-105"
                     }`}
                   >
                     <span>All</span>
@@ -252,10 +252,10 @@ export default function SubscriptionsPage() {
                     >
                       <div className="relative">
                         <div
-                          className={`h-14 w-14 rounded-full overflow-hidden bg-zinc-900 transition-all ${
+                          className={`h-14 w-14 rounded-full overflow-hidden bg-zinc-900 transition-transform duration-200 ease-out ${
                             isSelected
-                              ? "ring-2 ring-white/70 shadow-sm"
-                              : "ring-1 ring-white/[0.08] hover:ring-white/30"
+                              ? "scale-110 shadow-md"
+                              : "group-hover:scale-105"
                           }`}
                         >
                           <img
