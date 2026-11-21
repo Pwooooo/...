@@ -34,12 +34,12 @@ export default function RootLayout({
   return (
     <html lang="en" className={`dark h-full antialiased ${titilliumWeb.variable}`}>
       <head>
-        <meta name="theme-color" content="#0a0a0a" />
+        <meta name="theme-color" content="#141414" />
         <link rel="icon" href="/entropy-icon.png" type="image/png" sizes="any" />
         <link rel="shortcut icon" href="/entropy-icon.png" />
         <link rel="apple-touch-icon" href="/entropy-icon.png" />
       </head>
-      <body className={`min-h-full flex flex-col bg-background text-white ${titilliumWeb.className} selection:bg-white selection:text-black`}>
+      <body className={`min-h-full flex flex-col bg-background text-foreground ${titilliumWeb.className} selection:bg-white selection:text-black`}>
         <AuthProvider>
           <NotificationProvider>
             <MiniPlayerProvider>{children}</MiniPlayerProvider>
