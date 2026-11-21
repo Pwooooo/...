@@ -214,7 +214,7 @@ function SidebarContent({
         href={item.href}
         onClick={isDrawerMode ? onClose : undefined}
         className={cn(
-          "group flex items-center justify-between px-3.5 py-2.5 rounded-xl text-[13.5px] font-medium transition-all duration-150 select-none",
+          "group flex items-center justify-between px-3 py-[7px] rounded-md text-[13.5px] font-medium transition-all duration-150 select-none",
           isActive
             ? "bg-[#181818] text-white font-semibold shadow-sm"
             : "text-zinc-300 hover:text-white hover:bg-white/[0.05]"
@@ -272,11 +272,11 @@ function SidebarContent({
           </div>
 
           {/* Navigation Sections (YouTube headers, NO line dividers) */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             {navSections.map((section, sIndex) => {
               if (section.items.length === 0) return null;
               return (
-                <div key={sIndex} className="space-y-0.5">
+                <div key={sIndex} className="space-y-0">
                   {section.title && (
                     <div className="px-3.5 pt-1 pb-1">
                       {section.href ? (
@@ -340,7 +340,7 @@ function SidebarContent({
                         key={item.href}
                         href={item.href}
                         className={cn(
-                          "relative flex items-center justify-center w-11 h-11 rounded-xl transition-all duration-150",
+                          "relative flex items-center justify-center w-10 h-10 rounded-md transition-all duration-150",
                           isActive
                             ? "bg-[#181818] text-white shadow-sm"
                             : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
@@ -392,11 +392,11 @@ function SidebarContent({
         </div>
 
       {/* Navigation Sections (YouTube headers, NO line dividers) */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {navSections.map((section, sIndex) => {
           if (section.items.length === 0) return null;
           return (
-            <div key={sIndex} className="space-y-0.5">
+            <div key={sIndex} className="space-y-0">
               {section.title && (
                 <div className="px-3.5 pt-1 pb-1">
                   {section.href ? (
