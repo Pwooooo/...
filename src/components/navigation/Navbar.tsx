@@ -138,8 +138,8 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
       {sidebarExpanded && <div className="hidden md:block w-24 flex-shrink-0" aria-hidden="true" />}
 
       {/* Center: Search Bar (Subtle Outline) */}
-      <form onSubmit={handleSearch} className="flex max-w-[640px] flex-1 items-center justify-center px-4">
-        <div className="flex w-full max-w-[540px] items-center rounded-full bg-white/[0.05] border border-white/[0.08] hover:border-white/[0.14] focus-within:border-white/20 transition-all overflow-hidden">
+      <form onSubmit={handleSearch} className="flex max-w-[540px] flex-1 items-center justify-center px-4">
+        <div className="flex w-full max-w-[440px] items-center rounded-full bg-white/[0.05] border border-white/[0.08] hover:border-white/[0.14] focus-within:border-white/20 transition-all overflow-hidden">
           <input
             type="text"
             placeholder="Search"
