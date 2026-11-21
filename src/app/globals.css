@@ -1,41 +1,41 @@
 @import "tailwindcss";
 
 :root {
-  --background: #111111;
+  --background: #0e0e0e;
   --foreground: #efefef;
-  --card: #181818;
+  --card: #151515;
   --card-foreground: #efefef;
-  --popover: #1c1c1c;
+  --popover: #181818;
   --popover-foreground: #efefef;
   --primary: #efefef;
-  --primary-foreground: #111111;
-  --secondary: #1a1a1a;
+  --primary-foreground: #0e0e0e;
+  --secondary: #181818;
   --secondary-foreground: #efefef;
-  --muted: #1a1a1a;
+  --muted: #181818;
   --muted-foreground: #969696;
-  --accent: #222222;
+  --accent: #202020;
   --accent-foreground: #efefef;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
   --border: #ffffff14;
   --input: #ffffff14;
   --ring: #ffffff29;
-  --sidebar: #141414;
+  --sidebar: #111111;
   --sidebar-foreground: #8a8a8a;
   --sidebar-primary: #efefef;
-  --sidebar-primary-foreground: #141414;
-  --sidebar-accent: #1d1d1d;
+  --sidebar-primary-foreground: #111111;
+  --sidebar-accent: #181818;
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: #ffffff14;
   --sidebar-ring: #ffffff29;
-  --button-secondary: #1a1a1a;
+  --button-secondary: #181818;
   --button-secondary-border: #ffffff14;
-  --button-secondary-hover: #242424;
+  --button-secondary-hover: #222222;
   --button-secondary-hover-border: #ffffff24;
 }
 
 @theme {
-  --color-black: #111111;
+  --color-black: #0e0e0e;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

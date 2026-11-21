@@ -34,7 +34,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`dark h-full antialiased ${titilliumWeb.variable}`}>
       <head>
-        <meta name="theme-color" content="#111111" />
+        <meta name="theme-color" content="#0e0e0e" />
         <link rel="icon" href="/entropy-icon.png" type="image/png" sizes="any" />
         <link rel="shortcut icon" href="/entropy-icon.png" />
         <link rel="apple-touch-icon" href="/entropy-icon.png" />
