@@ -497,7 +497,7 @@ async function saveR2VideosIndex(videos: VideoItem[]): Promise<void> {
   }
 }
 
-const VIDEOS_CACHE_TTL_MS = 20 * 1000;
+const VIDEOS_CACHE_TTL_MS = 60 * 1000;
 let videosResponseCache: { payload: unknown; cachedAt: number } | null = null;
 
 function invalidateVideosCache() {
@@ -509,7 +509,7 @@ export async function GET() {
     if (videosResponseCache && Date.now() - videosResponseCache.cachedAt < VIDEOS_CACHE_TTL_MS) {
       return NextResponse.json(videosResponseCache.payload, {
         headers: {
-          "Cache-Control": "public, s-maxage=20, stale-while-revalidate=60",
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
         },
       });
     }
@@ -574,7 +574,7 @@ export async function GET() {
 
     return NextResponse.json(payload, {
       headers: {
-        "Cache-Control": "public, s-maxage=20, stale-while-revalidate=60",
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
       },
     });
   } catch (err: unknown) {

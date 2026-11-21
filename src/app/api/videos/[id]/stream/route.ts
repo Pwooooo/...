@@ -197,7 +197,10 @@ export async function GET(
           ResponseContentType: contentType,
         });
         const signedUrl = await getSignedUrl(tigris.client, getCmd, { expiresIn: 14400 });
-        return NextResponse.redirect(signedUrl, 307);
+        return NextResponse.redirect(signedUrl, {
+          status: 307,
+          headers: { "Cache-Control": "public, max-age=3600, s-maxage=3600" },
+        });
       } catch {
         // try next extension
       }

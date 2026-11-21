@@ -8,6 +8,8 @@ export const dynamic = "force-dynamic";
 
 // 3 MB max chunk when proxying through Vercel Serverless Functions (safely under Vercel's 4.5 MB limit)
 const MAX_PROXY_CHUNK_BYTES = 3 * 1024 * 1024;
+const KEY_CACHE_TTL_MS = 10 * 60 * 1000;
+const TIGRIS_KEY_CACHE = new Map<string, { key: string; contentType: string; totalSize: number; cachedAt: number }>();
 
 const MIME_BY_EXT: Record<string, string> = {
   ".mp4": "video/mp4",
@@ -103,6 +105,24 @@ export async function GET(req: NextRequest) {
     return new Response("Tigris storage is not configured", { status: 503 });
   }
 
+  const cachedMeta = TIGRIS_KEY_CACHE.get(key);
+  if (!forceProxy && cachedMeta && Date.now() - cachedMeta.cachedAt < KEY_CACHE_TTL_MS) {
+    try {
+      const getCmd = new GetObjectCommand({
+        Bucket: tigris.bucket,
+        Key: cachedMeta.key,
+        ResponseContentType: cachedMeta.contentType,
+      });
+      const signedUrl = await getSignedUrl(tigris.client, getCmd, { expiresIn: 14400 });
+      return NextResponse.redirect(signedUrl, {
+        status: 307,
+        headers: { "Cache-Control": "public, max-age=3600, s-maxage=3600" },
+      });
+    } catch {
+      TIGRIS_KEY_CACHE.delete(key);
+    }
+  }
+
   const keysToTry = [key];
   if (!key.includes(".")) {
     keysToTry.push(`${key}.mp4`, `${key}.webm`, `${key}.mov`);
@@ -120,10 +140,12 @@ export async function GET(req: NextRequest) {
       const totalSize = headRes.ContentLength || 0;
       const ext = tryKey.slice(tryKey.lastIndexOf(".")).toLowerCase();
       const contentType = headRes.ContentType || MIME_BY_EXT[ext] || "video/mp4";
-      const isVideo = contentType.startsWith("video/") || tryKey.startsWith("videos/");
 
-      // Redirect large videos directly to presigned Tigris S3 URL to bypass Vercel's 4.5MB response limit & timeouts
-      if (!forceProxy && (isVideo || totalSize > MAX_PROXY_CHUNK_BYTES)) {
+      TIGRIS_KEY_CACHE.set(key, { key: tryKey, contentType, totalSize, cachedAt: Date.now() });
+
+      // Redirect all non-proxy requests (videos + thumbnails/images) straight to presigned Tigris URL
+      // so zero media bandwidth hits Vercel Fast Origin Transfer or Fluid Active CPU
+      if (!forceProxy) {
         try {
           const getCmd = new GetObjectCommand({
             Bucket: tigris.bucket,
@@ -131,7 +153,10 @@ export async function GET(req: NextRequest) {
             ResponseContentType: contentType,
           });
           const signedUrl = await getSignedUrl(tigris.client, getCmd, { expiresIn: 14400 });
-          return NextResponse.redirect(signedUrl, 307);
+          return NextResponse.redirect(signedUrl, {
+            status: 307,
+            headers: { "Cache-Control": "public, max-age=3600, s-maxage=3600" },
+          });
         } catch {}
       }
 
