@@ -280,6 +280,14 @@ function SidebarContent({
 
         {/* Slide-over Drawer */}
         <aside className="relative flex h-full w-60 flex-col bg-[#111111] text-zinc-200 border-r border-white/[0.08] z-50 overflow-y-auto px-3 py-3 shadow-2xl animate-in slide-in-from-left duration-250 select-none scrollbar-none font-sidebar">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_120%_70%_at_50%_0%,rgba(255,255,255,0.025)_0%,transparent_55%,rgba(0,0,0,0.22)_100%)]"
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 bg-matte-grain opacity-[0.028]"
+          />
           {/* Header: Collapse Icon */}
           <div className="flex items-center justify-end px-2 pt-1 pb-3 mb-1">
             <button
@@ -336,6 +344,14 @@ function SidebarContent({
       <>
         <div className="hidden md:block flex-shrink-0 w-16" aria-hidden="true" />
         <aside className="fixed left-0 top-0 bottom-0 z-50 hidden md:flex h-screen w-16 flex-col items-center py-3.5 bg-[#111111] text-zinc-300 border-r border-white/[0.08] select-none scrollbar-none overflow-y-auto font-sidebar">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none fixed left-0 top-0 bottom-0 w-16 bg-[radial-gradient(ellipse_140%_70%_at_50%_0%,rgba(255,255,255,0.025)_0%,transparent_55%,rgba(0,0,0,0.22)_100%)]"
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none fixed left-0 top-0 bottom-0 w-16 bg-matte-grain opacity-[0.028]"
+          />
           <Link href="/" className="mb-3 p-1.5 rounded-xl hover:bg-white/[0.05] transition-colors" title="Entropy">
             <img src="/entropy-icon.png" alt="Entropy" className="h-6 w-6 object-contain" />
           </Link>
@@ -393,6 +409,14 @@ function SidebarContent({
     <>
       <div className="hidden md:block flex-shrink-0 w-60" aria-hidden="true" />
       <aside className="fixed left-0 top-0 bottom-0 z-50 hidden md:flex h-screen w-60 flex-col overflow-y-auto px-3 py-3.5 bg-[#111111] text-zinc-200 border-r border-white/[0.08] select-none scrollbar-none font-sidebar">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed left-0 top-0 bottom-0 w-60 bg-[radial-gradient(ellipse_120%_70%_at_50%_0%,rgba(255,255,255,0.025)_0%,transparent_55%,rgba(0,0,0,0.22)_100%)]"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed left-0 top-0 bottom-0 w-60 bg-matte-grain opacity-[0.028]"
+        />
         {/* Top Header: Brand Logo + Collapse Button */}
         <div className="flex items-center justify-between px-3 pt-0.5 pb-4 mb-1">
           <Link href="/" className="flex items-center gap-2.5 group">
