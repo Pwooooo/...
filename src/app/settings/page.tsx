@@ -304,21 +304,28 @@ export default function SettingsPage() {
           {/* Section 1: Profile & Identity */}
           {activeSection === "profile" && (
             <div className="space-y-6">
-              <form onSubmit={handleSaveProfile} className="rounded-2xl bg-[#1a1a1d]/90 border border-white/[0.06] p-6 space-y-6 shadow-xl">
-                <div>
-                  <h3 className="text-base font-bold text-white">Channel Identity</h3>
-                  <p className="text-xs text-zinc-400 mt-0.5">
-                    Your public appearance on Entropy video streams and comments.
-                  </p>
+              <form onSubmit={handleSaveProfile} className="rounded-2xl bg-[#141414] border border-white/[0.08] p-6 space-y-6 shadow-xl">
+                <div className="flex flex-wrap items-start justify-between gap-3 pb-4 border-b border-white/[0.06]">
+                  <div>
+                    <h3 className="text-base font-bold text-white">Channel Identity</h3>
+                    <p className="text-xs text-zinc-400 mt-0.5">
+                      Your public appearance on Entropy video streams and comments.
+                    </p>
+                  </div>
+                  <Link
+                    href="/profile"
+                    className="text-xs text-white/90 hover:text-white font-medium flex items-center gap-1.5 transition-colors"
+                  >
+                    <span>View public channel</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </Link>
                 </div>
 
-                {/* Avatar Direct Importer */}
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-2">
-                    Profile Avatar
-                  </label>
-                  <div className="flex items-center gap-5 p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-                    <div className="relative h-20 w-20 rounded-full overflow-hidden bg-white/[0.06] flex-shrink-0 flex items-center justify-center text-white font-bold text-2xl shadow-inner">
+                {/* Main 2-column layout: Avatar on left, Identity fields on right */}
+                <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-6 items-start">
+                  {/* Left: Compact Avatar Card */}
+                  <div className="flex flex-col items-center text-center p-4 rounded-2xl bg-[#0a0a0a] border border-white/[0.08] space-y-3">
+                    <div className="relative h-24 w-24 rounded-full overflow-hidden bg-[#181818] flex items-center justify-center text-white font-bold text-2xl shadow-inner">
                       <img
                         src={avatarUrl || "/default-avatar.png"}
                         alt="Avatar"
@@ -329,125 +336,120 @@ export default function SettingsPage() {
                       />
                     </div>
 
-                    <div className="flex-1 space-y-2">
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleImageFileSelect}
-                        accept="image/*"
-                        className="hidden"
-                      />
-                      <div className="flex flex-wrap items-center gap-2.5">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleImageFileSelect}
+                      accept="image/*"
+                      className="hidden"
+                    />
+
+                    <div className="flex flex-col w-full gap-2">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex items-center justify-center gap-1.5 rounded-lg bg-white hover:bg-zinc-200 text-black px-3 py-2 text-xs font-bold transition-all cursor-pointer shadow-sm w-full"
+                      >
+                        <Camera className="h-3.5 w-3.5" />
+                        <span>Import Image</span>
+                      </button>
+
+                      {avatarUrl && (
                         <button
                           type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          className="flex items-center gap-2 rounded-xl bg-white hover:bg-zinc-200 text-black px-4 py-2 text-xs font-bold transition-all cursor-pointer shadow-sm"
+                          onClick={() => setAvatarUrl("")}
+                          className="flex items-center justify-center gap-1.5 rounded-lg bg-[#181818] hover:bg-[#222222] text-zinc-300 hover:text-red-400 border border-white/[0.08] px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer w-full"
                         >
-                          <Camera className="h-3.5 w-3.5" />
-                          <span>Import Image</span>
+                          <Trash2 className="h-3.5 w-3.5" />
+                          <span>Remove</span>
                         </button>
+                      )}
+                    </div>
 
-                        {avatarUrl && (
-                          <button
-                            type="button"
-                            onClick={() => setAvatarUrl("")}
-                            className="flex items-center gap-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] text-zinc-300 hover:text-red-400 border border-white/[0.06] px-3.5 py-2 text-xs font-medium transition-colors cursor-pointer"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            <span>Remove</span>
-                          </button>
-                        )}
-                      </div>
-                      <p className="text-[11px] text-zinc-500">
-                        Upload directly from your device (PNG, JPG, WebP). Scaled automatically.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-xs font-semibold text-zinc-300">
-                        Display Name
-                      </label>
-                      <span className="text-[11px] font-mono text-zinc-500">
-                        {name.length}/20
-                      </span>
-                    </div>
-                    <input
-                      type="text"
-                      required
-                      minLength={3}
-                      maxLength={20}
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="w-full rounded-xl bg-white/[0.04] border border-white/[0.07] px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/25 focus:bg-white/[0.06] transition-colors"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-xs font-semibold text-zinc-300">
-                        Channel Handle
-                      </label>
-                      <span className="text-[11px] font-mono text-zinc-500">
-                        {handle.replace(/^@/, "").length}/30
-                      </span>
-                    </div>
-                    <div className="flex items-center rounded-xl bg-white/[0.04] border border-white/[0.07] px-3.5 py-2.5 focus-within:border-white/25 focus-within:bg-white/[0.06] transition-colors">
-                      <span className="text-zinc-500 text-xs font-mono select-none">@</span>
-                      <input
-                        type="text"
-                        required
-                        minLength={3}
-                        maxLength={30}
-                        value={handle.replace(/^@/, "")}
-                        onChange={(e) => setHandle(e.target.value)}
-                        className="w-full bg-transparent text-xs text-white placeholder-zinc-500 outline-none ml-1 font-mono"
-                      />
-                    </div>
-                    <p className="text-[10px] text-zinc-500 mt-1">
-                      3–30 chars. Letters, numbers, and _ - . · (cannot start or end with separators).
+                    <p className="text-[10px] text-zinc-500 leading-relaxed">
+                      PNG, JPG, WebP. Scaled automatically.
                     </p>
                   </div>
+
+                  {/* Right: Identity Fields */}
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="block text-xs font-semibold text-zinc-300">
+                            Display Name
+                          </label>
+                          <span className="text-[11px] font-mono text-zinc-500">
+                            {name.length}/20
+                          </span>
+                        </div>
+                        <input
+                          type="text"
+                          required
+                          minLength={3}
+                          maxLength={20}
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          className="w-full rounded-xl bg-[#0a0a0a] border border-white/[0.08] px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="block text-xs font-semibold text-zinc-300">
+                            Channel Handle
+                          </label>
+                          <span className="text-[11px] font-mono text-zinc-500">
+                            {handle.replace(/^@/, "").length}/30
+                          </span>
+                        </div>
+                        <div className="flex items-center rounded-xl bg-[#0a0a0a] border border-white/[0.08] px-3.5 py-2.5 focus-within:border-white/20 transition-colors">
+                          <span className="text-zinc-500 text-xs font-mono select-none">@</span>
+                          <input
+                            type="text"
+                            required
+                            minLength={3}
+                            maxLength={30}
+                            value={handle.replace(/^@/, "")}
+                            onChange={(e) => setHandle(e.target.value)}
+                            className="w-full bg-transparent text-xs text-white placeholder-zinc-500 outline-none ml-1 font-mono"
+                          />
+                        </div>
+                        <p className="text-[10px] text-zinc-500 mt-1">
+                          3–30 chars (letters, numbers, _ - . ·).
+                        </p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                        Country / Location
+                      </label>
+                      <input
+                        type="text"
+                        value={country}
+                        onChange={(e) => setCountry(e.target.value)}
+                        placeholder="e.g. United States, United Kingdom, Greece..."
+                        className="w-full rounded-xl bg-[#0a0a0a] border border-white/[0.08] px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                        About / Bio
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={bio}
+                        onChange={(e) => setBio(e.target.value)}
+                        placeholder="Tell your audience about yourself or your channel..."
+                        className="w-full rounded-xl bg-[#0a0a0a] border border-white/[0.08] px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors resize-none leading-relaxed"
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
-                    Country / Location
-                  </label>
-                  <input
-                    type="text"
-                    value={country}
-                    onChange={(e) => setCountry(e.target.value)}
-                    placeholder="e.g. United States, United Kingdom, Greece..."
-                    className="w-full rounded-xl bg-white/[0.04] border border-white/[0.07] px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/25 focus:bg-white/[0.06] transition-colors"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
-                    About / Bio
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    placeholder="Tell your audience about yourself or your channel..."
-                    className="w-full rounded-xl bg-white/[0.04] border border-white/[0.07] px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/25 focus:bg-white/[0.06] transition-colors resize-none leading-relaxed"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between pt-2">
-                  <Link
-                    href="/profile"
-                    className="text-xs text-white/90 hover:text-white font-medium flex items-center gap-1.5 transition-colors"
-                  >
-                    <span>View public channel</span>
-                    <ExternalLink className="h-3 w-3" />
-                  </Link>
-
+                <div className="flex items-center justify-end pt-2 border-t border-white/[0.06]">
                   <button
                     type="submit"
                     className="flex items-center gap-2 rounded-lg bg-white hover:bg-zinc-200 text-black px-5 py-2.5 text-xs font-bold transition-all cursor-pointer shadow-md"
@@ -462,7 +464,7 @@ export default function SettingsPage() {
 
           {/* Section 2: Playback & Player */}
           {activeSection === "playback" && (
-            <div className="rounded-2xl bg-[#1a1a1d]/90 border border-white/[0.06] p-6 space-y-6 shadow-xl">
+            <div className="rounded-2xl bg-[#141414] border border-white/[0.08] p-6 space-y-6 shadow-xl">
               <div>
                 <h3 className="text-base font-bold text-white">Player & Playback Preferences</h3>
                 <p className="text-xs text-zinc-400 mt-0.5">
