@@ -28,6 +28,7 @@ import {
   Shield,
   DollarSign,
   CheckCircle2,
+  PanelLeft,
 } from "lucide-react";
 import StudioDropdown from "@/components/ui/StudioDropdown";
 
@@ -156,7 +157,7 @@ export default function StudioLayout({ children }: StudioLayoutProps) {
 
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-[#0f0f0f] text-white flex items-center justify-center">
+      <div className="min-h-screen bg-[#151517] text-white flex items-center justify-center">
         <div className="h-8 w-8 rounded-full border-2 border-white/20 border-t-white animate-spin" />
       </div>
     );
@@ -164,9 +165,9 @@ export default function StudioLayout({ children }: StudioLayoutProps) {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-[#0f0f0f] text-white flex flex-col font-sans">
+      <div className="min-h-screen bg-[#151517] text-white flex flex-col font-sans">
         {/* Studio Top Navbar */}
-        <header className="sticky top-0 z-40 h-14 bg-[#121212]/95 backdrop-blur-md px-4 flex items-center justify-between select-none border-b border-white/[0.06]">
+        <header className="sticky top-0 z-40 h-14 bg-[#151517]/85 backdrop-blur-md px-4 flex items-center justify-between select-none">
           <Link href="/" className="flex items-center gap-2.5 group">
             <img
               src="/entropy-icon.png"
@@ -231,48 +232,32 @@ export default function StudioLayout({ children }: StudioLayoutProps) {
   const channelAvatar = user?.avatarUrl || "/default-avatar.png";
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] text-white flex flex-col font-sans selection:bg-white/20">
-      {/* 1. Studio Top Navbar */}
-      <header className="sticky top-0 z-40 h-14 bg-[#121212]/95 backdrop-blur-md px-4 flex items-center justify-between select-none">
-        {/* Left: Hamburger + Studio Logo */}
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setIsSidebarOpen((prev) => !prev)}
-            className="p-2 rounded-full hover:bg-white/[0.08] text-zinc-300 hover:text-white transition-colors cursor-pointer"
-            title="Toggle sidebar"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-
-          <Link href="/studio" className="flex items-center gap-2.5 group">
-            <img
-              src="/entropy-icon.png"
-              alt="Entropy logo"
-              className="h-7 w-7 object-contain group-hover:scale-105 transition-transform"
-            />
-            <div className="flex items-baseline gap-1.5">
-              <span className="font-bold text-base tracking-tight text-white">Entropy</span>
-              <span className="text-xs font-semibold text-white tracking-normal">
-                Studio
-              </span>
-            </div>
-          </Link>
-        </div>
+    <div className="min-h-screen bg-[#151517] text-white flex flex-col font-sans selection:bg-white/20">
+      {/* 1. Studio Top Navbar (smoothly fading backdrop, offset by sidebar width) */}
+      <header
+        className={`sticky top-0 z-40 h-14 px-4 flex items-center justify-between select-none transition-[padding] duration-200 ${
+          isSidebarOpen ? "pl-[17rem]" : "pl-20"
+        }`}
+      >
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-20 -z-10 bg-gradient-to-b from-[#151517] via-[#151517]/85 to-transparent backdrop-blur-md [mask-image:linear-gradient(to_bottom,black_55%,transparent_100%)]"
+        />
 
         {/* Center: Search in channel */}
-        <div className="hidden md:flex items-center flex-1 max-w-md mx-6">
+        <div className="hidden md:flex items-center flex-1 max-w-[400px]">
           <form onSubmit={handleSearchSubmit} className="w-full relative">
             <input
               type="text"
               placeholder="Search across your channel..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#1e1e1e] border border-white/[0.08] focus:border-white/30 rounded-full py-1.5 pl-9 pr-4 text-xs text-white placeholder-zinc-500 outline-none transition-all shadow-inner"
+              className="w-full bg-white/[0.05] border border-white/[0.08] hover:border-white/[0.14] focus:border-white/20 rounded-full py-1.5 pl-9 pr-4 text-xs text-white placeholder-zinc-500 outline-none transition-all"
             />
             <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-500" />
           </form>
         </div>
+        <div className="md:hidden" />
 
         {/* Right: + Create CTA & Channel Menu */}
         <div className="flex items-center gap-3">
@@ -362,16 +347,82 @@ export default function StudioLayout({ children }: StudioLayoutProps) {
 
       {/* 2. Main Studio Body: Sidebar + Content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Studio Sidebar */}
+        {/* Layout spacer for fixed full-height Studio sidebar */}
+        <div
+          aria-hidden="true"
+          className={`flex-shrink-0 transition-all duration-200 ${isSidebarOpen ? "w-64" : "w-16"}`}
+        />
+
+        {/* Studio Sidebar (full-height top-aligned #111111 with matte overlay) */}
         <aside
-          className={`flex-shrink-0 bg-[#121212] border-r border-white/[0.08] flex flex-col transition-all duration-200 select-none ${
-            isSidebarOpen ? "w-64" : "w-18"
+          className={`fixed left-0 top-0 bottom-0 z-50 h-screen bg-[#111111] border-r border-white/[0.08] flex flex-col transition-all duration-200 select-none overflow-y-auto scrollbar-none font-sidebar ${
+            isSidebarOpen ? "w-64" : "w-16"
           }`}
         >
+          <div
+            aria-hidden="true"
+            className={`pointer-events-none fixed left-0 top-0 bottom-0 transition-all duration-200 bg-[radial-gradient(ellipse_120%_70%_at_50%_0%,rgba(255,255,255,0.025)_0%,transparent_55%,rgba(0,0,0,0.22)_100%)] ${
+              isSidebarOpen ? "w-64" : "w-16"
+            }`}
+          />
+          <div
+            aria-hidden="true"
+            className={`pointer-events-none fixed left-0 top-0 bottom-0 transition-all duration-200 bg-matte-grain opacity-[0.028] ${
+              isSidebarOpen ? "w-64" : "w-16"
+            }`}
+          />
+
+          {/* Top Header inside Sidebar */}
+          {isSidebarOpen ? (
+            <div className="flex items-center justify-between px-4 pt-3.5 pb-3">
+              <Link href="/studio" className="flex items-center gap-2.5 group">
+                <img
+                  src="/entropy-icon.png"
+                  alt="Entropy logo"
+                  className="h-6 w-6 object-contain group-hover:scale-105 transition-transform"
+                />
+                <div className="flex items-baseline gap-1.5">
+                  <span className="font-bold text-[17px] tracking-tight text-white">Entropy</span>
+                  <span className="text-[11px] font-semibold text-zinc-400">Studio</span>
+                </div>
+              </Link>
+              <button
+                type="button"
+                onClick={() => setIsSidebarOpen(false)}
+                className="text-zinc-400 hover:text-white p-1.5 rounded-lg hover:bg-white/[0.06] transition-colors cursor-pointer"
+                title="Collapse sidebar"
+                aria-label="Collapse sidebar"
+              >
+                <PanelLeft className="h-4 w-4" strokeWidth={1.8} />
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center pt-3.5 pb-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setIsSidebarOpen(true)}
+                className="p-1.5 rounded-md hover:bg-white/[0.06] transition-colors cursor-pointer"
+                title="Expand sidebar"
+                aria-label="Expand sidebar"
+              >
+                <img src="/entropy-icon.png" alt="Expand sidebar" className="h-6 w-6 object-contain" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsSidebarOpen(true)}
+                className="text-zinc-400 hover:text-white p-2 rounded-md hover:bg-white/[0.06] transition-colors cursor-pointer"
+                title="Expand sidebar"
+                aria-label="Expand sidebar"
+              >
+                <PanelLeft className="h-4 w-4" strokeWidth={1.8} />
+              </button>
+            </div>
+          )}
+
           {/* Channel Header Profile in Sidebar */}
           {isSidebarOpen ? (
-            <div className="p-5 border-b border-white/[0.06] flex flex-col items-center text-center">
-              <div className="h-24 w-24 rounded-full overflow-hidden bg-zinc-800 border-2 border-white/10 shadow-lg mb-3">
+            <div className="px-5 py-4 flex flex-col items-center text-center">
+              <div className="h-20 w-20 rounded-full overflow-hidden bg-zinc-800 border border-white/10 shadow-lg mb-2.5">
                 <img
                   src={channelAvatar}
                   alt={channelName}
@@ -381,15 +432,15 @@ export default function StudioLayout({ children }: StudioLayoutProps) {
                   }}
                 />
               </div>
-              <p className="text-xs text-zinc-400 font-medium">Your channel</p>
+              <p className="text-[11px] text-zinc-400 font-medium">Your channel</p>
               <h3 className="text-sm font-bold text-white truncate max-w-[200px] mt-0.5">
                 {channelName}
               </h3>
               <p className="text-[11px] text-zinc-500 font-mono mt-0.5">{channelHandle}</p>
             </div>
           ) : (
-            <div className="p-3 border-b border-white/[0.06] flex justify-center">
-              <div className="h-9 w-9 rounded-full overflow-hidden bg-zinc-800 border border-white/10">
+            <div className="py-2 flex justify-center">
+              <div className="h-8 w-8 rounded-full overflow-hidden bg-zinc-800 border border-white/10">
                 <img
                   src={channelAvatar}
                   alt={channelName}
@@ -403,7 +454,7 @@ export default function StudioLayout({ children }: StudioLayoutProps) {
           )}
 
           {/* Navigation Links */}
-          <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
+          <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = item.exact
@@ -414,14 +465,19 @@ export default function StudioLayout({ children }: StudioLayoutProps) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-4 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                  className={`group flex items-center gap-3.5 px-3 py-[7px] rounded-md text-[13.5px] font-medium transition-all ${
                     isActive
-                      ? "bg-white/[0.12] text-white shadow-sm"
-                      : "text-zinc-400 hover:text-white hover:bg-white/[0.06]"
-                  } ${!isSidebarOpen && "justify-center px-0"}`}
+                      ? "bg-[#181818] text-white font-semibold shadow-sm"
+                      : "text-zinc-300 hover:text-white hover:bg-white/[0.05]"
+                  } ${!isSidebarOpen && "justify-center px-0 mx-auto w-10 h-10"}`}
                   title={!isSidebarOpen ? item.label : undefined}
                 >
-                  <Icon className={`h-5 w-5 flex-shrink-0 ${isActive ? "text-white" : ""}`} />
+                  <Icon
+                    className={`h-[18px] w-[18px] flex-shrink-0 transition-colors ${
+                      isActive ? "text-white fill-current" : "text-zinc-400 group-hover:text-white"
+                    }`}
+                    strokeWidth={isActive ? 2.1 : 1.8}
+                  />
                   {isSidebarOpen && <span>{item.label}</span>}
                 </Link>
               );
@@ -429,33 +485,33 @@ export default function StudioLayout({ children }: StudioLayoutProps) {
           </nav>
 
           {/* Bottom Settings & Return to Entropy */}
-          <div className="p-2 border-t border-white/[0.06] space-y-1">
+          <div className="px-3 py-3 space-y-0.5">
             <button
               type="button"
               onClick={() => setIsSettingsModalOpen(true)}
-              className={`w-full flex items-center gap-4 px-3.5 py-2.5 rounded-xl text-xs font-medium text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-all cursor-pointer ${
-                !isSidebarOpen && "justify-center px-0"
+              className={`group w-full flex items-center gap-3.5 px-3 py-[7px] rounded-md text-[13.5px] font-medium text-zinc-300 hover:text-white hover:bg-white/[0.05] transition-all cursor-pointer ${
+                !isSidebarOpen && "justify-center px-0 mx-auto w-10 h-10"
               }`}
               title={!isSidebarOpen ? "Settings" : undefined}
             >
-              <Settings className="h-5 w-5 flex-shrink-0" />
+              <Settings className="h-[18px] w-[18px] flex-shrink-0 text-zinc-400 group-hover:text-white" strokeWidth={1.8} />
               {isSidebarOpen && <span>Settings</span>}
             </button>
             <Link
               href="/"
-              className={`flex items-center gap-4 px-3.5 py-2.5 rounded-xl text-xs font-medium text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-all ${
-                !isSidebarOpen && "justify-center px-0"
+              className={`group flex items-center gap-3.5 px-3 py-[7px] rounded-md text-[13.5px] font-medium text-zinc-300 hover:text-white hover:bg-white/[0.05] transition-all ${
+                !isSidebarOpen && "justify-center px-0 mx-auto w-10 h-10"
               }`}
               title={!isSidebarOpen ? "Exit to Entropy" : undefined}
             >
-              <ArrowLeft className="h-5 w-5 flex-shrink-0" />
+              <ArrowLeft className="h-[18px] w-[18px] flex-shrink-0 text-zinc-400 group-hover:text-white" strokeWidth={1.8} />
               {isSidebarOpen && <span>Exit to Entropy</span>}
             </Link>
           </div>
         </aside>
 
         {/* Studio Content Area */}
-        <main className="flex-1 overflow-y-auto bg-[#0f0f0f]">{children}</main>
+        <main className="flex-1 overflow-y-auto bg-[#151517]">{children}</main>
       </div>
 
       {/* Studio Settings Modal */}
