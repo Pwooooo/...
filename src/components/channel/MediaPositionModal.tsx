@@ -34,6 +34,7 @@ export default function MediaPositionModal({
   // Crop box top-left in rendered media pixel coordinates
   const [cropOrigin, setCropOrigin] = useState<{ left: number; top: number }>({ left: 0, top: 0 });
   const [isDraggingBox, setIsDraggingBox] = useState(false);
+  const [resizingCorner, setResizingCorner] = useState<"tl" | "tr" | "bl" | "br" | null>(null);
 
   const mediaRef = useRef<HTMLImageElement | HTMLVideoElement | null>(null);
   const sliderTrackRef = useRef<HTMLDivElement>(null);
@@ -42,6 +43,8 @@ export default function MediaPositionModal({
     clientY: number;
     startLeft: number;
     startTop: number;
+    startCw: number;
+    startCh: number;
   } | null>(null);
 
   const targetAspect = mode === "banner" ? 4 : 1; // 16:4 = 4:1 for banner, 1:1 for avatar
@@ -127,17 +130,65 @@ export default function MediaPositionModal({
       clientY: e.clientY,
       startLeft: cropOrigin.left,
       startTop: cropOrigin.top,
+      startCw: cw,
+      startCh: ch,
+    };
+  };
+
+  const handleCornerPointerDown = (
+    e: React.PointerEvent<HTMLSpanElement>,
+    corner: "tl" | "tr" | "bl" | "br"
+  ) => {
+    e.stopPropagation();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setResizingCorner(corner);
+    dragBoxStartRef.current = {
+      clientX: e.clientX,
+      clientY: e.clientY,
+      startLeft: cropOrigin.left,
+      startTop: cropOrigin.top,
+      startCw: cw,
+      startCh: ch,
     };
   };
 
   const handleBoxPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isDraggingBox || !dragBoxStartRef.current) return;
-    const dx = e.clientX - dragBoxStartRef.current.clientX;
-    const dy = e.clientY - dragBoxStartRef.current.clientY;
+    if (!dragBoxStartRef.current) return;
+    const { clientX, clientY, startLeft, startTop, startCw, startCh } = dragBoxStartRef.current;
+    const dx = e.clientX - clientX;
+    const dy = e.clientY - clientY;
+
+    if (resizingCorner) {
+      const baseMax = getCropDimensions(mediaSize.w, mediaSize.h, 1);
+      const minW = baseMax.cw / 3;
+      const anchorRight = startLeft + startCw;
+      const anchorBottom = startTop + startCh;
+
+      let rawW = startCw;
+      if (resizingCorner === "br") rawW = Math.max(startCw + dx, (startCh + dy) * targetAspect);
+      if (resizingCorner === "tr") rawW = Math.max(startCw + dx, (startCh - dy) * targetAspect);
+      if (resizingCorner === "bl") rawW = Math.max(startCw - dx, (startCh + dy) * targetAspect);
+      if (resizingCorner === "tl") rawW = Math.max(startCw - dx, (startCh - dy) * targetAspect);
+
+      const maxWLeft = resizingCorner === "tl" || resizingCorner === "bl" ? anchorRight : mediaSize.w - startLeft;
+      const maxHTop = resizingCorner === "tl" || resizingCorner === "tr" ? anchorBottom : mediaSize.h - startTop;
+      const maxW = Math.min(baseMax.cw, maxWLeft, maxHTop * targetAspect);
+
+      const nextW = Math.max(minW, Math.min(maxW, rawW));
+      const nextH = nextW / targetAspect;
+      const nextLeft = resizingCorner === "tl" || resizingCorner === "bl" ? anchorRight - nextW : startLeft;
+      const nextTop = resizingCorner === "tl" || resizingCorner === "tr" ? anchorBottom - nextH : startTop;
+
+      setCropOrigin({ left: nextLeft, top: nextTop });
+      setZoom(Math.max(1, Math.min(3, baseMax.cw / nextW)));
+      return;
+    }
+
+    if (!isDraggingBox) return;
     setCropOrigin(
       clampOrigin(
-        dragBoxStartRef.current.startLeft + dx,
-        dragBoxStartRef.current.startTop + dy,
+        startLeft + dx,
+        startTop + dy,
         mediaSize.w,
         mediaSize.h,
         cw,
@@ -147,12 +198,13 @@ export default function MediaPositionModal({
   };
 
   const handleBoxPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (isDraggingBox) {
+    if (isDraggingBox || resizingCorner) {
       try {
         e.currentTarget.releasePointerCapture(e.pointerId);
       } catch {}
     }
     setIsDraggingBox(false);
+    setResizingCorner(null);
     dragBoxStartRef.current = null;
   };
 
@@ -274,11 +326,31 @@ export default function MediaPositionModal({
                 }}
                 className="absolute border-2 border-[#3ea6ff] shadow-[0_0_0_9999px_rgba(0,0,0,0.6)] cursor-move touch-none"
               >
-                {/* Corner handles */}
-                <span className="pointer-events-none absolute -top-1.5 -left-1.5 h-2.5 w-2.5 bg-white border border-black" />
-                <span className="pointer-events-none absolute -top-1.5 -right-1.5 h-2.5 w-2.5 bg-white border border-black" />
-                <span className="pointer-events-none absolute -bottom-1.5 -left-1.5 h-2.5 w-2.5 bg-white border border-black" />
-                <span className="pointer-events-none absolute -bottom-1.5 -right-1.5 h-2.5 w-2.5 bg-white border border-black" />
+                {/* Interactive Corner Resize Handles */}
+                <span
+                  onPointerDown={(e) => handleCornerPointerDown(e, "tl")}
+                  onPointerMove={handleBoxPointerMove}
+                  onPointerUp={handleBoxPointerUp}
+                  className="absolute -top-1.5 -left-1.5 h-3 w-3 bg-white border border-black cursor-nwse-resize"
+                />
+                <span
+                  onPointerDown={(e) => handleCornerPointerDown(e, "tr")}
+                  onPointerMove={handleBoxPointerMove}
+                  onPointerUp={handleBoxPointerUp}
+                  className="absolute -top-1.5 -right-1.5 h-3 w-3 bg-white border border-black cursor-nesw-resize"
+                />
+                <span
+                  onPointerDown={(e) => handleCornerPointerDown(e, "bl")}
+                  onPointerMove={handleBoxPointerMove}
+                  onPointerUp={handleBoxPointerUp}
+                  className="absolute -bottom-1.5 -left-1.5 h-3 w-3 bg-white border border-black cursor-nesw-resize"
+                />
+                <span
+                  onPointerDown={(e) => handleCornerPointerDown(e, "br")}
+                  onPointerMove={handleBoxPointerMove}
+                  onPointerUp={handleBoxPointerUp}
+                  className="absolute -bottom-1.5 -right-1.5 h-3 w-3 bg-white border border-black cursor-nwse-resize"
+                />
                 {mode === "avatar" && (
                   <div className="pointer-events-none absolute inset-0 rounded-full border border-[#3ea6ff]/90" />
                 )}
