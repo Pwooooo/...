@@ -352,9 +352,15 @@ function SidebarContent({
             aria-hidden="true"
             className="pointer-events-none fixed left-0 top-0 bottom-0 w-16 bg-matte-grain opacity-[0.028]"
           />
-          <Link href="/" className="mb-3 p-1.5 rounded-xl hover:bg-white/[0.05] transition-colors" title="Entropy">
-            <img src="/entropy-icon.png" alt="Entropy" className="h-6 w-6 object-contain" />
-          </Link>
+          <button
+            type="button"
+            onClick={handleToggleCollapse}
+            className="mb-3 p-1.5 rounded-md hover:bg-white/[0.06] transition-colors cursor-pointer"
+            title="Expand sidebar"
+            aria-label="Expand sidebar"
+          >
+            <img src="/entropy-icon.png" alt="Expand sidebar" className="h-6 w-6 object-contain" />
+          </button>
           <button
             type="button"
             onClick={handleToggleCollapse}
