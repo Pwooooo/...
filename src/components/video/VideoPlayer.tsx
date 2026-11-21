@@ -313,6 +313,7 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
         <video
           ref={videoRef}
           poster={poster}
+          preload="metadata"
           playsInline
           className="h-full w-full object-contain cursor-pointer"
           onClick={togglePlay}

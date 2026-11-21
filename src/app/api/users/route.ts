@@ -13,11 +13,17 @@ export async function GET(req: NextRequest) {
       if (!user) {
         return NextResponse.json({ success: false, error: "User not found" }, { status: 404 });
       }
-      return NextResponse.json({ success: true, user });
+      return NextResponse.json(
+        { success: true, user },
+        { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120" } }
+      );
     }
 
     const users = await getAllKvUsers();
-    return NextResponse.json({ success: true, users });
+    return NextResponse.json(
+      { success: true, users },
+      { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120" } }
+    );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Error fetching users";
     return NextResponse.json({ success: false, error: message }, { status: 500 });

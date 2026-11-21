@@ -5,6 +5,24 @@ import { ensureBlobToken } from "@/lib/blob-env";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+interface CachedBlobResolution {
+  target: string;
+  access: "private" | "public";
+  publicUrl?: string;
+  contentType?: string | null;
+  size?: number | null;
+  cachedAt: number;
+}
+
+type BlobGetResult = NonNullable<Awaited<ReturnType<typeof get>>>;
+type ResolvedBlob =
+  | { redirectUrl: string; blob: { contentType: string | null; size: number | null } }
+  | { result: BlobGetResult };
+
+const BLOB_RESOLUTION_CACHE = new Map<string, CachedBlobResolution>();
+const BLOB_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const IMMUTABLE_CACHE_HEADER = "public, max-age=31536000, s-maxage=31536000, immutable";
+
 function getCandidates(raw: string): string[] {
   const listArr: string[] = [raw];
   try {
@@ -27,35 +45,79 @@ function getCandidates(raw: string): string[] {
   return listArr;
 }
 
-async function resolveBlob(raw: string, rangeHeader?: string | null) {
+async function resolveBlob(raw: string, rangeHeader?: string | null): Promise<ResolvedBlob | null> {
   ensureBlobToken();
-  const candidates = getCandidates(raw);
   const extraHeaders: Record<string, string> = {};
   if (rangeHeader) {
     extraHeaders["range"] = rangeHeader;
   }
+
+  // 0. Fast path: use cached target/access so repeated range chunks don't loop or list()
+  const cached = BLOB_RESOLUTION_CACHE.get(raw);
+  if (cached && Date.now() - cached.cachedAt < BLOB_CACHE_TTL_MS) {
+    if (cached.access === "public" && cached.publicUrl) {
+      return {
+        redirectUrl: cached.publicUrl,
+        blob: { contentType: cached.contentType || null, size: cached.size || 0 },
+      };
+    }
+    try {
+      const result = await get(cached.target, {
+        access: cached.access,
+        useCache: true,
+        headers: extraHeaders,
+      });
+      if (result) return { result };
+    } catch {
+      BLOB_RESOLUTION_CACHE.delete(raw);
+    }
+  }
+
+  const candidates = getCandidates(raw);
 
   // 1. Try candidates directly with private access
   for (const target of candidates) {
     try {
       const result = await get(target, {
         access: "private",
-        useCache: false,
+        useCache: true,
         headers: extraHeaders,
       });
-      if (result) return result;
+      if (result) {
+        BLOB_RESOLUTION_CACHE.set(raw, {
+          target,
+          access: "private",
+          contentType: result.blob.contentType,
+          size: result.blob.size,
+          cachedAt: Date.now(),
+        });
+        return { result };
+      }
     } catch {}
   }
 
-  // 2. Try candidates directly with public access
+  // 2. Try candidates directly with public access (redirect directly to Blob CDN!)
   for (const target of candidates) {
     try {
       const result = await get(target, {
         access: "public",
-        useCache: false,
+        useCache: true,
         headers: extraHeaders,
       });
-      if (result) return result;
+      if (result) {
+        BLOB_RESOLUTION_CACHE.set(raw, {
+          target,
+          access: "public",
+          publicUrl: result.blob.url,
+          contentType: result.blob.contentType,
+          size: result.blob.size,
+          cachedAt: Date.now(),
+        });
+        if (result.blob.url) {
+          return { redirectUrl: result.blob.url, blob: result.blob };
+        }
+        return { result };
+      }
     } catch {}
   }
 
@@ -79,19 +141,38 @@ async function resolveBlob(raw: string, rangeHeader?: string | null) {
       try {
         const res = await get(matched.url, {
           access: "private",
-          useCache: false,
+          useCache: true,
           headers: extraHeaders,
         });
-        if (res) return res;
+        if (res) {
+          BLOB_RESOLUTION_CACHE.set(raw, {
+            target: matched.url,
+            access: "private",
+            contentType: res.blob.contentType,
+            size: res.blob.size,
+            cachedAt: Date.now(),
+          });
+          return { result: res };
+        }
       } catch {}
 
       try {
         const res = await get(matched.url, {
           access: "public",
-          useCache: false,
+          useCache: true,
           headers: extraHeaders,
         });
-        if (res) return res;
+        if (res) {
+          BLOB_RESOLUTION_CACHE.set(raw, {
+            target: matched.url,
+            access: "public",
+            publicUrl: res.blob.url || matched.url,
+            contentType: res.blob.contentType,
+            size: res.blob.size,
+            cachedAt: Date.now(),
+          });
+          return { redirectUrl: res.blob.url || matched.url, blob: res.blob };
+        }
       } catch {}
     }
   } catch {}
@@ -144,12 +225,17 @@ export async function HEAD(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const result = await resolveBlob(raw);
+    const resolved = await resolveBlob(raw);
 
-    if (result === null) {
+    if (resolved === null) {
       return new NextResponse(null, { status: 404 });
     }
 
+    if ("redirectUrl" in resolved) {
+      return NextResponse.redirect(resolved.redirectUrl, 307);
+    }
+
+    const result = resolved.result;
     const mimeType = inferMimeType(raw, result.blob.contentType);
 
     return new NextResponse(null, {
@@ -158,7 +244,7 @@ export async function HEAD(request: NextRequest): Promise<NextResponse> {
         "Accept-Ranges": "bytes",
         "Content-Length": result.blob.size ? result.blob.size.toString() : "0",
         "Content-Type": mimeType,
-        "Cache-Control": "public, max-age=3600",
+        "Cache-Control": IMMUTABLE_CACHE_HEADER,
       },
     });
   } catch (error) {
@@ -196,11 +282,18 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       }
     }
 
-    const result = await resolveBlob(raw, rangeHeader);
+    const resolved = await resolveBlob(raw, rangeHeader);
 
-    if (result === null) {
+    if (resolved === null) {
       return new NextResponse("Not found", { status: 404 });
     }
+
+    // Bypass Vercel Fast Origin Transfer & Fluid CPU by redirecting public blobs straight to CDN
+    if ("redirectUrl" in resolved) {
+      return NextResponse.redirect(resolved.redirectUrl, 307);
+    }
+
+    const result = resolved.result;
 
     if (result.statusCode === 304) {
       return new NextResponse(null, { status: 304 });
@@ -209,7 +302,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const mimeType = inferMimeType(raw, result.blob.contentType);
 
     const headers: Record<string, string> = {
-      "Cache-Control": "public, max-age=3600",
+      "Cache-Control": IMMUTABLE_CACHE_HEADER,
       "Content-Type": mimeType,
       "Accept-Ranges": "bytes",
     };

@@ -497,14 +497,32 @@ async function saveR2VideosIndex(videos: VideoItem[]): Promise<void> {
   }
 }
 
+const VIDEOS_CACHE_TTL_MS = 20 * 1000;
+let videosResponseCache: { payload: unknown; cachedAt: number } | null = null;
+
+function invalidateVideosCache() {
+  videosResponseCache = null;
+}
+
 export async function GET() {
   try {
+    if (videosResponseCache && Date.now() - videosResponseCache.cachedAt < VIDEOS_CACHE_TTL_MS) {
+      return NextResponse.json(videosResponseCache.payload, {
+        headers: {
+          "Cache-Control": "public, s-maxage=20, stale-while-revalidate=60",
+        },
+      });
+    }
+
     ensureBlobToken();
-    const deleted = await readDeletedVideoIds();
-    const tigrisVideos = await fetchTigrisVideosIndex();
-    const blobVideos = await fetchBlobVideosIndex();
-    const r2Videos = await fetchR2VideosIndex();
-    const localVideos = await readLocalVideos();
+    const [deleted, tigrisVideos, blobVideos, r2Videos, localVideos, verifiedTigris] = await Promise.all([
+      readDeletedVideoIds(),
+      fetchTigrisVideosIndex(),
+      fetchBlobVideosIndex(),
+      fetchR2VideosIndex(),
+      readLocalVideos(),
+      getVerifiedTigrisClient(),
+    ]);
 
     // Priority merge: Tigris uploads take highest priority, then blob/R2, then local user uploads
     const map = new Map<string, VideoItem>();
@@ -534,7 +552,6 @@ export async function GET() {
       writeLocalVideos(all);
     }
 
-    const verifiedTigris = await getVerifiedTigrisClient();
     const storageStatus = {
       tigrisConfigured: isTigrisConfigured(),
       tigrisVerified: Boolean(verifiedTigris),
@@ -552,16 +569,14 @@ export async function GET() {
       localVideosCount: localVideos.length,
     };
 
-    return NextResponse.json(
-      { success: true, storageStatus, videos: all },
-      {
-        headers: {
-          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-          Pragma: "no-cache",
-          Expires: "0",
-        },
-      }
-    );
+    const payload = { success: true, storageStatus, videos: all };
+    videosResponseCache = { payload, cachedAt: Date.now() };
+
+    return NextResponse.json(payload, {
+      headers: {
+        "Cache-Control": "public, s-maxage=20, stale-while-revalidate=60",
+      },
+    });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Error reading videos";
     return NextResponse.json({ success: false, error: message }, { status: 500 });
@@ -569,6 +584,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  invalidateVideosCache();
   try {
     safeEnsureDirs();
     const formData = await req.formData();
@@ -886,6 +902,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  invalidateVideosCache();
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
@@ -1028,6 +1045,7 @@ export async function DELETE(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  invalidateVideosCache();
   try {
     const body = await req.json();
     const {
