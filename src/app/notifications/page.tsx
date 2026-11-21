@@ -100,9 +100,7 @@ export default function NotificationsPage() {
               >
                 <ArrowLeft className="h-5 w-5" />
               </Link>
-              <div className="h-10 w-10 rounded-2xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-white">
-                <img src="/entropy-icon.png" alt="Entropy" className="h-5 w-5 object-contain" />
-              </div>
+              <img src="/entropy-icon.png" alt="Entropy" className="h-9 w-9 object-contain flex-shrink-0" />
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">

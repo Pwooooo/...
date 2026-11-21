@@ -47,10 +47,8 @@ export default function TrendingPage() {
 
         <main className="flex-1 overflow-x-hidden px-4 md:px-8 py-6 max-w-5xl">
           {/* Trending Header Banner */}
-          <div className="flex items-center gap-4 mb-6">
-            <div className="h-14 w-14 rounded-2xl bg-white/[0.08] border border-white/[0.08] flex items-center justify-center shadow-lg">
-              <img src="/entropy-icon.png" alt="Entropy" className="h-8 w-8 object-contain" />
-            </div>
+          <div className="flex items-center gap-3.5 mb-6">
+            <img src="/entropy-icon.png" alt="Entropy" className="h-11 w-11 object-contain flex-shrink-0" />
             <h1 className="text-2xl font-bold text-white">Trending</h1>
           </div>
 

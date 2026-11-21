@@ -266,9 +266,7 @@ export default function SettingsPage() {
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-2">
-              <div className="h-10 w-10 rounded-2xl bg-white/[0.08] flex items-center justify-center text-white">
-                <img src="/entropy-icon.png" alt="Entropy" className="h-5 w-5 object-contain" />
-              </div>
+              <img src="/entropy-icon.png" alt="Entropy" className="h-9 w-9 object-contain flex-shrink-0" />
               <div>
                 <h1 className="text-2xl font-bold text-white tracking-tight">Account Settings</h1>
                 <p className="text-xs text-zinc-400">
