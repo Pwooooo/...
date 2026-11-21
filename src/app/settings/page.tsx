@@ -278,7 +278,7 @@ export default function SettingsPage() {
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex items-center gap-2 mt-6 overflow-x-auto scrollbar-none pb-1">
+            <div className="flex items-center gap-1.5 mt-6 overflow-x-auto scrollbar-none pb-1">
               {SETTINGS_SECTIONS.map((section) => {
                 const Icon = section.icon;
                 const isActive = activeSection === section.id;
@@ -287,10 +287,10 @@ export default function SettingsPage() {
                     key={section.id}
                     type="button"
                     onClick={() => setActiveSection(section.id)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ease-out cursor-pointer ${
+                    className={`flex items-center gap-2 px-3.5 py-[7px] rounded-md text-xs font-semibold transition-all duration-150 cursor-pointer ${
                       isActive
-                        ? "bg-white/[0.08] text-white shadow-sm"
-                        : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
+                        ? "bg-white/[0.1] text-white shadow-sm"
+                        : "text-zinc-400 hover:text-white hover:bg-white/[0.05]"
                     }`}
                   >
                     <Icon className="h-4 w-4" />
@@ -304,7 +304,7 @@ export default function SettingsPage() {
           {/* Section 1: Profile & Identity */}
           {activeSection === "profile" && (
             <div className="space-y-6">
-              <form onSubmit={handleSaveProfile} className="rounded-2xl bg-[#141414] border border-white/[0.08] p-6 space-y-6 shadow-xl">
+              <form onSubmit={handleSaveProfile} className="rounded-2xl bg-[#1a1a1d]/90 border border-white/[0.06] p-6 space-y-6 shadow-xl">
                 <div>
                   <h3 className="text-base font-bold text-white">Channel Identity</h3>
                   <p className="text-xs text-zinc-400 mt-0.5">
@@ -317,8 +317,8 @@ export default function SettingsPage() {
                   <label className="block text-xs font-semibold text-zinc-300 mb-2">
                     Profile Avatar
                   </label>
-                  <div className="flex items-center gap-5 p-4 rounded-2xl bg-[#0a0a0a] border border-white/[0.08]">
-                    <div className="relative h-20 w-20 rounded-full overflow-hidden bg-[#181818] flex-shrink-0 flex items-center justify-center text-white font-bold text-2xl shadow-inner">
+                  <div className="flex items-center gap-5 p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                    <div className="relative h-20 w-20 rounded-full overflow-hidden bg-white/[0.06] flex-shrink-0 flex items-center justify-center text-white font-bold text-2xl shadow-inner">
                       <img
                         src={avatarUrl || "/default-avatar.png"}
                         alt="Avatar"
@@ -351,7 +351,7 @@ export default function SettingsPage() {
                           <button
                             type="button"
                             onClick={() => setAvatarUrl("")}
-                            className="flex items-center gap-1.5 rounded-xl bg-[#181818] hover:bg-[#222222] text-zinc-300 hover:text-red-400 border border-white/[0.08] px-3.5 py-2 text-xs font-medium transition-colors cursor-pointer"
+                            className="flex items-center gap-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] text-zinc-300 hover:text-red-400 border border-white/[0.06] px-3.5 py-2 text-xs font-medium transition-colors cursor-pointer"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                             <span>Remove</span>
@@ -382,7 +382,7 @@ export default function SettingsPage() {
                       maxLength={20}
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="w-full rounded-xl bg-[#0a0a0a] border border-white/[0.08] px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors"
+                      className="w-full rounded-xl bg-white/[0.04] border border-white/[0.07] px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/25 focus:bg-white/[0.06] transition-colors"
                     />
                   </div>
 
@@ -395,7 +395,7 @@ export default function SettingsPage() {
                         {handle.replace(/^@/, "").length}/30
                       </span>
                     </div>
-                    <div className="flex items-center rounded-xl bg-[#0a0a0a] border border-white/[0.08] px-3.5 py-2.5 focus-within:border-white/20 transition-colors">
+                    <div className="flex items-center rounded-xl bg-white/[0.04] border border-white/[0.07] px-3.5 py-2.5 focus-within:border-white/25 focus-within:bg-white/[0.06] transition-colors">
                       <span className="text-zinc-500 text-xs font-mono select-none">@</span>
                       <input
                         type="text"
@@ -422,7 +422,7 @@ export default function SettingsPage() {
                     value={country}
                     onChange={(e) => setCountry(e.target.value)}
                     placeholder="e.g. United States, United Kingdom, Greece..."
-                    className="w-full rounded-xl bg-[#0a0a0a] border border-white/[0.08] px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors"
+                    className="w-full rounded-xl bg-white/[0.04] border border-white/[0.07] px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/25 focus:bg-white/[0.06] transition-colors"
                   />
                 </div>
 
@@ -435,14 +435,14 @@ export default function SettingsPage() {
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
                     placeholder="Tell your audience about yourself or your channel..."
-                    className="w-full rounded-xl bg-[#0a0a0a] border border-white/[0.08] px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/20 transition-colors resize-none leading-relaxed"
+                    className="w-full rounded-xl bg-white/[0.04] border border-white/[0.07] px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-white/25 focus:bg-white/[0.06] transition-colors resize-none leading-relaxed"
                   />
                 </div>
 
                 <div className="flex items-center justify-between pt-2">
                   <Link
                     href="/profile"
-                    className="text-xs text-sky-400 hover:text-sky-300 font-medium flex items-center gap-1.5"
+                    className="text-xs text-white/90 hover:text-white font-medium flex items-center gap-1.5 transition-colors"
                   >
                     <span>View public channel</span>
                     <ExternalLink className="h-3 w-3" />
@@ -450,7 +450,7 @@ export default function SettingsPage() {
 
                   <button
                     type="submit"
-                    className="flex items-center gap-2 rounded-xl bg-white hover:bg-zinc-200 text-black px-5 py-2.5 text-xs font-bold transition-all cursor-pointer shadow-md"
+                    className="flex items-center gap-2 rounded-lg bg-white hover:bg-zinc-200 text-black px-5 py-2.5 text-xs font-bold transition-all cursor-pointer shadow-md"
                   >
                     <Save className="h-3.5 w-3.5" />
                     <span>Save Profile</span>
@@ -462,7 +462,7 @@ export default function SettingsPage() {
 
           {/* Section 2: Playback & Player */}
           {activeSection === "playback" && (
-            <div className="rounded-2xl bg-[#141414] border border-white/[0.08] p-6 space-y-6 shadow-xl">
+            <div className="rounded-2xl bg-[#1a1a1d]/90 border border-white/[0.06] p-6 space-y-6 shadow-xl">
               <div>
                 <h3 className="text-base font-bold text-white">Player & Playback Preferences</h3>
                 <p className="text-xs text-zinc-400 mt-0.5">
