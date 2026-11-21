@@ -99,7 +99,7 @@ export default function HomePage() {
         {/* Content Area */}
         <main className="flex-1 min-w-0 px-4 md:px-8 pb-12">
           {/* Smooth Category Chips Bar */}
-          <div className="sticky top-14 z-30 bg-[#151517]/80 backdrop-blur-xl py-3 -mx-4 md:-mx-8 px-4 md:px-8 mb-6">
+          <div className="sticky top-14 z-30 bg-gradient-to-b from-[#151517]/90 via-[#151517]/75 to-transparent py-3 -mx-4 md:-mx-8 px-4 md:px-8 mb-6">
             <div className="flex items-center gap-2 overflow-x-auto scrollbar-none">
               {CATEGORIES.map((cat) => (
                 <button

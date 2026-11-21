@@ -218,9 +218,10 @@ function SidebarContent({
         return "text-white fill-current [&>polygon]:fill-[#181818] [&>polygon]:stroke-[#181818]";
       case "Settings":
         return "text-white fill-current [&>circle]:fill-[#181818] [&>circle]:stroke-[#181818]";
+      case "News":
+        return "text-white fill-current [&>path:not(:first-child)]:stroke-[#181818] [&>rect]:fill-[#181818] [&>rect]:stroke-[#181818]";
       case "History":
       case "Playlists":
-      case "News":
         return "text-white";
       default:
         return "text-white fill-current";
