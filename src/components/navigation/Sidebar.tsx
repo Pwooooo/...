@@ -70,6 +70,20 @@ function SidebarContent({
     setIsCollapsed(collapsed);
   }, [collapsed]);
 
+  useEffect(() => {
+    if (drawer) return;
+    const width = isCollapsed ? "4rem" : "15rem";
+    const expanded = isCollapsed ? "false" : "true";
+    document.documentElement.style.setProperty("--sidebar-width", width);
+    document.documentElement.dataset.sidebarExpanded = expanded;
+    window.dispatchEvent(new Event("entropy_sidebar_layout"));
+    return () => {
+      document.documentElement.style.setProperty("--sidebar-width", "0px");
+      document.documentElement.dataset.sidebarExpanded = "false";
+      window.dispatchEvent(new Event("entropy_sidebar_layout"));
+    };
+  }, [isCollapsed, drawer]);
+
   const handleToggleCollapse = () => {
     if (drawer) {
       onClose?.();
@@ -217,7 +231,7 @@ function SidebarContent({
           <span className="truncate">{item.label}</span>
         </div>
         {item.badge !== undefined && (
-          <span className="ml-auto flex-shrink-0 bg-[#e51d42] text-white text-[11px] font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center leading-tight shadow-sm">
+          <span className="ml-auto flex-shrink-0 bg-[#e51d42] text-white text-[11px] font-bold px-1.5 py-0.5 rounded-md min-w-[20px] text-center leading-tight shadow-sm">
             {item.badge}
           </span>
         )}
@@ -297,67 +311,85 @@ function SidebarContent({
   // Collapsed Sidebar (Compact Strip)
   if (isCollapsed) {
     return (
-      <aside className="sticky top-14 flex h-[calc(100vh-3.5rem)] w-16 flex-col items-center py-3 bg-[#101010] text-zinc-300 border-r border-white/[0.06] select-none scrollbar-none overflow-y-auto font-sidebar">
-        <button
-          type="button"
-          onClick={handleToggleCollapse}
-          className="text-zinc-400 hover:text-white p-2 rounded-xl hover:bg-white/[0.06] mb-3 transition-colors cursor-pointer"
-          title="Expand sidebar"
-          aria-label="Expand sidebar"
-        >
-          <PanelLeft className="h-4 w-4" strokeWidth={1.8} />
-        </button>
+      <>
+        <div className="hidden md:block flex-shrink-0 w-16" aria-hidden="true" />
+        <aside className="fixed left-0 top-0 bottom-0 z-50 hidden md:flex h-screen w-16 flex-col items-center py-3.5 bg-[#101010] text-zinc-300 border-r border-white/[0.06] select-none scrollbar-none overflow-y-auto font-sidebar">
+          <Link href="/" className="mb-3 p-1.5 rounded-xl hover:bg-white/[0.05] transition-colors" title="Entropy">
+            <img src="/entropy-icon.png" alt="Entropy" className="h-6 w-6 object-contain" />
+          </Link>
+          <button
+            type="button"
+            onClick={handleToggleCollapse}
+            className="text-zinc-400 hover:text-white p-2 rounded-xl hover:bg-white/[0.06] mb-3 transition-colors cursor-pointer"
+            title="Expand sidebar"
+            aria-label="Expand sidebar"
+          >
+            <PanelLeft className="h-4 w-4" strokeWidth={1.8} />
+          </button>
 
-        <div className="flex flex-col items-center gap-3 w-full px-2">
-          {navSections.map((section, sIndex) => {
-            if (section.items.length === 0) return null;
-            return (
-              <div key={sIndex} className="flex flex-col items-center gap-1 w-full">
-                {section.items.map((item) => {
-                  const isActive = isItemActive(item.href);
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={cn(
-                        "relative flex items-center justify-center w-11 h-11 rounded-xl transition-all duration-150",
-                        isActive
-                          ? "bg-[#181818] text-white shadow-sm"
-                          : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
-                      )}
-                      title={item.label}
-                    >
-                      <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
-                      {item.badge !== undefined && (
-                        <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-[#e51d42] ring-2 ring-[#0c0c0e]" />
-                      )}
-                    </Link>
-                  );
-                })}
-              </div>
-            );
-          })}
-        </div>
-      </aside>
+          <div className="flex flex-col items-center gap-3 w-full px-2">
+            {navSections.map((section, sIndex) => {
+              if (section.items.length === 0) return null;
+              return (
+                <div key={sIndex} className="flex flex-col items-center gap-1 w-full">
+                  {section.items.map((item) => {
+                    const isActive = isItemActive(item.href);
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={cn(
+                          "relative flex items-center justify-center w-11 h-11 rounded-xl transition-all duration-150",
+                          isActive
+                            ? "bg-[#181818] text-white shadow-sm"
+                            : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
+                        )}
+                        title={item.label}
+                      >
+                        <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
+                        {item.badge !== undefined && (
+                          <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-[#e51d42] ring-2 ring-[#101010]" />
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        </aside>
+      </>
     );
   }
 
   // Full Expanded Sidebar
   return (
-    <aside className="sticky top-14 hidden md:flex h-[calc(100vh-3.5rem)] w-60 flex-col overflow-y-auto px-3 py-3 bg-[#101010] text-zinc-200 border-r border-white/[0.06] select-none scrollbar-none font-sidebar">
-      {/* Top Header: Collapse Button */}
-      <div className="flex items-center justify-end px-2 pt-1 pb-3 mb-1">
-        <button
-          type="button"
-          onClick={handleToggleCollapse}
-          className="text-zinc-400 hover:text-white p-1.5 rounded-lg hover:bg-white/[0.06] transition-colors cursor-pointer"
-          title="Collapse sidebar"
-          aria-label="Collapse sidebar"
-        >
-          <PanelLeft className="h-4 w-4" strokeWidth={1.8} />
-        </button>
-      </div>
+    <>
+      <div className="hidden md:block flex-shrink-0 w-60" aria-hidden="true" />
+      <aside className="fixed left-0 top-0 bottom-0 z-50 hidden md:flex h-screen w-60 flex-col overflow-y-auto px-3 py-3.5 bg-[#101010] text-zinc-200 border-r border-white/[0.06] select-none scrollbar-none font-sidebar">
+        {/* Top Header: Brand Logo + Collapse Button */}
+        <div className="flex items-center justify-between px-3 pt-0.5 pb-4 mb-1">
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <img
+              src="/entropy-icon.png"
+              alt="Entropy"
+              className="h-6 w-6 object-contain group-hover:scale-105 transition-transform"
+            />
+            <span className="font-bold text-[18px] tracking-tight text-white">
+              Entropy
+            </span>
+          </Link>
+          <button
+            type="button"
+            onClick={handleToggleCollapse}
+            className="text-zinc-400 hover:text-white p-1.5 rounded-lg hover:bg-white/[0.06] transition-colors cursor-pointer"
+            title="Collapse sidebar"
+            aria-label="Collapse sidebar"
+          >
+            <PanelLeft className="h-4 w-4" strokeWidth={1.8} />
+          </button>
+        </div>
 
       {/* Navigation Sections (YouTube headers, NO line dividers) */}
       <div className="space-y-4">
@@ -391,6 +423,7 @@ function SidebarContent({
         })}
       </div>
     </aside>
+    </>
   );
 }
 

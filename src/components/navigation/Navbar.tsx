@@ -30,6 +30,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const { user, openAuthModal, logout } = useAuth();
   const { unreadCount } = useNotifications();
   const router = useRouter();
@@ -37,6 +38,15 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
   const userMenuRef = useRef<HTMLDivElement>(null);
   const createMenuRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const syncSidebar = () => {
+      setSidebarExpanded(document.documentElement.dataset.sidebarExpanded === "true");
+    };
+    syncSidebar();
+    window.addEventListener("entropy_sidebar_layout", syncSidebar);
+    return () => window.removeEventListener("entropy_sidebar_layout", syncSidebar);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e: Event) => {
@@ -103,9 +113,9 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
   };
 
   return (
-    <header className="sticky top-0 z-50 flex h-14 w-full items-center justify-between bg-[#101010]/95 backdrop-blur-md px-4 text-foreground font-taskbar">
-      {/* Left: Sidebar Toggle + Logo */}
-      <div className="flex items-center gap-3">
+    <header className="sticky top-0 z-40 flex h-14 w-full items-center justify-between bg-[#141414]/90 backdrop-blur-md px-4 md:pl-[calc(var(--sidebar-width,0px)+1rem)] text-foreground font-taskbar transition-[padding] duration-200">
+      {/* Left: Sidebar Toggle + Logo (hidden on md+ when full sidebar already shows brand) */}
+      <div className={`flex items-center gap-3 ${sidebarExpanded ? "md:hidden" : ""}`}>
         <button
           type="button"
           onClick={onToggleSidebar}
@@ -125,6 +135,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
           </span>
         </Link>
       </div>
+      {sidebarExpanded && <div className="hidden md:block w-24 flex-shrink-0" aria-hidden="true" />}
 
       {/* Center: Search Bar (Subtle Outline) */}
       <form onSubmit={handleSearch} className="flex max-w-[640px] flex-1 items-center justify-center px-4">
