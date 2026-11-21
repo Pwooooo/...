@@ -79,7 +79,14 @@ export async function POST(req: NextRequest) {
       filename.split(".").pop()?.toLowerCase() || (type === "thumbnail" ? "jpg" : "mp4");
     const cleanExt = rawExt.replace(/[^a-z0-9]/g, "") || "mp4";
     const baseId = videoId || `v-${Date.now()}`;
-    const folder = type === "thumbnail" ? "thumbnails" : "videos";
+    const folder =
+      type === "thumbnail"
+        ? "thumbnails"
+        : type === "avatar"
+        ? "avatars"
+        : type === "banner"
+        ? "banners"
+        : "videos";
     const key = `${folder}/${baseId}.${cleanExt}`;
 
     const presigned = await createTigrisPresignedUploadUrl(key, contentType, 3600);

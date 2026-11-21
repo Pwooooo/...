@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { id, name, handle, email, bio, country, avatarUrl } = body;
+    const { id, name, handle, email, bio, country, avatarUrl, bannerUrl } = body;
 
     if (!handle) {
       return NextResponse.json({ success: false, error: "Handle is required" }, { status: 400 });
@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
       bio,
       country,
       avatarUrl,
+      bannerUrl,
       joinedAt: body.joinedAt || "Joined recently",
     };
 

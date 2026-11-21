@@ -42,6 +42,13 @@ import {
 
 const PROFILE_TABS = ["Videos", "Playlists", "Community", "About"];
 
+function isVideoMedia(url?: string): boolean {
+  if (!url) return false;
+  if (url.startsWith("data:video/")) return true;
+  const clean = url.split("?")[0].toLowerCase();
+  return clean.endsWith(".mp4") || clean.endsWith(".webm") || clean.endsWith(".mov");
+}
+
 interface ChannelProfileViewProps {
   params?: Promise<{ handle: string }>;
   isSelfProfile?: boolean;
@@ -65,8 +72,11 @@ export default function ChannelProfileView({
   const [editBio, setEditBio] = useState("");
   const [editCountry, setEditCountry] = useState("");
   const [editAvatarUrl, setEditAvatarUrl] = useState("");
+  const [editBannerUrl, setEditBannerUrl] = useState("");
+  const [isUploadingMedia, setIsUploadingMedia] = useState<"avatar" | "banner" | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
 
   const [allVideos, setAllVideos] = useState<VideoItem[]>([]);
   const [channelLinks, setChannelLinks] = useState<{ title: string; url: string }[]>([]);
@@ -126,6 +136,7 @@ export default function ChannelProfileView({
       setEditBio(user.bio || "");
       setEditCountry(user.country || "");
       setEditAvatarUrl(user.avatarUrl || user.avatar || "");
+      setEditBannerUrl(user.bannerUrl || "");
     }
   }, [user, isOwnProfile]);
 
@@ -285,6 +296,7 @@ export default function ChannelProfileView({
         handle: (user.handle || cleanHandle).replace(/^@/, ""),
         displayName: user.name || cleanHandle,
         avatarUrl: user.avatarUrl || user.avatar || "",
+        bannerUrl: user.bannerUrl || "",
         description: user.bio || "Welcome to my Entropy channel!",
         country: user.country || "",
         joinedAt: user.joinedAt || "Joined recently",
@@ -296,6 +308,7 @@ export default function ChannelProfileView({
         handle: (registeredUser.handle || cleanHandle).replace(/^@/, ""),
         displayName: registeredUser.name || cleanHandle,
         avatarUrl: registeredUser.avatarUrl || registeredUser.avatar || "",
+        bannerUrl: registeredUser.bannerUrl || "",
         description: registeredUser.bio || `Official channel for @${registeredUser.handle}.`,
         country: registeredUser.country || "",
         joinedAt: registeredUser.joinedAt || "Joined recently",
@@ -306,6 +319,7 @@ export default function ChannelProfileView({
         handle: (channelVideos[0]?.channel?.handle || cleanHandle).replace(/^@/, ""),
         displayName: channelVideos[0]?.channel?.displayName || cleanHandle,
         avatarUrl: channelVideos[0]?.channel?.avatarUrl || "",
+        bannerUrl: "",
         description: `Official channel for @${cleanHandle}. Watch the latest releases and live streams.`,
         country: "",
         joinedAt: "Joined recently",
@@ -335,34 +349,97 @@ export default function ChannelProfileView({
     }
   };
 
-  const handleImageFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMediaFileSelect = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    kind: "avatar" | "banner"
+  ) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      alert("Please select a valid image file.");
+    const isImage = file.type.startsWith("image/");
+    const isVideo = file.type.startsWith("video/");
+    if (!isImage && !isVideo) {
+      setEditError("Please select a valid image, GIF, or MP4/WebM video file.");
       return;
     }
 
+    const setter = kind === "banner" ? setEditBannerUrl : setEditAvatarUrl;
+    const isAnimated = file.type === "image/gif" || file.type === "image/webp" || isVideo;
+    setEditError(null);
+    setIsUploadingMedia(kind);
+
+    // 1. Try direct Tigris presigned upload first (required for larger animated GIFs/videos)
+    try {
+      const res = await fetch("/api/tigris/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename: file.name,
+          contentType: file.type || (isVideo ? "video/mp4" : "image/jpeg"),
+          type: kind,
+          videoId: `${kind}-${(cleanHandle || "user").replace(/[^a-z0-9_-]/gi, "")}-${Date.now()}`,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.uploadUrl && data?.fileUrl) {
+          const putRes = await fetch(data.uploadUrl, {
+            method: "PUT",
+            headers: { "Content-Type": file.type || "application/octet-stream" },
+            body: file,
+          });
+          if (putRes.ok) {
+            setter(data.fileUrl);
+            setIsUploadingMedia(null);
+            return;
+          }
+        }
+      }
+    } catch {
+      // Fall back to local Data URL below
+    }
+
+    // 2. Fallback: preserve GIF/WebP/Video animation directly without canvas flattening
+    if (isAnimated) {
+      if (file.size > 4 * 1024 * 1024) {
+        setEditError("Animated files over 4 MB require Tigris storage to be configured.");
+        setIsUploadingMedia(null);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (typeof event.target?.result === "string") {
+          setter(event.target.result);
+        }
+        setIsUploadingMedia(null);
+      };
+      reader.onerror = () => {
+        setEditError("Failed to read media file.");
+        setIsUploadingMedia(null);
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    // 3. Static image fallback: resize/compress cleanly on canvas
     const reader = new FileReader();
     reader.onload = (event) => {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement("canvas");
-        const MAX_SIZE = 512;
+        const MAX_W = kind === "banner" ? 1600 : 512;
+        const MAX_H = kind === "banner" ? 600 : 512;
         let width = img.width;
         let height = img.height;
 
-        if (width > height) {
-          if (width > MAX_SIZE) {
-            height = Math.round((height * MAX_SIZE) / width);
-            width = MAX_SIZE;
-          }
-        } else {
-          if (height > MAX_SIZE) {
-            width = Math.round((width * MAX_SIZE) / height);
-            height = MAX_SIZE;
-          }
+        if (width > MAX_W) {
+          height = Math.round((height * MAX_W) / width);
+          width = MAX_W;
+        }
+        if (height > MAX_H) {
+          width = Math.round((width * MAX_H) / height);
+          height = MAX_H;
         }
 
         canvas.width = width;
@@ -371,10 +448,11 @@ export default function ChannelProfileView({
         if (ctx) {
           ctx.drawImage(img, 0, 0, width, height);
           const compressed = canvas.toDataURL("image/jpeg", 0.9);
-          setEditAvatarUrl(compressed);
-        } else {
-          setEditAvatarUrl(event.target?.result as string);
+          setter(compressed);
+        } else if (typeof event.target?.result === "string") {
+          setter(event.target.result);
         }
+        setIsUploadingMedia(null);
       };
       img.src = event.target?.result as string;
     };
@@ -403,6 +481,7 @@ export default function ChannelProfileView({
       bio: editBio.trim(),
       country: editCountry.trim(),
       avatarUrl: editAvatarUrl.trim(),
+      bannerUrl: editBannerUrl.trim(),
     });
     setIsEditModalOpen(false);
   };
@@ -422,9 +501,37 @@ export default function ChannelProfileView({
 
         <main className="flex-1 overflow-x-hidden p-4 md:p-8">
           <div className="max-w-5xl mx-auto">
-            {/* Dark Rounded Banner (borderless) */}
-            <div className="relative h-36 sm:h-48 md:h-56 w-full rounded-2xl bg-[#171717] overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20" />
+            {/* Channel Banner (supports static images, GIFs, and animated MP4/WebM) */}
+            <div className="relative h-36 sm:h-48 md:h-56 w-full rounded-2xl bg-[#171717] overflow-hidden group">
+              {channel.bannerUrl ? (
+                isVideoMedia(channel.bannerUrl) ? (
+                  <video
+                    src={channel.bannerUrl}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <img
+                    src={channel.bannerUrl}
+                    alt={`${channel.displayName} banner`}
+                    className="h-full w-full object-cover"
+                  />
+                )
+              ) : null}
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent to-black/25" />
+              {isOwnProfile && (
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-black/60 hover:bg-black/80 backdrop-blur-sm text-white text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 cursor-pointer border border-white/10"
+                >
+                  <Camera className="h-3.5 w-3.5" />
+                  <span>Edit banner</span>
+                </button>
+              )}
             </div>
 
             {/* Profile Info Header Bar (Overlapping Banner) */}
@@ -442,14 +549,25 @@ export default function ChannelProfileView({
                       aria-label="Edit profile and avatar"
                     >
                       <div className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-full border-4 border-black bg-zinc-900 text-white shadow-2xl overflow-hidden flex items-center justify-center font-bold text-3xl sm:text-4xl transition-transform duration-200 group-hover:scale-105">
-                        <img
-                          src={channelAvatar}
-                          alt={channel.displayName}
-                          className="h-full w-full object-cover"
-                          onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
-                          }}
-                        />
+                        {isVideoMedia(channelAvatar) ? (
+                          <video
+                            src={channelAvatar}
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <img
+                            src={channelAvatar}
+                            alt={channel.displayName}
+                            className="h-full w-full object-cover"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
+                            }}
+                          />
+                        )}
                         {/* Hover Overlay */}
                         <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-opacity text-white">
                           <Camera className="h-6 w-6 mb-1" />
@@ -465,14 +583,25 @@ export default function ChannelProfileView({
                   ) : (
                     <div className="relative flex-shrink-0 z-10">
                       <div className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-full border-4 border-black bg-zinc-900 text-white shadow-2xl overflow-hidden flex items-center justify-center font-bold text-3xl sm:text-4xl">
-                        <img
-                          src={channelAvatar}
-                          alt={channel.displayName}
-                          className="h-full w-full object-cover"
-                          onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
-                          }}
-                        />
+                        {isVideoMedia(channelAvatar) ? (
+                          <video
+                            src={channelAvatar}
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <img
+                            src={channelAvatar}
+                            alt={channel.displayName}
+                            className="h-full w-full object-cover"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
+                            }}
+                          />
+                        )}
                       </div>
                       <span
                         className="absolute bottom-1 right-1.5 h-4 w-4 rounded-full bg-[#00a8ff] border-2 border-black shadow-md ring-2 ring-[#00a8ff]/20"
@@ -786,7 +915,7 @@ export default function ChannelProfileView({
           />
 
           <div
-            className="relative w-full max-w-md rounded-2xl bg-[#141414] border border-white/[0.08] p-6 shadow-2xl text-white z-10 animate-in zoom-in-95 duration-200"
+            className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-[#141414] border border-white/[0.08] p-6 shadow-2xl text-white z-10 animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-4 border-b border-white/[0.08]">
@@ -882,32 +1011,119 @@ export default function ChannelProfileView({
                 />
               </div>
 
+              {/* Channel Banner (static or animated) */}
               <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">
-                  Profile Picture
-                </label>
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-full border border-white/10 bg-zinc-900 overflow-hidden flex items-center justify-center flex-shrink-0">
-                    <img
-                      src={editAvatarUrl || "/default-avatar.png"}
-                      alt="Avatar Preview"
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-semibold text-zinc-400">
+                    Channel Banner
+                  </label>
+                  <span className="text-[10px] text-zinc-500">
+                    PNG, JPG, GIF, WebP, MP4, WebM
+                  </span>
+                </div>
+                <div className="relative h-24 w-full rounded-xl bg-[#0a0a0a] border border-white/[0.08] overflow-hidden mb-2 flex items-center justify-center">
+                  {editBannerUrl ? (
+                    isVideoMedia(editBannerUrl) ? (
+                      <video
+                        src={editBannerUrl}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <img
+                        src={editBannerUrl}
+                        alt="Banner Preview"
+                        className="h-full w-full object-cover"
+                      />
+                    )
+                  ) : (
+                    <span className="text-[11px] text-zinc-500">No banner set</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
                   <input
                     type="file"
-                    ref={fileInputRef}
-                    accept="image/*"
-                    onChange={handleImageFileSelect}
+                    ref={bannerInputRef}
+                    accept="image/*,video/mp4,video/webm"
+                    onChange={(e) => handleMediaFileSelect(e, "banner")}
                     className="hidden"
                   />
                   <button
                     type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-medium transition-colors cursor-pointer"
+                    disabled={isUploadingMedia !== null}
+                    onClick={() => bannerInputRef.current?.click()}
+                    className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-white text-xs font-medium transition-colors cursor-pointer"
                   >
-                    Upload New Image
+                    {isUploadingMedia === "banner" ? "Uploading..." : "Upload Banner"}
                   </button>
+                  {editBannerUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setEditBannerUrl("")}
+                      className="px-3 py-1.5 rounded-lg bg-[#0a0a0a] hover:bg-zinc-900 border border-white/[0.08] text-zinc-400 hover:text-red-400 text-xs font-medium transition-colors cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Profile Picture (static or animated) */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-semibold text-zinc-400">
+                    Profile Picture
+                  </label>
+                  <span className="text-[10px] text-zinc-500">
+                    PNG, JPG, GIF, WebP, MP4, WebM
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-full border border-white/10 bg-zinc-900 overflow-hidden flex items-center justify-center flex-shrink-0">
+                    {isVideoMedia(editAvatarUrl) ? (
+                      <video
+                        src={editAvatarUrl}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <img
+                        src={editAvatarUrl || "/default-avatar.png"}
+                        alt="Avatar Preview"
+                        className="h-full w-full object-cover"
+                      />
+                    )}
+                  </div>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/*,video/mp4,video/webm"
+                    onChange={(e) => handleMediaFileSelect(e, "avatar")}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    disabled={isUploadingMedia !== null}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-white text-xs font-medium transition-colors cursor-pointer"
+                  >
+                    {isUploadingMedia === "avatar" ? "Uploading..." : "Upload New Image"}
+                  </button>
+                  {editAvatarUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setEditAvatarUrl("")}
+                      className="px-3 py-1.5 rounded-lg bg-[#0a0a0a] hover:bg-zinc-900 border border-white/[0.08] text-zinc-400 hover:text-red-400 text-xs font-medium transition-colors cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  )}
                 </div>
               </div>
 
