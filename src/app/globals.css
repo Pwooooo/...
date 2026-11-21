@@ -20,13 +20,13 @@
   --border: #ffffff0f;
   --input: #ffffff0f;
   --ring: #ffffff29;
-  --sidebar: #101010;
-  --sidebar-foreground: #969696;
+  --sidebar: #111111;
+  --sidebar-foreground: #8a8a8a;
   --sidebar-primary: #efefef;
-  --sidebar-primary-foreground: #101010;
+  --sidebar-primary-foreground: #111111;
   --sidebar-accent: #181818;
-  --sidebar-accent-foreground: #efefef;
-  --sidebar-border: #ffffff0f;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #ffffff14;
   --sidebar-ring: #ffffff29;
   --button-secondary: #1d1d1d;
   --button-secondary-border: #ffffff0f;

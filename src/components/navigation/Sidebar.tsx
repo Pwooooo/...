@@ -257,7 +257,7 @@ function SidebarContent({
         />
 
         {/* Slide-over Drawer */}
-        <aside className="relative flex h-full w-60 flex-col bg-[#101010] text-zinc-200 border-r border-white/[0.06] z-50 overflow-y-auto px-3 py-3 shadow-2xl animate-in slide-in-from-left duration-250 select-none scrollbar-none font-sidebar">
+        <aside className="relative flex h-full w-60 flex-col bg-[#111111] text-zinc-200 border-r border-white/[0.08] z-50 overflow-y-auto px-3 py-3 shadow-2xl animate-in slide-in-from-left duration-250 select-none scrollbar-none font-sidebar">
           {/* Header: Collapse Icon */}
           <div className="flex items-center justify-end px-2 pt-1 pb-3 mb-1">
             <button
@@ -313,7 +313,7 @@ function SidebarContent({
     return (
       <>
         <div className="hidden md:block flex-shrink-0 w-16" aria-hidden="true" />
-        <aside className="fixed left-0 top-0 bottom-0 z-50 hidden md:flex h-screen w-16 flex-col items-center py-3.5 bg-[#101010] text-zinc-300 border-r border-white/[0.06] select-none scrollbar-none overflow-y-auto font-sidebar">
+        <aside className="fixed left-0 top-0 bottom-0 z-50 hidden md:flex h-screen w-16 flex-col items-center py-3.5 bg-[#111111] text-zinc-300 border-r border-white/[0.08] select-none scrollbar-none overflow-y-auto font-sidebar">
           <Link href="/" className="mb-3 p-1.5 rounded-xl hover:bg-white/[0.05] transition-colors" title="Entropy">
             <img src="/entropy-icon.png" alt="Entropy" className="h-6 w-6 object-contain" />
           </Link>
@@ -349,7 +349,7 @@ function SidebarContent({
                       >
                         <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
                         {item.badge !== undefined && (
-                          <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-[#e51d42] ring-2 ring-[#101010]" />
+                          <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-[#e51d42] ring-2 ring-[#111111]" />
                         )}
                       </Link>
                     );
@@ -367,7 +367,7 @@ function SidebarContent({
   return (
     <>
       <div className="hidden md:block flex-shrink-0 w-60" aria-hidden="true" />
-      <aside className="fixed left-0 top-0 bottom-0 z-50 hidden md:flex h-screen w-60 flex-col overflow-y-auto px-3 py-3.5 bg-[#101010] text-zinc-200 border-r border-white/[0.06] select-none scrollbar-none font-sidebar">
+      <aside className="fixed left-0 top-0 bottom-0 z-50 hidden md:flex h-screen w-60 flex-col overflow-y-auto px-3 py-3.5 bg-[#111111] text-zinc-200 border-r border-white/[0.08] select-none scrollbar-none font-sidebar">
         {/* Top Header: Brand Logo + Collapse Button */}
         <div className="flex items-center justify-between px-3 pt-0.5 pb-4 mb-1">
           <Link href="/" className="flex items-center gap-2.5 group">
