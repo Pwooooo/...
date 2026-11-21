@@ -402,11 +402,6 @@ export default function ChannelProfileView({
 
     // 2. Fallback: preserve GIF/WebP/Video animation directly without canvas flattening
     if (isAnimated) {
-      if (file.size > 4 * 1024 * 1024) {
-        setEditError("Animated files over 4 MB require Tigris storage to be configured.");
-        setIsUploadingMedia(null);
-        return;
-      }
       const reader = new FileReader();
       reader.onload = (event) => {
         if (typeof event.target?.result === "string") {
