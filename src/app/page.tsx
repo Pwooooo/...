@@ -99,7 +99,7 @@ export default function HomePage() {
         {/* Content Area */}
         <main className="flex-1 min-w-0 px-4 md:px-8 pb-12">
           {/* Smooth Category Chips Bar */}
-          <div className="sticky top-14 z-30 bg-black/90 backdrop-blur-md py-3 -mx-4 md:-mx-8 px-4 md:px-8 mb-6">
+          <div className="sticky top-14 z-30 bg-[#151517]/80 backdrop-blur-xl py-3 -mx-4 md:-mx-8 px-4 md:px-8 mb-6">
             <div className="flex items-center gap-2 overflow-x-auto scrollbar-none">
               {CATEGORIES.map((cat) => (
                 <button
@@ -131,7 +131,7 @@ export default function HomePage() {
 
               {/* Dedicated Shorts Section (like YouTube) */}
               {shortsVideos.length > 0 && activeCategory === "All" && (
-                <div className="my-8 py-6 border-y border-white/[0.08]">
+                <div className="my-8 py-6 border-y border-white/[0.04]">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
                       <Flame className="h-5 w-5 text-white" />

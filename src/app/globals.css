@@ -1,24 +1,24 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0e0e0e;
+  --background: #151517;
   --foreground: #efefef;
-  --card: #151515;
+  --card: #1c1c1f;
   --card-foreground: #efefef;
-  --popover: #181818;
+  --popover: #1f1f23;
   --popover-foreground: #efefef;
   --primary: #efefef;
-  --primary-foreground: #0e0e0e;
-  --secondary: #181818;
+  --primary-foreground: #151517;
+  --secondary: #1e1e21;
   --secondary-foreground: #efefef;
-  --muted: #181818;
+  --muted: #1e1e21;
   --muted-foreground: #969696;
-  --accent: #202020;
+  --accent: #26262a;
   --accent-foreground: #efefef;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: #ffffff14;
-  --input: #ffffff14;
+  --border: #ffffff0a;
+  --input: #ffffff0f;
   --ring: #ffffff29;
   --sidebar: #111111;
   --sidebar-foreground: #8a8a8a;
@@ -28,14 +28,14 @@
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: #ffffff14;
   --sidebar-ring: #ffffff29;
-  --button-secondary: #181818;
-  --button-secondary-border: #ffffff14;
-  --button-secondary-hover: #222222;
-  --button-secondary-hover-border: #ffffff24;
+  --button-secondary: #1e1e21;
+  --button-secondary-border: #ffffff0a;
+  --button-secondary-hover: #27272b;
+  --button-secondary-hover-border: #ffffff1a;
 }
 
 @theme {
-  --color-black: #0e0e0e;
+  --color-black: #151517;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -97,6 +97,11 @@ body {
 .font-taskbar {
   font-family: 'LuduvoTitillium', var(--font-titillium), "Titillium Web", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
   letter-spacing: -0.01em;
+}
+
+.bg-matte-grain {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
 }
 
 

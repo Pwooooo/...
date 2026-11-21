@@ -113,7 +113,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
   };
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 w-full items-center justify-between bg-[#0e0e0e]/90 backdrop-blur-md px-4 md:pl-[calc(var(--sidebar-width,0px)+1rem)] text-foreground font-taskbar transition-[padding] duration-200">
+    <header className="sticky top-0 z-40 flex h-14 w-full items-center justify-between bg-[#151517]/85 backdrop-blur-xl px-4 md:pl-[calc(var(--sidebar-width,0px)+1rem)] text-foreground font-taskbar transition-[padding] duration-200">
       {/* Left: Sidebar Toggle + Logo (hidden on md+ when full sidebar already shows brand) */}
       <div className={`flex items-center gap-3 ${sidebarExpanded ? "md:hidden" : ""}`}>
         <button
