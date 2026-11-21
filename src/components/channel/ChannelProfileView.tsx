@@ -30,6 +30,7 @@ import Link from "next/link";
 import CommunityTab from "@/components/channel/CommunityTab";
 import { getAllCombinedVideos, fetchServerVideos, isUserVideoOwner } from "@/lib/video-storage";
 import VerifiedBadge from "@/components/common/VerifiedBadge";
+import MediaPositionModal, { MediaPosition } from "@/components/channel/MediaPositionModal";
 import { formatSubscribers } from "@/lib/utils";
 import {
   findUserByHandle,
@@ -73,6 +74,15 @@ export default function ChannelProfileView({
   const [editCountry, setEditCountry] = useState("");
   const [editAvatarUrl, setEditAvatarUrl] = useState("");
   const [editBannerUrl, setEditBannerUrl] = useState("");
+  const [editAvatarPos, setEditAvatarPos] = useState<MediaPosition>({ x: 50, y: 50, zoom: 1 });
+  const [editBannerPos, setEditBannerPos] = useState<MediaPosition>({ x: 50, y: 50, zoom: 1 });
+  const [positionModal, setPositionModal] = useState<{
+    mode: "avatar" | "banner";
+    previewUrl: string;
+    isVideo: boolean;
+    isAnimated: boolean;
+    file: File | null;
+  } | null>(null);
   const [isUploadingMedia, setIsUploadingMedia] = useState<"avatar" | "banner" | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -137,6 +147,8 @@ export default function ChannelProfileView({
       setEditCountry(user.country || "");
       setEditAvatarUrl(user.avatarUrl || user.avatar || "");
       setEditBannerUrl(user.bannerUrl || "");
+      setEditAvatarPos(user.avatarPosition || { x: 50, y: 50, zoom: 1 });
+      setEditBannerPos(user.bannerPosition || { x: 50, y: 50, zoom: 1 });
     }
   }, [user, isOwnProfile]);
 
@@ -296,7 +308,9 @@ export default function ChannelProfileView({
         handle: (user.handle || cleanHandle).replace(/^@/, ""),
         displayName: user.name || cleanHandle,
         avatarUrl: user.avatarUrl || user.avatar || "",
+        avatarPosition: user.avatarPosition,
         bannerUrl: user.bannerUrl || "",
+        bannerPosition: user.bannerPosition,
         description: user.bio || "Welcome to my Entropy channel!",
         country: user.country || "",
         joinedAt: user.joinedAt || "Joined recently",
@@ -308,7 +322,9 @@ export default function ChannelProfileView({
         handle: (registeredUser.handle || cleanHandle).replace(/^@/, ""),
         displayName: registeredUser.name || cleanHandle,
         avatarUrl: registeredUser.avatarUrl || registeredUser.avatar || "",
+        avatarPosition: registeredUser.avatarPosition,
         bannerUrl: registeredUser.bannerUrl || "",
+        bannerPosition: registeredUser.bannerPosition,
         description: registeredUser.bio || `Official channel for @${registeredUser.handle}.`,
         country: registeredUser.country || "",
         joinedAt: registeredUser.joinedAt || "Joined recently",
@@ -319,7 +335,9 @@ export default function ChannelProfileView({
         handle: (channelVideos[0]?.channel?.handle || cleanHandle).replace(/^@/, ""),
         displayName: channelVideos[0]?.channel?.displayName || cleanHandle,
         avatarUrl: channelVideos[0]?.channel?.avatarUrl || "",
+        avatarPosition: undefined,
         bannerUrl: "",
+        bannerPosition: undefined,
         description: `Official channel for @${cleanHandle}. Watch the latest releases and live streams.`,
         country: "",
         joinedAt: "Joined recently",
@@ -349,7 +367,7 @@ export default function ChannelProfileView({
     }
   };
 
-  const handleMediaFileSelect = async (
+  const handleMediaFileSelect = (
     e: React.ChangeEvent<HTMLInputElement>,
     kind: "avatar" | "banner"
   ) => {
@@ -364,12 +382,40 @@ export default function ChannelProfileView({
       return;
     }
 
-    const setter = kind === "banner" ? setEditBannerUrl : setEditAvatarUrl;
     const isAnimated = file.type === "image/gif" || file.type === "image/webp" || isVideo;
+    const previewUrl = URL.createObjectURL(file);
     setEditError(null);
-    setIsUploadingMedia(kind);
+    setPositionModal({
+      mode: kind,
+      previewUrl,
+      isVideo,
+      isAnimated,
+      file,
+    });
+  };
 
-    // 1. Try direct Tigris presigned upload first (required for larger animated GIFs/videos)
+  const handlePositionDone = async (result: { croppedDataUrl?: string; position: MediaPosition }) => {
+    if (!positionModal) return;
+    const { mode, previewUrl, file, isVideo } = positionModal;
+    const setter = mode === "banner" ? setEditBannerUrl : setEditAvatarUrl;
+    const posSetter = mode === "banner" ? setEditBannerPos : setEditAvatarPos;
+
+    if (previewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPositionModal(null);
+    posSetter(result.position);
+
+    // If static image was baked onto canvas, use/upload the cropped JPEG
+    if (result.croppedDataUrl) {
+      setter(result.croppedDataUrl);
+      return;
+    }
+
+    if (!file) return;
+    setIsUploadingMedia(mode);
+
+    // 1. Try direct Tigris presigned upload
     try {
       const res = await fetch("/api/tigris/upload", {
         method: "POST",
@@ -377,8 +423,8 @@ export default function ChannelProfileView({
         body: JSON.stringify({
           filename: file.name,
           contentType: file.type || (isVideo ? "video/mp4" : "image/jpeg"),
-          type: kind,
-          videoId: `${kind}-${(cleanHandle || "user").replace(/[^a-z0-9_-]/gi, "")}-${Date.now()}`,
+          type: mode,
+          videoId: `${mode}-${(cleanHandle || "user").replace(/[^a-z0-9_-]/gi, "")}-${Date.now()}`,
         }),
       });
       if (res.ok) {
@@ -400,56 +446,17 @@ export default function ChannelProfileView({
       // Fall back to local Data URL below
     }
 
-    // 2. Fallback: preserve GIF/WebP/Video animation directly without canvas flattening
-    if (isAnimated) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (typeof event.target?.result === "string") {
-          setter(event.target.result);
-        }
-        setIsUploadingMedia(null);
-      };
-      reader.onerror = () => {
-        setEditError("Failed to read media file.");
-        setIsUploadingMedia(null);
-      };
-      reader.readAsDataURL(file);
-      return;
-    }
-
-    // 3. Static image fallback: resize/compress cleanly on canvas
+    // 2. Fallback: preserve GIF/WebP/Video animation directly as Data URL
     const reader = new FileReader();
     reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        const MAX_W = kind === "banner" ? 1600 : 512;
-        const MAX_H = kind === "banner" ? 600 : 512;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > MAX_W) {
-          height = Math.round((height * MAX_W) / width);
-          width = MAX_W;
-        }
-        if (height > MAX_H) {
-          width = Math.round((width * MAX_H) / height);
-          height = MAX_H;
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          const compressed = canvas.toDataURL("image/jpeg", 0.9);
-          setter(compressed);
-        } else if (typeof event.target?.result === "string") {
-          setter(event.target.result);
-        }
-        setIsUploadingMedia(null);
-      };
-      img.src = event.target?.result as string;
+      if (typeof event.target?.result === "string") {
+        setter(event.target.result);
+      }
+      setIsUploadingMedia(null);
+    };
+    reader.onerror = () => {
+      setEditError("Failed to read media file.");
+      setIsUploadingMedia(null);
     };
     reader.readAsDataURL(file);
   };
@@ -476,7 +483,9 @@ export default function ChannelProfileView({
       bio: editBio.trim(),
       country: editCountry.trim(),
       avatarUrl: editAvatarUrl.trim(),
+      avatarPosition: editAvatarPos,
       bannerUrl: editBannerUrl.trim(),
+      bannerPosition: editBannerPos,
     });
     setIsEditModalOpen(false);
   };
@@ -506,12 +515,28 @@ export default function ChannelProfileView({
                     loop
                     muted
                     playsInline
+                    style={
+                      channel.bannerPosition
+                        ? {
+                            objectPosition: `${channel.bannerPosition.x}% ${channel.bannerPosition.y}%`,
+                            transform: `scale(${channel.bannerPosition.zoom})`,
+                          }
+                        : undefined
+                    }
                     className="h-full w-full object-cover"
                   />
                 ) : (
                   <img
                     src={channel.bannerUrl}
                     alt={`${channel.displayName} banner`}
+                    style={
+                      channel.bannerPosition
+                        ? {
+                            objectPosition: `${channel.bannerPosition.x}% ${channel.bannerPosition.y}%`,
+                            transform: `scale(${channel.bannerPosition.zoom})`,
+                          }
+                        : undefined
+                    }
                     className="h-full w-full object-cover"
                   />
                 )
@@ -551,12 +576,28 @@ export default function ChannelProfileView({
                             loop
                             muted
                             playsInline
+                            style={
+                              channel.avatarPosition
+                                ? {
+                                    objectPosition: `${channel.avatarPosition.x}% ${channel.avatarPosition.y}%`,
+                                    transform: `scale(${channel.avatarPosition.zoom})`,
+                                  }
+                                : undefined
+                            }
                             className="h-full w-full object-cover"
                           />
                         ) : (
                           <img
                             src={channelAvatar}
                             alt={channel.displayName}
+                            style={
+                              channel.avatarPosition
+                                ? {
+                                    objectPosition: `${channel.avatarPosition.x}% ${channel.avatarPosition.y}%`,
+                                    transform: `scale(${channel.avatarPosition.zoom})`,
+                                  }
+                                : undefined
+                            }
                             className="h-full w-full object-cover"
                             onError={(e) => {
                               (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
@@ -585,12 +626,28 @@ export default function ChannelProfileView({
                             loop
                             muted
                             playsInline
+                            style={
+                              channel.avatarPosition
+                                ? {
+                                    objectPosition: `${channel.avatarPosition.x}% ${channel.avatarPosition.y}%`,
+                                    transform: `scale(${channel.avatarPosition.zoom})`,
+                                  }
+                                : undefined
+                            }
                             className="h-full w-full object-cover"
                           />
                         ) : (
                           <img
                             src={channelAvatar}
                             alt={channel.displayName}
+                            style={
+                              channel.avatarPosition
+                                ? {
+                                    objectPosition: `${channel.avatarPosition.x}% ${channel.avatarPosition.y}%`,
+                                    transform: `scale(${channel.avatarPosition.zoom})`,
+                                  }
+                                : undefined
+                            }
                             className="h-full w-full object-cover"
                             onError={(e) => {
                               (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
@@ -1057,6 +1114,23 @@ export default function ChannelProfileView({
                   {editBannerUrl && (
                     <button
                       type="button"
+                      onClick={() =>
+                        setPositionModal({
+                          mode: "banner",
+                          previewUrl: editBannerUrl,
+                          isVideo: isVideoMedia(editBannerUrl),
+                          isAnimated: true,
+                          file: null,
+                        })
+                      }
+                      className="px-3 py-1.5 rounded-lg bg-[#0a0a0a] hover:bg-zinc-900 border border-white/[0.08] text-zinc-300 hover:text-white text-xs font-medium transition-colors cursor-pointer"
+                    >
+                      Reposition
+                    </button>
+                  )}
+                  {editBannerUrl && (
+                    <button
+                      type="button"
                       onClick={() => setEditBannerUrl("")}
                       className="px-3 py-1.5 rounded-lg bg-[#0a0a0a] hover:bg-zinc-900 border border-white/[0.08] text-zinc-400 hover:text-red-400 text-xs font-medium transition-colors cursor-pointer"
                     >
@@ -1113,6 +1187,23 @@ export default function ChannelProfileView({
                   {editAvatarUrl && (
                     <button
                       type="button"
+                      onClick={() =>
+                        setPositionModal({
+                          mode: "avatar",
+                          previewUrl: editAvatarUrl,
+                          isVideo: isVideoMedia(editAvatarUrl),
+                          isAnimated: true,
+                          file: null,
+                        })
+                      }
+                      className="px-3 py-1.5 rounded-lg bg-[#0a0a0a] hover:bg-zinc-900 border border-white/[0.08] text-zinc-300 hover:text-white text-xs font-medium transition-colors cursor-pointer"
+                    >
+                      Reposition
+                    </button>
+                  )}
+                  {editAvatarUrl && (
+                    <button
+                      type="button"
                       onClick={() => setEditAvatarUrl("")}
                       className="px-3 py-1.5 rounded-lg bg-[#0a0a0a] hover:bg-zinc-900 border border-white/[0.08] text-zinc-400 hover:text-red-400 text-xs font-medium transition-colors cursor-pointer"
                     >
@@ -1140,6 +1231,25 @@ export default function ChannelProfileView({
             </form>
           </div>
         </div>
+      )}
+
+      {/* Media Position & Crop Modal */}
+      {positionModal && (
+        <MediaPositionModal
+          isOpen={true}
+          mode={positionModal.mode}
+          previewUrl={positionModal.previewUrl}
+          isVideo={positionModal.isVideo}
+          isAnimated={positionModal.isAnimated}
+          initialPosition={positionModal.mode === "banner" ? editBannerPos : editAvatarPos}
+          onCancel={() => {
+            if (positionModal.previewUrl.startsWith("blob:")) {
+              URL.revokeObjectURL(positionModal.previewUrl);
+            }
+            setPositionModal(null);
+          }}
+          onDone={handlePositionDone}
+        />
       )}
 
       {/* About Channel Modal */}

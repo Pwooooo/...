@@ -7,7 +7,9 @@ export interface UserRecord {
   handle: string;
   avatarUrl?: string;
   avatar?: string;
+  avatarPosition?: { x: number; y: number; zoom: number };
   bannerUrl?: string;
+  bannerPosition?: { x: number; y: number; zoom: number };
   bio?: string;
   country?: string;
   joinedAt?: string;
