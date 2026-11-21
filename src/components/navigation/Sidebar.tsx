@@ -205,6 +205,28 @@ function SidebarContent({
   ];
 
   // Render individual navigation item
+  const getActiveIconClass = (label: string, isActive: boolean) => {
+    if (!isActive) return "text-zinc-400 group-hover:text-white";
+    switch (label) {
+      case "Home":
+        return "text-white fill-current [&>path:first-child]:stroke-[#181818] [&>path:first-child]:fill-[#181818]";
+      case "Subscriptions":
+        return "text-white fill-current [&>path]:fill-[#181818] [&>path]:stroke-[#181818]";
+      case "Watch Later":
+        return "text-white fill-current [&>polyline]:stroke-[#181818]";
+      case "Trending":
+        return "text-white fill-current [&>polygon]:fill-[#181818] [&>polygon]:stroke-[#181818]";
+      case "Settings":
+        return "text-white fill-current [&>circle]:fill-[#181818] [&>circle]:stroke-[#181818]";
+      case "History":
+      case "Playlists":
+      case "News":
+        return "text-white";
+      default:
+        return "text-white fill-current";
+    }
+  };
+
   const renderItem = (item: NavItem, isDrawerMode = false) => {
     const isActive = isItemActive(item.href);
     const Icon = item.icon;
@@ -224,9 +246,9 @@ function SidebarContent({
           <Icon
             className={cn(
               "h-[18px] w-[18px] flex-shrink-0 transition-colors",
-              isActive ? "text-white" : "text-zinc-400 group-hover:text-white"
+              getActiveIconClass(item.label, isActive)
             )}
-            strokeWidth={1.8}
+            strokeWidth={isActive ? 2.1 : 1.8}
           />
           <span className="truncate">{item.label}</span>
         </div>
@@ -347,7 +369,10 @@ function SidebarContent({
                         )}
                         title={item.label}
                       >
-                        <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
+                        <Icon
+                        className={cn("h-[18px] w-[18px]", getActiveIconClass(item.label, isActive))}
+                        strokeWidth={isActive ? 2.1 : 1.8}
+                      />
                         {item.badge !== undefined && (
                           <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-[#e51d42] ring-2 ring-[#111111]" />
                         )}
