@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 
 export interface MediaPosition {
@@ -26,93 +26,196 @@ export default function MediaPositionModal({
   previewUrl,
   isVideo,
   isAnimated,
-  initialPosition,
   onCancel,
   onDone,
 }: MediaPositionModalProps) {
-  const [pos, setPos] = useState<MediaPosition>(
-    initialPosition || { x: 50, y: 50, zoom: 1 }
+  const [mediaSize, setMediaSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
+  const [zoom, setZoom] = useState(1);
+  // Crop box top-left in rendered media pixel coordinates
+  const [cropOrigin, setCropOrigin] = useState<{ left: number; top: number }>({ left: 0, top: 0 });
+  const [isDraggingBox, setIsDraggingBox] = useState(false);
+
+  const mediaRef = useRef<HTMLImageElement | HTMLVideoElement | null>(null);
+  const sliderTrackRef = useRef<HTMLDivElement>(null);
+  const dragBoxStartRef = useRef<{
+    clientX: number;
+    clientY: number;
+    startLeft: number;
+    startTop: number;
+  } | null>(null);
+
+  const targetAspect = mode === "banner" ? 4 : 1; // 16:4 = 4:1 for banner, 1:1 for avatar
+
+  // Max crop box dimensions that fit inside the rendered media at zoom = 1
+  const getCropDimensions = useCallback(
+    (w: number, h: number, z: number) => {
+      if (w <= 0 || h <= 0) return { cw: 0, ch: 0 };
+      let maxW = w;
+      let maxH = w / targetAspect;
+      if (maxH > h) {
+        maxH = h;
+        maxW = h * targetAspect;
+      }
+      return {
+        cw: maxW / z,
+        ch: maxH / z,
+      };
+    },
+    [targetAspect]
   );
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStartRef = useRef<{ clientX: number; clientY: number; startX: number; startY: number } | null>(null);
-  const frameRef = useRef<HTMLDivElement>(null);
-  const imgRef = useRef<HTMLImageElement>(null);
+
+  const clampOrigin = useCallback(
+    (left: number, top: number, w: number, h: number, cw: number, ch: number) => ({
+      left: Math.max(0, Math.min(w - cw, left)),
+      top: Math.max(0, Math.min(h - ch, top)),
+    }),
+    []
+  );
+
+  const measureMedia = useCallback(() => {
+    const el = mediaRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      setMediaSize({ w: rect.width, h: rect.height });
+      const { cw, ch } = getCropDimensions(rect.width, rect.height, 1);
+      setCropOrigin({
+        left: (rect.width - cw) / 2,
+        top: (rect.height - ch) / 2,
+      });
+      setZoom(1);
+    }
+  }, [getCropDimensions]);
 
   useEffect(() => {
-    if (isOpen) {
-      setPos(initialPosition || { x: 50, y: 50, zoom: 1 });
-    }
-  }, [isOpen, previewUrl, initialPosition]);
+    if (!isOpen) return;
+    const onResize = () => measureMedia();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [isOpen, measureMedia]);
 
   if (!isOpen || !previewUrl) return null;
 
-  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+  const { cw, ch } = getCropDimensions(mediaSize.w, mediaSize.h, zoom);
+
+  const updateZoom = (nextZoom: number) => {
+    const clampedZoom = Math.max(1, Math.min(3, nextZoom));
+    if (mediaSize.w > 0 && mediaSize.h > 0) {
+      const oldDims = getCropDimensions(mediaSize.w, mediaSize.h, zoom);
+      const newDims = getCropDimensions(mediaSize.w, mediaSize.h, clampedZoom);
+      // Keep center of crop box fixed while zooming
+      const centerX = cropOrigin.left + oldDims.cw / 2;
+      const centerY = cropOrigin.top + oldDims.ch / 2;
+      const nextOrigin = clampOrigin(
+        centerX - newDims.cw / 2,
+        centerY - newDims.ch / 2,
+        mediaSize.w,
+        mediaSize.h,
+        newDims.cw,
+        newDims.ch
+      );
+      setCropOrigin(nextOrigin);
+    }
+    setZoom(clampedZoom);
+  };
+
+  const handleBoxPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.currentTarget.setPointerCapture(e.pointerId);
-    setIsDragging(true);
-    dragStartRef.current = {
+    setIsDraggingBox(true);
+    dragBoxStartRef.current = {
       clientX: e.clientX,
       clientY: e.clientY,
-      startX: pos.x,
-      startY: pos.y,
+      startLeft: cropOrigin.left,
+      startTop: cropOrigin.top,
     };
   };
 
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isDragging || !dragStartRef.current || !frameRef.current) return;
-    const rect = frameRef.current.getBoundingClientRect();
-    const dx = e.clientX - dragStartRef.current.clientX;
-    const dy = e.clientY - dragStartRef.current.clientY;
-    // Dragging image right moves object-position left (smaller %), scaled for smooth control
-    const sensitivity = 100 / Math.max(rect.width, rect.height);
-    const nextX = Math.max(0, Math.min(100, dragStartRef.current.startX - dx * sensitivity));
-    const nextY = Math.max(0, Math.min(100, dragStartRef.current.startY - dy * sensitivity));
-    setPos((prev) => ({ ...prev, x: nextX, y: nextY }));
+  const handleBoxPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDraggingBox || !dragBoxStartRef.current) return;
+    const dx = e.clientX - dragBoxStartRef.current.clientX;
+    const dy = e.clientY - dragBoxStartRef.current.clientY;
+    setCropOrigin(
+      clampOrigin(
+        dragBoxStartRef.current.startLeft + dx,
+        dragBoxStartRef.current.startTop + dy,
+        mediaSize.w,
+        mediaSize.h,
+        cw,
+        ch
+      )
+    );
   };
 
-  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (isDragging) {
+  const handleBoxPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isDraggingBox) {
       try {
         e.currentTarget.releasePointerCapture(e.pointerId);
       } catch {}
     }
-    setIsDragging(false);
-    dragStartRef.current = null;
+    setIsDraggingBox(false);
+    dragBoxStartRef.current = null;
+  };
+
+  // Custom slider pointer handler
+  const updateZoomFromSliderPointer = (clientX: number) => {
+    if (!sliderTrackRef.current) return;
+    const rect = sliderTrackRef.current.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    updateZoom(1 + ratio * 2);
+  };
+
+  const handleSliderPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    updateZoomFromSliderPointer(e.clientX);
+  };
+
+  const handleSliderPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.buttons !== 1) return;
+    updateZoomFromSliderPointer(e.clientX);
   };
 
   const handleConfirm = () => {
-    // For static images, bake the exact crop + zoom onto canvas for clean portability
-    if (!isAnimated && !isVideo && imgRef.current && imgRef.current.naturalWidth > 0) {
-      const img = imgRef.current;
-      const outW = mode === "banner" ? 1600 : 512;
-      const outH = mode === "banner" ? 400 : 512;
-      const canvas = document.createElement("canvas");
-      canvas.width = outW;
-      canvas.height = outH;
-      const ctx = canvas.getContext("2d");
+    const availX = Math.max(0, mediaSize.w - cw);
+    const availY = Math.max(0, mediaSize.h - ch);
+    const normX = availX > 0.5 ? (cropOrigin.left / availX) * 100 : 50;
+    const normY = availY > 0.5 ? (cropOrigin.top / availY) * 100 : 50;
+    const position: MediaPosition = { x: normX, y: normY, zoom };
 
-      if (ctx) {
-        const iw = img.naturalWidth;
-        const ih = img.naturalHeight;
-        // Cover scale * user zoom
-        const baseScale = Math.max(outW / iw, outH / ih);
-        const drawW = iw * baseScale * pos.zoom;
-        const drawH = ih * baseScale * pos.zoom;
-        const offsetX = (outW - drawW) * (pos.x / 100);
-        const offsetY = (outH - drawH) * (pos.y / 100);
+    // For static images, bake the exact crop box onto canvas
+    if (!isAnimated && !isVideo && mediaRef.current instanceof HTMLImageElement) {
+      const img = mediaRef.current;
+      if (img.naturalWidth > 0 && mediaSize.w > 0 && cw > 0) {
+        const scaleX = img.naturalWidth / mediaSize.w;
+        const scaleY = img.naturalHeight / mediaSize.h;
+        const sx = cropOrigin.left * scaleX;
+        const sy = cropOrigin.top * scaleY;
+        const sw = cw * scaleX;
+        const sh = ch * scaleY;
 
-        ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
-        try {
-          const croppedDataUrl = canvas.toDataURL("image/jpeg", 0.92);
-          onDone({ croppedDataUrl, position: { x: 50, y: 50, zoom: 1 } });
-          return;
-        } catch {
-          // Cross-origin tainted canvas fallback -> use non-destructive CSS position
+        const outW = mode === "banner" ? 1600 : 512;
+        const outH = mode === "banner" ? 400 : 512;
+        const canvas = document.createElement("canvas");
+        canvas.width = outW;
+        canvas.height = outH;
+        const ctx = canvas.getContext("2d");
+
+        if (ctx) {
+          ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH);
+          try {
+            const croppedDataUrl = canvas.toDataURL("image/jpeg", 0.92);
+            onDone({ croppedDataUrl, position: { x: 50, y: 50, zoom: 1 } });
+            return;
+          } catch {
+            // Fall back to CSS position
+          }
         }
       }
     }
 
-    onDone({ position: pos });
+    onDone({ position });
   };
+
+  const zoomPercent = ((zoom - 1) / 2) * 100;
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-150">
@@ -124,89 +227,125 @@ export default function MediaPositionModal({
           <h3 className="text-lg font-bold text-white">
             {mode === "avatar" ? "Customize picture" : "Customize banner"}
           </h3>
-          <span className="text-xs text-zinc-400">Drag to position • Use slider to zoom</span>
+          <span className="text-xs text-zinc-400">Drag the frame to position</span>
         </div>
 
-        {/* Crop Stage */}
-        <div className="relative flex items-center justify-center bg-[#121212] rounded-xl py-8 px-4 overflow-hidden select-none">
-          <div
-            ref={frameRef}
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerCancel={handlePointerUp}
-            className={`relative overflow-visible cursor-grab active:cursor-grabbing touch-none ${
-              mode === "avatar"
-                ? "w-60 h-60 sm:w-64 sm:h-64"
-                : "w-full max-w-[520px] aspect-[16/4]"
-            }`}
-          >
-            {/* Clipped Media */}
-            <div className="absolute inset-0 overflow-hidden bg-black">
-              {isVideo ? (
-                <video
-                  src={previewUrl}
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  draggable={false}
-                  style={{
-                    objectPosition: `${pos.x}% ${pos.y}%`,
-                    transform: `scale(${pos.zoom})`,
-                  }}
-                  className="h-full w-full object-cover pointer-events-none select-none"
-                />
-              ) : (
-                <img
-                  ref={imgRef}
-                  src={previewUrl}
-                  alt="Position preview"
-                  crossOrigin="anonymous"
-                  draggable={false}
-                  style={{
-                    objectPosition: `${pos.x}% ${pos.y}%`,
-                    transform: `scale(${pos.zoom})`,
-                  }}
-                  className="h-full w-full object-cover pointer-events-none select-none"
-                />
-              )}
-            </div>
+        {/* Full-Image Stage with Draggable Blue Crop Frame (YouTube style) */}
+        <div className="relative flex items-center justify-center bg-[#121212] rounded-xl py-6 px-4 overflow-hidden select-none">
+          <div className="relative inline-block overflow-hidden">
+            {isVideo ? (
+              <video
+                ref={(el) => {
+                  mediaRef.current = el;
+                }}
+                src={previewUrl}
+                autoPlay
+                loop
+                muted
+                playsInline
+                onLoadedMetadata={measureMedia}
+                className="block max-h-[320px] max-w-full w-auto h-auto select-none pointer-events-none"
+              />
+            ) : (
+              <img
+                ref={(el) => {
+                  mediaRef.current = el;
+                }}
+                src={previewUrl}
+                alt="Crop preview"
+                crossOrigin="anonymous"
+                onLoad={measureMedia}
+                draggable={false}
+                className="block max-h-[320px] max-w-full w-auto h-auto select-none pointer-events-none"
+              />
+            )}
 
-            {/* Dimmed outer mask + YouTube-style blue crop frame */}
-            <div className="pointer-events-none absolute inset-0 border-2 border-[#3ea6ff] shadow-[0_0_0_9999px_rgba(0,0,0,0.55)]">
-              {/* Corner handles */}
-              <span className="absolute -top-1.5 -left-1.5 h-2.5 w-2.5 bg-white border border-black" />
-              <span className="absolute -top-1.5 -right-1.5 h-2.5 w-2.5 bg-white border border-black" />
-              <span className="absolute -bottom-1.5 -left-1.5 h-2.5 w-2.5 bg-white border border-black" />
-              <span className="absolute -bottom-1.5 -right-1.5 h-2.5 w-2.5 bg-white border border-black" />
-              {mode === "avatar" && (
-                <div className="absolute inset-0 rounded-full border border-[#3ea6ff]/90" />
-              )}
-            </div>
+            {mediaSize.w > 0 && cw > 0 && (
+              <div
+                onPointerDown={handleBoxPointerDown}
+                onPointerMove={handleBoxPointerMove}
+                onPointerUp={handleBoxPointerUp}
+                onPointerCancel={handleBoxPointerUp}
+                style={{
+                  left: `${cropOrigin.left}px`,
+                  top: `${cropOrigin.top}px`,
+                  width: `${cw}px`,
+                  height: `${ch}px`,
+                }}
+                className="absolute border-2 border-[#3ea6ff] shadow-[0_0_0_9999px_rgba(0,0,0,0.6)] cursor-move touch-none"
+              >
+                {/* Corner handles */}
+                <span className="pointer-events-none absolute -top-1.5 -left-1.5 h-2.5 w-2.5 bg-white border border-black" />
+                <span className="pointer-events-none absolute -top-1.5 -right-1.5 h-2.5 w-2.5 bg-white border border-black" />
+                <span className="pointer-events-none absolute -bottom-1.5 -left-1.5 h-2.5 w-2.5 bg-white border border-black" />
+                <span className="pointer-events-none absolute -bottom-1.5 -right-1.5 h-2.5 w-2.5 bg-white border border-black" />
+                {mode === "avatar" && (
+                  <div className="pointer-events-none absolute inset-0 rounded-full border border-[#3ea6ff]/90" />
+                )}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Zoom Controls & Actions */}
+        {/* Custom Sleek Zoom Slider & Actions */}
         <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <ZoomOut className="h-4 w-4 text-zinc-400 flex-shrink-0" />
-            <input
-              type="range"
-              min={1}
-              max={3}
-              step={0.05}
-              value={pos.zoom}
-              onChange={(e) => setPos((prev) => ({ ...prev, zoom: parseFloat(e.target.value) }))}
-              className="w-full sm:w-44 accent-white cursor-pointer"
-              aria-label="Zoom"
-            />
-            <ZoomIn className="h-4 w-4 text-zinc-400 flex-shrink-0" />
+          <div className="flex items-center gap-3 w-full sm:w-auto select-none">
             <button
               type="button"
-              onClick={() => setPos({ x: 50, y: 50, zoom: 1 })}
+              onClick={() => updateZoom(zoom - 0.15)}
+              className="p-1 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+              title="Zoom out"
+              aria-label="Zoom out"
+            >
+              <ZoomOut className="h-4 w-4" />
+            </button>
+
+            <div
+              ref={sliderTrackRef}
+              onPointerDown={handleSliderPointerDown}
+              onPointerMove={handleSliderPointerMove}
+              className="relative flex items-center w-full sm:w-44 h-6 cursor-pointer touch-none"
+              role="slider"
+              aria-label="Zoom"
+              aria-valuemin={1}
+              aria-valuemax={3}
+              aria-valuenow={Number(zoom.toFixed(2))}
+            >
+              <div className="w-full h-[3px] rounded-full bg-white/20 overflow-hidden">
+                <div
+                  className="h-full bg-white rounded-full"
+                  style={{ width: `${zoomPercent}%` }}
+                />
+              </div>
+              <div
+                className="absolute h-3.5 w-3.5 rounded-full bg-white shadow-md -translate-x-1/2 hover:scale-110 transition-transform"
+                style={{ left: `${zoomPercent}%` }}
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => updateZoom(zoom + 0.15)}
+              className="p-1 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+              title="Zoom in"
+              aria-label="Zoom in"
+            >
+              <ZoomIn className="h-4 w-4" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setZoom(1);
+                const dims = getCropDimensions(mediaSize.w, mediaSize.h, 1);
+                setCropOrigin({
+                  left: (mediaSize.w - dims.cw) / 2,
+                  top: (mediaSize.h - dims.ch) / 2,
+                });
+              }}
               className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
-              title="Reset position"
+              title="Reset"
+              aria-label="Reset"
             >
               <RotateCcw className="h-3.5 w-3.5" />
             </button>
