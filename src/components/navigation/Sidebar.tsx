@@ -276,7 +276,7 @@ function SidebarContent({
             {navSections.map((section, sIndex) => {
               if (section.items.length === 0) return null;
               return (
-                <div key={sIndex} className="space-y-0">
+                <div key={sIndex} className="space-y-0.5">
                   {section.title && (
                     <div className="px-3.5 pt-1 pb-1">
                       {section.href ? (
@@ -396,7 +396,7 @@ function SidebarContent({
         {navSections.map((section, sIndex) => {
           if (section.items.length === 0) return null;
           return (
-            <div key={sIndex} className="space-y-0">
+            <div key={sIndex} className="space-y-0.5">
               {section.title && (
                 <div className="px-3.5 pt-1 pb-1">
                   {section.href ? (
