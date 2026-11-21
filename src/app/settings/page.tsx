@@ -267,7 +267,7 @@ export default function SettingsPage() {
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-2">
               <div className="h-10 w-10 rounded-2xl bg-white/[0.08] flex items-center justify-center text-white">
-                <Settings className="h-5 w-5 text-zinc-200" />
+                <img src="/entropy-icon.png" alt="Entropy" className="h-5 w-5 object-contain" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-white tracking-tight">Account Settings</h1>
@@ -305,7 +305,7 @@ export default function SettingsPage() {
           {activeSection === "profile" && (
             <div className="space-y-6">
               <form onSubmit={handleSaveProfile} className="rounded-2xl bg-[#141414] border border-white/[0.08] p-6 space-y-6 shadow-xl">
-                <div className="flex flex-wrap items-start justify-between gap-3 pb-4 border-b border-white/[0.06]">
+                <div className="flex flex-wrap items-start justify-between gap-3 pb-1">
                   <div>
                     <h3 className="text-base font-bold text-white">Channel Identity</h3>
                     <p className="text-xs text-zinc-400 mt-0.5">
@@ -449,7 +449,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end pt-2 border-t border-white/[0.06]">
+                <div className="flex items-center justify-end pt-2">
                   <button
                     type="submit"
                     className="flex items-center gap-2 rounded-lg bg-white hover:bg-zinc-200 text-black px-5 py-2.5 text-xs font-bold transition-all cursor-pointer shadow-md"
