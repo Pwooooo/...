@@ -150,23 +150,23 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
             placeholder="Search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-transparent px-4 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none border-none focus:ring-0"
+            className="w-full bg-transparent px-3.5 py-1 text-[13px] text-zinc-100 placeholder-zinc-500 outline-none border-none focus:ring-0"
           />
           <button
             type="submit"
-            className="flex h-[38px] w-14 items-center justify-center bg-white/[0.03] hover:bg-white/[0.08] text-zinc-300 border-l border-white/[0.08] transition-colors cursor-pointer"
+            className="flex h-8 w-12 items-center justify-center bg-white/[0.03] hover:bg-white/[0.08] text-zinc-300 border-l border-white/[0.08] transition-colors cursor-pointer"
             title="Search"
           >
-            <Search className="h-4 w-4" />
+            <Search className="h-3.5 w-3.5" />
           </button>
         </div>
 
         <button
           type="button"
-          className="ml-3 hidden sm:flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 transition-colors cursor-pointer"
+          className="ml-2.5 hidden sm:flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 transition-colors cursor-pointer"
           title="Search with your voice"
         >
-          <Mic className="h-4 w-4" />
+          <Mic className="h-3.5 w-3.5" />
         </button>
       </form>
 
