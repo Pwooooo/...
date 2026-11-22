@@ -254,14 +254,41 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
               aria-expanded={isUserMenuOpen}
             >
               <div className="h-8 w-8 rounded-full overflow-hidden flex items-center justify-center group-hover:scale-105 transition-transform bg-[#181818]">
-                <img
-                  src={user.avatarUrl || "/default-avatar.png"}
-                  alt={user.name || "User"}
-                  className="h-full w-full object-cover"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
-                  }}
-                />
+                {user.avatarUrl && (user.avatarUrl.startsWith("data:video/") || /\.(mp4|webm|mov)(\?|$)/i.test(user.avatarUrl)) ? (
+                  <video
+                    src={user.avatarUrl}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    style={
+                      user.avatarPosition
+                        ? {
+                            objectPosition: `${user.avatarPosition.x}% ${user.avatarPosition.y}%`,
+                            transform: `scale(${user.avatarPosition.zoom})`,
+                          }
+                        : undefined
+                    }
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <img
+                    src={user.avatarUrl || "/default-avatar.png"}
+                    alt={user.name || "User"}
+                    style={
+                      user.avatarPosition
+                        ? {
+                            objectPosition: `${user.avatarPosition.x}% ${user.avatarPosition.y}%`,
+                            transform: `scale(${user.avatarPosition.zoom})`,
+                          }
+                        : undefined
+                    }
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
+                    }}
+                  />
+                )}
               </div>
             </button>
 
@@ -278,14 +305,41 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
                   className="flex items-center gap-3 p-2.5 pb-3 border-b border-white/[0.08] hover:bg-[#222222] rounded-xl transition-colors cursor-pointer group"
                 >
                   <div className="h-10 w-10 rounded-full overflow-hidden bg-[#181818] text-white flex items-center justify-center text-sm font-bold flex-shrink-0 group-hover:scale-105 transition-transform">
-                    <img
-                      src={user.avatarUrl || "/default-avatar.png"}
-                      alt={user.name || "User"}
-                      className="h-full w-full object-cover"
-                      onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
-                      }}
-                    />
+                    {user.avatarUrl && (user.avatarUrl.startsWith("data:video/") || /\.(mp4|webm|mov)(\?|$)/i.test(user.avatarUrl)) ? (
+                      <video
+                        src={user.avatarUrl}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        style={
+                          user.avatarPosition
+                            ? {
+                                objectPosition: `${user.avatarPosition.x}% ${user.avatarPosition.y}%`,
+                                transform: `scale(${user.avatarPosition.zoom})`,
+                              }
+                            : undefined
+                        }
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <img
+                        src={user.avatarUrl || "/default-avatar.png"}
+                        alt={user.name || "User"}
+                        style={
+                          user.avatarPosition
+                            ? {
+                                objectPosition: `${user.avatarPosition.x}% ${user.avatarPosition.y}%`,
+                                transform: `scale(${user.avatarPosition.zoom})`,
+                              }
+                            : undefined
+                        }
+                        className="h-full w-full object-cover"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
+                        }}
+                      />
+                    )}
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs font-bold text-white truncate">{user.name || "User"}</p>

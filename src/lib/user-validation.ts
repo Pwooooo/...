@@ -328,6 +328,7 @@ export function resolveChannelAvatar(
     if (isOwn) {
       if (user.avatarUrl && user.avatarUrl !== "/default-avatar.png") return user.avatarUrl;
       if (user.avatar && user.avatar !== "/default-avatar.png") return user.avatar;
+      if (user.avatarUrl === "") return "/default-avatar.png";
     }
   }
 

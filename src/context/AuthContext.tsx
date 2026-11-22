@@ -183,6 +183,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // ignore
       }
       syncUserChannelInfo(updated);
+      if (typeof window !== "undefined") {
+        fetch("/api/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updated),
+        }).catch(() => {});
+      }
       return updated;
     });
     showToast("Profile updated");
