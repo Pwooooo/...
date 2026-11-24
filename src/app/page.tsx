@@ -92,7 +92,7 @@ export default function HomePage() {
       <Navbar onToggleSidebar={() => setCollapsedSidebar(!collapsedSidebar)} />
 
       {/* Main Body */}
-      <div className="flex flex-1 relative z-10">
+      <div className="flex flex-1">
         {/* Sidebar */}
         <Sidebar collapsed={collapsedSidebar} />
 
