@@ -3,7 +3,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import Navbar from "@/components/navigation/Navbar";
 import Sidebar from "@/components/navigation/Sidebar";
-import AmbientSkyHeader from "@/components/home/AmbientSkyHeader";
 import VideoCard from "@/components/video/VideoCard";
 import Link from "next/link";
 import { Play, Flame } from "lucide-react";
@@ -89,9 +88,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-black text-zinc-100 flex flex-col relative">
-      {/* Top-right dithered crescent moon & starry sky */}
-      <AmbientSkyHeader />
-
       {/* Top Navbar */}
       <Navbar onToggleSidebar={() => setCollapsedSidebar(!collapsedSidebar)} />
 

@@ -104,30 +104,4 @@ body {
   background-size: 180px 180px;
 }
 
-@keyframes ambient-snowfall {
-  0% {
-    transform: translate3d(0, -14px, 0);
-  }
-  50% {
-    transform: translate3d(calc(var(--snow-drift, 12px) * 0.5 + var(--snow-sway, 8px)), 145px, 0);
-  }
-  100% {
-    transform: translate3d(var(--snow-drift, 12px), 305px, 0);
-  }
-}
-
-.animate-ambient-snow {
-  animation-name: ambient-snowfall;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-  will-change: transform;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .animate-ambient-snow {
-    animation: none;
-    opacity: 0;
-  }
-}
-
 
