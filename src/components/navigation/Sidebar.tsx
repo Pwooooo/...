@@ -386,7 +386,7 @@ function SidebarContent({
             title="Expand sidebar"
             aria-label="Expand sidebar"
           >
-            <img src="/entropy-icon.png" alt="Expand sidebar" className="h-6 w-6 object-contain" />
+            <img src="/entropy-icon.png" alt="Expand sidebar" className="h-8 w-8 object-contain" />
           </button>
           <button
             type="button"
@@ -460,7 +460,7 @@ function SidebarContent({
             <img
               src="/entropy-icon.png"
               alt="Entropy"
-              className="h-6 w-6 object-contain group-hover:scale-105 transition-transform"
+              className="h-8 w-8 object-contain group-hover:scale-105 transition-transform"
             />
             <span className="font-bold text-[18px] tracking-tight text-white">
               Entropy
