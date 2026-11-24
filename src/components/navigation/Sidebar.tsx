@@ -455,8 +455,8 @@ function SidebarContent({
         />
         <SnowOverlay className="pointer-events-none fixed left-0 top-0 h-screen w-60 z-10 select-none" />
         {/* Top Header: Brand Logo + Collapse Button */}
-        <div className="flex items-center justify-between px-3 pt-0.5 pb-4 mb-1">
-          <Link href="/" className="flex items-center gap-0 group">
+        <div className="flex items-center justify-between pl-0 pr-3 pt-0.5 pb-4 mb-1">
+          <Link href="/" className="-ml-1 flex items-center gap-0 group">
             <img
               src="/christmas-entropy.png"
               alt="Entropy"
