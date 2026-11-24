@@ -21,9 +21,6 @@ export default function SnowOverlay() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (motionQuery.matches) return;
-
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
@@ -44,17 +41,17 @@ export default function SnowOverlay() {
 
     resize();
 
-    const flakeCount = Math.min(80, Math.max(36, Math.floor(width / 22)));
+    const flakeCount = Math.min(110, Math.max(55, Math.floor(width / 16)));
     const createFlake = (randomY: boolean): Flake => ({
       x: Math.random() * width,
       y: randomY ? Math.random() * height : -8 - Math.random() * 24,
-      r: 0.9 + Math.random() * 1.6,
-      vy: 18 + Math.random() * 28,
-      vx: -6 + Math.random() * 14,
-      alpha: 0.16 + Math.random() * 0.36,
+      r: 1.4 + Math.random() * 2.1,
+      vy: 20 + Math.random() * 32,
+      vx: -7 + Math.random() * 15,
+      alpha: 0.28 + Math.random() * 0.44,
       phase: Math.random() * Math.PI * 2,
-      swayAmp: 6 + Math.random() * 12,
-      swayFreq: 0.4 + Math.random() * 0.7,
+      swayAmp: 7 + Math.random() * 13,
+      swayFreq: 0.45 + Math.random() * 0.75,
     });
 
     const flakes: Flake[] = Array.from({ length: flakeCount }, () => createFlake(true));
@@ -103,7 +100,7 @@ export default function SnowOverlay() {
     <canvas
       ref={canvasRef}
       aria-hidden="true"
-      className="pointer-events-none fixed inset-0 z-[36] select-none"
+      className="pointer-events-none fixed inset-0 z-[45] select-none"
     />
   );
 }
