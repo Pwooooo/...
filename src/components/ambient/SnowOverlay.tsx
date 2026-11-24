@@ -73,6 +73,7 @@ export default function SnowOverlay({
 
     const ro = new ResizeObserver(syncSize);
     ro.observe(canvas);
+    window.addEventListener("resize", syncSize);
 
     let rafId = 0;
     let lastTime = performance.now();
@@ -110,6 +111,7 @@ export default function SnowOverlay({
     return () => {
       window.cancelAnimationFrame(rafId);
       ro.disconnect();
+      window.removeEventListener("resize", syncSize);
     };
   }, []);
 

@@ -53,6 +53,26 @@ interface NavSection {
   items: NavItem[];
 }
 
+function SantaHatBadge() {
+  return (
+    <svg
+      viewBox="0 0 20 16"
+      aria-hidden="true"
+      className="pointer-events-none absolute -top-[6px] -left-[4px] h-[11px] w-[14px] -rotate-[14deg] drop-shadow-[0_1px_1px_rgba(0,0,0,0.7)]"
+    >
+      {/* Red hat cone */}
+      <path
+        d="M17.2 11.2 C16.6 6.2 14.4 2.2 11.6 2.2 C8.6 2.2 5.8 3.4 4.0 5.2 C5.4 5.6 6.6 7.8 6.8 11.2 Z"
+        fill="#dc2626"
+      />
+      {/* White brim */}
+      <rect x="6" y="10.8" width="12" height="3.2" rx="1.6" fill="#f4f4f5" />
+      {/* White pom-pom */}
+      <circle cx="3.6" cy="5.4" r="2.1" fill="#ffffff" />
+    </svg>
+  );
+}
+
 function SidebarContent({
   collapsed = false,
   drawer = false,
@@ -245,13 +265,16 @@ function SidebarContent({
         )}
       >
         <div className="flex items-center gap-3.5 min-w-0">
-          <Icon
-            className={cn(
-              "h-[18px] w-[18px] flex-shrink-0 transition-colors",
-              getActiveIconClass(item.label, isActive)
-            )}
-            strokeWidth={isActive ? 2.1 : 1.8}
-          />
+          <span className="relative inline-flex flex-shrink-0 items-center justify-center">
+            <Icon
+              className={cn(
+                "h-[18px] w-[18px] transition-colors",
+                getActiveIconClass(item.label, isActive)
+              )}
+              strokeWidth={isActive ? 2.1 : 1.8}
+            />
+            <SantaHatBadge />
+          </span>
           <span className="truncate">{item.label}</span>
         </div>
         {item.badge !== undefined && (
@@ -290,7 +313,7 @@ function SidebarContent({
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 bg-matte-grain opacity-[0.028]"
           />
-          <SnowOverlay className="pointer-events-none fixed left-0 top-0 bottom-0 w-60 z-10 select-none" />
+          <SnowOverlay className="pointer-events-none fixed left-0 top-0 h-screen w-60 z-10 select-none" />
           {/* Header: Collapse Icon */}
           <div className="flex items-center justify-end px-2 pt-1 pb-3 mb-1">
             <button
@@ -351,7 +374,7 @@ function SidebarContent({
             aria-hidden="true"
             className="pointer-events-none fixed left-0 top-0 bottom-0 w-16 bg-[radial-gradient(ellipse_140%_70%_at_50%_0%,rgba(255,255,255,0.025)_0%,transparent_55%,rgba(0,0,0,0.22)_100%)]"
           />
-          <SnowOverlay className="pointer-events-none fixed left-0 top-0 bottom-0 w-16 z-10 select-none" />
+          <SnowOverlay className="pointer-events-none fixed left-0 top-0 h-screen w-16 z-10 select-none" />
           <div
             aria-hidden="true"
             className="pointer-events-none fixed left-0 top-0 bottom-0 w-16 bg-matte-grain opacity-[0.028]"
@@ -395,10 +418,13 @@ function SidebarContent({
                         )}
                         title={item.label}
                       >
-                        <Icon
-                        className={cn("h-[18px] w-[18px]", getActiveIconClass(item.label, isActive))}
-                        strokeWidth={isActive ? 2.1 : 1.8}
-                      />
+                        <span className="relative inline-flex items-center justify-center">
+                          <Icon
+                            className={cn("h-[18px] w-[18px]", getActiveIconClass(item.label, isActive))}
+                            strokeWidth={isActive ? 2.1 : 1.8}
+                          />
+                          <SantaHatBadge />
+                        </span>
                         {item.badge !== undefined && (
                           <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-[#e51d42] ring-2 ring-[#111111]" />
                         )}
@@ -427,7 +453,7 @@ function SidebarContent({
           aria-hidden="true"
           className="pointer-events-none fixed left-0 top-0 bottom-0 w-60 bg-matte-grain opacity-[0.028]"
         />
-        <SnowOverlay className="pointer-events-none fixed left-0 top-0 bottom-0 w-60 z-10 select-none" />
+        <SnowOverlay className="pointer-events-none fixed left-0 top-0 h-screen w-60 z-10 select-none" />
         {/* Top Header: Brand Logo + Collapse Button */}
         <div className="flex items-center justify-between px-3 pt-0.5 pb-4 mb-1">
           <Link href="/" className="flex items-center gap-2.5 group">
