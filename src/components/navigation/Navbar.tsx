@@ -129,13 +129,13 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
         >
           <Menu className="h-5 w-5 text-zinc-300" />
         </button>
-        <Link href="/" className="flex items-center gap-2 group">
+        <Link href="/" className="flex items-center gap-0 group">
           <img
             src="/christmas-entropy.png"
             alt="Entropy"
             className="h-12 w-12 object-contain group-hover:scale-105 transition-transform"
           />
-          <span className="font-bold text-[17px] tracking-tight text-white hidden sm:inline">
+          <span className="-ml-1.5 font-bold text-[17px] tracking-tight text-white hidden sm:inline">
             Entropy
           </span>
         </Link>
