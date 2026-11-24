@@ -382,11 +382,11 @@ function SidebarContent({
           <button
             type="button"
             onClick={handleToggleCollapse}
-            className="mb-3 p-1.5 rounded-md hover:bg-white/[0.06] transition-colors cursor-pointer"
+            className="mb-3 flex h-10 w-10 items-center justify-center rounded-md hover:bg-white/[0.06] transition-colors cursor-pointer"
             title="Expand sidebar"
             aria-label="Expand sidebar"
           >
-            <img src="/christmas-entropy.png" alt="Expand sidebar" className="h-12 w-12 object-contain" />
+            <img src="/christmas-entropy.png" alt="Expand sidebar" className="h-10 w-10 scale-125 object-contain" />
           </button>
           <button
             type="button"
