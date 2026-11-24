@@ -26,6 +26,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { useNotifications } from "@/context/NotificationContext";
+import SnowOverlay from "@/components/ambient/SnowOverlay";
 
 interface SidebarProps {
   collapsed?: boolean;
@@ -289,6 +290,7 @@ function SidebarContent({
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 bg-matte-grain opacity-[0.028]"
           />
+          <SnowOverlay className="pointer-events-none fixed left-0 top-0 bottom-0 w-60 z-10 select-none" />
           {/* Header: Collapse Icon */}
           <div className="flex items-center justify-end px-2 pt-1 pb-3 mb-1">
             <button
@@ -349,6 +351,7 @@ function SidebarContent({
             aria-hidden="true"
             className="pointer-events-none fixed left-0 top-0 bottom-0 w-16 bg-[radial-gradient(ellipse_140%_70%_at_50%_0%,rgba(255,255,255,0.025)_0%,transparent_55%,rgba(0,0,0,0.22)_100%)]"
           />
+          <SnowOverlay className="pointer-events-none fixed left-0 top-0 bottom-0 w-16 z-10 select-none" />
           <div
             aria-hidden="true"
             className="pointer-events-none fixed left-0 top-0 bottom-0 w-16 bg-matte-grain opacity-[0.028]"
@@ -424,6 +427,7 @@ function SidebarContent({
           aria-hidden="true"
           className="pointer-events-none fixed left-0 top-0 bottom-0 w-60 bg-matte-grain opacity-[0.028]"
         />
+        <SnowOverlay className="pointer-events-none fixed left-0 top-0 bottom-0 w-60 z-10 select-none" />
         {/* Top Header: Brand Logo + Collapse Button */}
         <div className="flex items-center justify-between px-3 pt-0.5 pb-4 mb-1">
           <Link href="/" className="flex items-center gap-2.5 group">

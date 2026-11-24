@@ -25,7 +25,6 @@ export const metadata: Metadata = {
 import { AuthProvider } from "@/context/AuthContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { MiniPlayerProvider } from "@/context/MiniPlayerContext";
-import SnowOverlay from "@/components/ambient/SnowOverlay";
 
 export default function RootLayout({
   children,
@@ -50,7 +49,6 @@ export default function RootLayout({
           aria-hidden="true"
           className="pointer-events-none fixed inset-0 z-[35] bg-matte-grain opacity-[0.028]"
         />
-        <SnowOverlay />
         <AuthProvider>
           <NotificationProvider>
             <MiniPlayerProvider>{children}</MiniPlayerProvider>

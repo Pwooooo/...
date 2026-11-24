@@ -14,7 +14,13 @@ interface Flake {
   swayFreq: number;
 }
 
-export default function SnowOverlay() {
+interface SnowOverlayProps {
+  className?: string;
+}
+
+export default function SnowOverlay({
+  className = "pointer-events-none absolute inset-0 h-full w-full select-none",
+}: SnowOverlayProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -24,37 +30,49 @@ export default function SnowOverlay() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    let width = window.innerWidth;
-    let height = window.innerHeight;
+    let width = canvas.clientWidth || 240;
+    let height = canvas.clientHeight || window.innerHeight;
     let dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-    const resize = () => {
-      width = window.innerWidth;
-      height = window.innerHeight;
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = Math.floor(width * dpr);
-      canvas.height = Math.floor(height * dpr);
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    };
-
-    resize();
-
-    const flakeCount = Math.min(110, Math.max(55, Math.floor(width / 16)));
-    const createFlake = (randomY: boolean): Flake => ({
-      x: Math.random() * width,
-      y: randomY ? Math.random() * height : -8 - Math.random() * 24,
-      r: 1.4 + Math.random() * 2.1,
-      vy: 20 + Math.random() * 32,
-      vx: -7 + Math.random() * 15,
-      alpha: 0.28 + Math.random() * 0.44,
+    const createFlake = (randomY: boolean, w: number, h: number): Flake => ({
+      x: Math.random() * w,
+      y: randomY ? Math.random() * h : -8 - Math.random() * 20,
+      r: 1.1 + Math.random() * 1.7,
+      vy: 18 + Math.random() * 26,
+      vx: -4 + Math.random() * 9,
+      alpha: 0.22 + Math.random() * 0.4,
       phase: Math.random() * Math.PI * 2,
-      swayAmp: 7 + Math.random() * 13,
+      swayAmp: 5 + Math.random() * 9,
       swayFreq: 0.45 + Math.random() * 0.75,
     });
 
-    const flakes: Flake[] = Array.from({ length: flakeCount }, () => createFlake(true));
+    let flakes: Flake[] = [];
+
+    const syncSize = () => {
+      const rect = canvas.getBoundingClientRect();
+      width = Math.max(1, Math.floor(rect.width));
+      height = Math.max(1, Math.floor(rect.height));
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const targetCount = Math.max(12, Math.min(36, Math.floor((width * height) / 6800)));
+      if (flakes.length === 0) {
+        flakes = Array.from({ length: targetCount }, () => createFlake(true, width, height));
+      } else if (flakes.length < targetCount) {
+        while (flakes.length < targetCount) {
+          flakes.push(createFlake(true, width, height));
+        }
+      } else if (flakes.length > targetCount) {
+        flakes.length = targetCount;
+      }
+    };
+
+    syncSize();
+
+    const ro = new ResizeObserver(syncSize);
+    ro.observe(canvas);
 
     let rafId = 0;
     let lastTime = performance.now();
@@ -71,12 +89,12 @@ export default function SnowOverlay() {
         f.y += f.vy * dt;
         f.x += (f.vx + Math.sin(f.phase) * f.swayAmp) * dt;
 
-        if (f.y > height + 10) {
-          flakes[i] = createFlake(false);
+        if (f.y > height + 8) {
+          flakes[i] = createFlake(false, width, height);
           continue;
         }
-        if (f.x < -12) f.x = width + 10;
-        else if (f.x > width + 12) f.x = -10;
+        if (f.x < -8) f.x = width + 6;
+        else if (f.x > width + 8) f.x = -6;
 
         ctx.beginPath();
         ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
@@ -88,19 +106,12 @@ export default function SnowOverlay() {
     };
 
     rafId = window.requestAnimationFrame(tick);
-    window.addEventListener("resize", resize);
 
     return () => {
       window.cancelAnimationFrame(rafId);
-      window.removeEventListener("resize", resize);
+      ro.disconnect();
     };
   }, []);
 
-  return (
-    <canvas
-      ref={canvasRef}
-      aria-hidden="true"
-      className="pointer-events-none fixed inset-0 z-[45] select-none"
-    />
-  );
+  return <canvas ref={canvasRef} aria-hidden="true" className={className} />;
 }
