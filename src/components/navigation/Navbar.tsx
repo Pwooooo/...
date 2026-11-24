@@ -133,7 +133,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
           <img
             src="/christmas-entropy.png"
             alt="Entropy"
-            className="h-10 w-10 object-contain group-hover:scale-105 transition-transform"
+            className="h-12 w-12 object-contain group-hover:scale-105 transition-transform"
           />
           <span className="font-bold text-[17px] tracking-tight text-white hidden sm:inline">
             Entropy
