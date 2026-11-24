@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import Navbar from "@/components/navigation/Navbar";
 import Sidebar from "@/components/navigation/Sidebar";
+import AmbientSkyHeader from "@/components/home/AmbientSkyHeader";
 import VideoCard from "@/components/video/VideoCard";
 import Link from "next/link";
 import { Play, Flame } from "lucide-react";
@@ -87,19 +88,22 @@ export default function HomePage() {
   const secondBatchVideos = useMemo(() => regularVideos.slice(4), [regularVideos]);
 
   return (
-    <div className="min-h-screen bg-black text-zinc-100 flex flex-col">
+    <div className="min-h-screen bg-black text-zinc-100 flex flex-col relative">
+      {/* Top-right dithered crescent moon & starry sky */}
+      <AmbientSkyHeader />
+
       {/* Top Navbar */}
       <Navbar onToggleSidebar={() => setCollapsedSidebar(!collapsedSidebar)} />
 
       {/* Main Body */}
-      <div className="flex flex-1">
+      <div className="flex flex-1 relative z-10">
         {/* Sidebar */}
         <Sidebar collapsed={collapsedSidebar} />
 
         {/* Content Area */}
         <main className="flex-1 min-w-0 px-4 md:px-8 pb-12">
           {/* Smooth Category Chips Bar */}
-          <div className="sticky top-14 z-30 bg-gradient-to-b from-[#151517]/90 via-[#151517]/75 to-transparent py-3 -mx-4 md:-mx-8 px-4 md:px-8 mb-6">
+          <div className="sticky top-14 z-30 bg-gradient-to-b from-[#151517]/75 via-[#151517]/45 to-transparent py-3 -mx-4 md:-mx-8 px-4 md:px-8 mb-6">
             <div className="flex items-center gap-2 overflow-x-auto scrollbar-none">
               {CATEGORIES.map((cat) => (
                 <button
