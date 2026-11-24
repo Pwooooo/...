@@ -386,7 +386,7 @@ function SidebarContent({
             title="Expand sidebar"
             aria-label="Expand sidebar"
           >
-            <img src="/entropy-icon.png" alt="Expand sidebar" className="h-8 w-8 object-contain" />
+            <img src="/christmas-entropy.png" alt="Expand sidebar" className="h-8 w-8 object-contain" />
           </button>
           <button
             type="button"
@@ -458,7 +458,7 @@ function SidebarContent({
         <div className="flex items-center justify-between px-3 pt-0.5 pb-4 mb-1">
           <Link href="/" className="flex items-center gap-2.5 group">
             <img
-              src="/entropy-icon.png"
+              src="/christmas-entropy.png"
               alt="Entropy"
               className="h-8 w-8 object-contain group-hover:scale-105 transition-transform"
             />

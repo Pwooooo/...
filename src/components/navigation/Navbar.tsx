@@ -131,7 +131,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
         </button>
         <Link href="/" className="flex items-center gap-2 group">
           <img
-            src="/entropy-icon.png"
+            src="/christmas-entropy.png"
             alt="Entropy"
             className="h-8 w-8 object-contain group-hover:scale-105 transition-transform"
           />
