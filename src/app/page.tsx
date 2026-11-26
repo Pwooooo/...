@@ -107,7 +107,7 @@ export default function HomePage() {
                   onClick={() => setActiveCategory(cat)}
                   className={`flex-shrink-0 px-3.5 py-1.5 rounded-lg text-[13px] font-medium transition-all duration-150 ease-out cursor-pointer outline-none ${
                     activeCategory === cat
-                      ? "bg-[#f1f1f1] text-[#0f0f0f] font-semibold"
+                      ? "bg-white/[0.1] text-[#f1f1f1] font-semibold shadow-sm"
                       : "bg-[#272727] text-[#f1f1f1] hover:bg-[#3f3f3f]"
                   }`}
                 >
