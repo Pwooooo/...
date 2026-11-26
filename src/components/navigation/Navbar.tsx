@@ -117,7 +117,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
       {/* Smoothly fading top backdrop so there is no hard horizontal seam */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-20 -z-10 bg-gradient-to-b from-[#151517] via-[#151517]/85 to-transparent backdrop-blur-md [mask-image:linear-gradient(to_bottom,black_55%,transparent_100%)]"
+        className="pointer-events-none absolute inset-x-0 top-0 h-20 -z-10 bg-gradient-to-b from-[#191b20] via-[#191b20]/85 to-transparent backdrop-blur-md [mask-image:linear-gradient(to_bottom,black_55%,transparent_100%)]"
       />
       {/* Left: Sidebar Toggle + Logo (hidden on md+ when full sidebar already shows brand) */}
       <div className={`flex items-center gap-3 ${sidebarExpanded ? "md:hidden" : ""}`}>
@@ -144,17 +144,17 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
 
       {/* Center: Search Bar (Subtle Outline) */}
       <form onSubmit={handleSearch} className="flex max-w-[540px] flex-1 items-center justify-center px-4">
-        <div className="flex w-full max-w-[440px] items-center rounded-full bg-white/[0.05] border border-white/[0.08] hover:border-white/[0.14] focus-within:border-white/20 transition-all overflow-hidden">
+        <div className="flex w-full max-w-[440px] items-center rounded-full bg-[#21232a]/80 border border-white/[0.05] hover:border-white/[0.11] focus-within:border-white/[0.16] transition-all overflow-hidden">
           <input
             type="text"
             placeholder="Search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-transparent px-3.5 py-1 text-[13px] text-zinc-100 placeholder-zinc-500 outline-none border-none focus:ring-0"
+            className="w-full bg-transparent px-3.5 py-1 text-[13px] text-[#e2e4e9] placeholder-[#8e929c] outline-none border-none focus:ring-0"
           />
           <button
             type="submit"
-            className="flex h-8 w-12 items-center justify-center bg-white/[0.03] hover:bg-white/[0.08] text-zinc-300 border-l border-white/[0.08] transition-colors cursor-pointer"
+            className="flex h-8 w-12 items-center justify-center bg-white/[0.03] hover:bg-white/[0.07] text-[#a0a5b1] border-l border-white/[0.05] transition-colors cursor-pointer"
             title="Search"
           >
             <Search className="h-3.5 w-3.5" />
@@ -163,7 +163,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
 
         <button
           type="button"
-          className="ml-2.5 hidden sm:flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 transition-colors cursor-pointer"
+          className="ml-2.5 hidden sm:flex h-8 w-8 items-center justify-center rounded-full bg-[#21232a]/80 hover:bg-[#292c35] text-[#a0a5b1] transition-colors cursor-pointer"
           title="Search with your voice"
         >
           <Mic className="h-3.5 w-3.5" />
@@ -177,9 +177,9 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
           <button
             type="button"
             onClick={handleCreateClick}
-            className="flex items-center gap-1.5 rounded-full bg-zinc-900 hover:bg-zinc-800 px-3.5 py-1.5 text-xs font-semibold text-white transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 rounded-full bg-[#21232a] hover:bg-[#292c35] px-3.5 py-1.5 text-xs font-semibold text-[#e2e4e9] transition-colors cursor-pointer"
           >
-            <VideoIcon className="h-4 w-4 text-white" />
+            <VideoIcon className="h-4 w-4 text-[#e2e4e9]" />
             <span className="hidden md:inline">Create</span>
           </button>
 

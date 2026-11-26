@@ -240,8 +240,8 @@ function SidebarContent({
         className={cn(
           "group flex items-center justify-between px-3 py-[7px] rounded-md text-[13.5px] font-medium transition-all duration-150 select-none",
           isActive
-            ? "bg-[#181818] text-white font-semibold shadow-sm"
-            : "text-zinc-300 hover:text-white hover:bg-white/[0.05]"
+            ? "bg-[#1e2028] text-[#e2e4e9] font-semibold shadow-sm"
+            : "text-[#a0a5b1] hover:text-[#e2e4e9] hover:bg-white/[0.04]"
         )}
       >
         <div className="flex items-center gap-3.5 min-w-0">
@@ -281,7 +281,7 @@ function SidebarContent({
         />
 
         {/* Slide-over Drawer */}
-        <aside className="relative flex h-full w-60 flex-col bg-[#111111] text-zinc-200 border-r border-white/[0.08] z-50 overflow-y-auto px-3 py-3 shadow-2xl animate-in slide-in-from-left duration-250 select-none scrollbar-none font-sidebar">
+        <aside className="relative flex h-full w-60 flex-col bg-[#141519] text-[#d1d4dc] border-r border-white/[0.05] z-50 overflow-y-auto px-3 py-3 shadow-2xl animate-in slide-in-from-left duration-250 select-none scrollbar-none font-sidebar">
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_120%_70%_at_50%_0%,rgba(255,255,255,0.025)_0%,transparent_55%,rgba(0,0,0,0.22)_100%)]"
@@ -346,7 +346,7 @@ function SidebarContent({
     return (
       <>
         <div className="hidden md:block flex-shrink-0 w-16" aria-hidden="true" />
-        <aside className="fixed left-0 top-0 bottom-0 z-50 hidden md:flex h-screen w-16 flex-col items-center py-3.5 bg-[#111111] text-zinc-300 border-r border-white/[0.08] select-none scrollbar-none overflow-y-auto font-sidebar">
+        <aside className="fixed left-0 top-0 bottom-0 z-50 hidden md:flex h-screen w-16 flex-col items-center py-3.5 bg-[#141519] text-[#a0a5b1] border-r border-white/[0.05] select-none scrollbar-none overflow-y-auto font-sidebar">
           <div
             aria-hidden="true"
             className="pointer-events-none fixed left-0 top-0 bottom-0 w-16 bg-[radial-gradient(ellipse_140%_70%_at_50%_0%,rgba(255,255,255,0.025)_0%,transparent_55%,rgba(0,0,0,0.22)_100%)]"
@@ -390,8 +390,8 @@ function SidebarContent({
                         className={cn(
                           "relative flex items-center justify-center w-10 h-10 rounded-md transition-all duration-150",
                           isActive
-                            ? "bg-[#181818] text-white shadow-sm"
-                            : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
+                            ? "bg-[#1e2028] text-[#e2e4e9] shadow-sm"
+                            : "text-[#8e929c] hover:text-[#e2e4e9] hover:bg-white/[0.04]"
                         )}
                         title={item.label}
                       >
@@ -418,7 +418,7 @@ function SidebarContent({
   return (
     <>
       <div className="hidden md:block flex-shrink-0 w-60" aria-hidden="true" />
-      <aside className="fixed left-0 top-0 bottom-0 z-50 hidden md:flex h-screen w-60 flex-col overflow-y-auto px-3 py-3.5 bg-[#111111] text-zinc-200 border-r border-white/[0.08] select-none scrollbar-none font-sidebar">
+      <aside className="fixed left-0 top-0 bottom-0 z-50 hidden md:flex h-screen w-60 flex-col overflow-y-auto px-3 py-3.5 bg-[#141519] text-[#d1d4dc] border-r border-white/[0.05] select-none scrollbar-none font-sidebar">
         <div
           aria-hidden="true"
           className="pointer-events-none fixed left-0 top-0 bottom-0 w-60 bg-[radial-gradient(ellipse_120%_70%_at_50%_0%,rgba(255,255,255,0.025)_0%,transparent_55%,rgba(0,0,0,0.22)_100%)]"

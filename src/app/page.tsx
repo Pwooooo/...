@@ -99,7 +99,7 @@ export default function HomePage() {
         {/* Content Area */}
         <main className="flex-1 min-w-0 px-4 md:px-8 pb-12">
           {/* Smooth Category Chips Bar */}
-          <div className="sticky top-14 z-30 bg-gradient-to-b from-[#151517]/75 via-[#151517]/45 to-transparent py-3 -mx-4 md:-mx-8 px-4 md:px-8 mb-6">
+          <div className="sticky top-14 z-30 bg-gradient-to-b from-[#191b20]/80 via-[#191b20]/50 to-transparent py-3 -mx-4 md:-mx-8 px-4 md:px-8 mb-6">
             <div className="flex items-center gap-2 overflow-x-auto scrollbar-none">
               {CATEGORIES.map((cat) => (
                 <button
@@ -107,8 +107,8 @@ export default function HomePage() {
                   onClick={() => setActiveCategory(cat)}
                   className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ease-out cursor-pointer outline-none ${
                     activeCategory === cat
-                      ? "bg-white/[0.08] text-white shadow-sm"
-                      : "bg-transparent text-zinc-400 hover:bg-white/[0.04] hover:text-white"
+                      ? "bg-white/[0.07] text-[#e2e4e9] shadow-sm"
+                      : "bg-transparent text-[#8e929c] hover:bg-white/[0.04] hover:text-[#e2e4e9]"
                   }`}
                 >
                   {cat}
