@@ -53,26 +53,6 @@ interface NavSection {
   items: NavItem[];
 }
 
-function SantaHatBadge() {
-  return (
-    <svg
-      viewBox="0 0 20 16"
-      aria-hidden="true"
-      className="pointer-events-none absolute -top-[6px] -left-[4px] h-[11px] w-[14px] -rotate-[14deg] drop-shadow-[0_1px_1px_rgba(0,0,0,0.7)]"
-    >
-      {/* Red hat cone */}
-      <path
-        d="M17.2 11.2 C16.6 6.2 14.4 2.2 11.6 2.2 C8.6 2.2 5.8 3.4 4.0 5.2 C5.4 5.6 6.6 7.8 6.8 11.2 Z"
-        fill="#dc2626"
-      />
-      {/* White brim */}
-      <rect x="6" y="10.8" width="12" height="3.2" rx="1.6" fill="#f4f4f5" />
-      {/* White pom-pom */}
-      <circle cx="3.6" cy="5.4" r="2.1" fill="#ffffff" />
-    </svg>
-  );
-}
-
 function SidebarContent({
   collapsed = false,
   drawer = false,
@@ -265,16 +245,13 @@ function SidebarContent({
         )}
       >
         <div className="flex items-center gap-3.5 min-w-0">
-          <span className="relative inline-flex flex-shrink-0 items-center justify-center">
-            <Icon
-              className={cn(
-                "h-[18px] w-[18px] transition-colors",
-                getActiveIconClass(item.label, isActive)
-              )}
-              strokeWidth={isActive ? 2.1 : 1.8}
-            />
-            <SantaHatBadge />
-          </span>
+          <Icon
+            className={cn(
+              "h-[18px] w-[18px] flex-shrink-0 transition-colors",
+              getActiveIconClass(item.label, isActive)
+            )}
+            strokeWidth={isActive ? 2.1 : 1.8}
+          />
           <span className="truncate">{item.label}</span>
         </div>
         {item.badge !== undefined && (
@@ -418,13 +395,10 @@ function SidebarContent({
                         )}
                         title={item.label}
                       >
-                        <span className="relative inline-flex items-center justify-center">
-                          <Icon
-                            className={cn("h-[18px] w-[18px]", getActiveIconClass(item.label, isActive))}
-                            strokeWidth={isActive ? 2.1 : 1.8}
-                          />
-                          <SantaHatBadge />
-                        </span>
+                        <Icon
+                          className={cn("h-[18px] w-[18px]", getActiveIconClass(item.label, isActive))}
+                          strokeWidth={isActive ? 2.1 : 1.8}
+                        />
                         {item.badge !== undefined && (
                           <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-[#e51d42] ring-2 ring-[#111111]" />
                         )}
