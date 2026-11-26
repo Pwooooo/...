@@ -99,7 +99,7 @@ export default function SnowOverlay({
 
         ctx.beginPath();
         ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(215, 222, 235, ${f.alpha * 0.72})`;
+        ctx.fillStyle = `rgba(241, 241, 241, ${f.alpha * 0.65})`;
         ctx.fill();
       }
 
